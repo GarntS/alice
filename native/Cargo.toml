@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "alice_platform",
+  "alice_layer_shell",
+]
+resolver = "2"

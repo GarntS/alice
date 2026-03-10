@@ -1,0 +1,39 @@
+# OS / editor noise
+.DS_Store
+*.swp
+*.swo
+*.tmp
+*.log
+.idea/
+*.iml
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub/
+.pub-cache/
+build/
+coverage/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+app.*.symbols
+app.*.map.json
+
+# Flutter Linux generated files
+linux/flutter/ephemeral/
+linux/flutter/generated_config.cmake
+linux/flutter/generated_plugin_registrant.cc
+linux/flutter/generated_plugin_registrant.h
+
+# Rust
+target/
+native/target/
+
+# Local dev shell / repo-local caches
+.cache/
+.cargo-home/
+.nix-home/
+
+# Optional local IDE config
+# .vscode/

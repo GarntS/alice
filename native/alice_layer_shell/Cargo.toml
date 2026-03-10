@@ -1,0 +1,12 @@
+[package]
+name = "alice_layer_shell"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+wayland-client = "0.31.13"
+wayland-protocols = "0.32.11"
+wayland-protocols-wlr = "0.3.11"

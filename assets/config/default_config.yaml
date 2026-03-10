@@ -1,0 +1,36 @@
+# Alice configuration
+#
+# This file is written to $XDG_CONFIG_HOME/alice/config.yaml on first run.
+# Values shown here are the supported defaults for the first implementation.
+
+theme:
+  # One of: system, light, dark
+  mode: system
+
+  # Accent color used throughout the bar and panels.
+  # Format: #RRGGBB
+  accent: "#4C956C"
+
+network:
+  # Whether to show the SSID or status label next to the network icon.
+  show_label: true
+
+tray:
+  # Once this many tray items are visible, the remainder are collapsed into an
+  # overflow panel. The bar shows N-1 items and an overflow toggle.
+  max_visible_items: 5
+
+clock:
+  # Additional time zones shown in the clock panel.
+  additional_time_zones:
+    - label: UTC
+      offset_hours: 0
+    - label: AEST
+      offset_hours: 10
+
+power:
+  # Commands are delegated to the shell and may be customized by the user.
+  lock: "loginctl lock-session"
+  lock_and_suspend: "loginctl lock-session && systemctl suspend"
+  restart: "systemctl reboot"
+  poweroff: "systemctl poweroff"
