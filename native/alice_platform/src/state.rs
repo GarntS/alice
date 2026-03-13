@@ -20,6 +20,8 @@ pub struct WorkspaceSnapshot {
 pub struct MediaSnapshot {
     pub title: String,
     pub artist: String,
+    pub album_title: String,
+    pub art_url: String,
     pub position_label: String,
     pub length_label: String,
     pub is_playing: bool,
@@ -49,4 +51,8 @@ pub struct ClockSnapshot {
 pub struct TrayItemSnapshot {
     pub id: String,
     pub label: String,
+    pub icon_name: String,
+    pub icon_theme_path: String,
+    pub service_name: String,
+    pub object_path: String,
 }

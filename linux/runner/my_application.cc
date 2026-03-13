@@ -24,6 +24,27 @@ constexpr char kPlatformChannelName[] = "alice/platform";
 constexpr char kEventChannelName[] = "alice/platform/events";
 constexpr char kBarWindowArgument[] = "--alice-window=bar";
 constexpr char kPanelWindowArgument[] = "--alice-window=panel";
+constexpr guint kSnapshotDebounceMs = 50;
+constexpr guint kStatsIntervalSeconds = 1;
+constexpr guint kClockIntervalSeconds = 30;
+constexpr char kMprisPrefix[] = "org.mpris.MediaPlayer2.";
+constexpr char kStatusNotifierPrefixKde[] = "org.kde.StatusNotifierItem";
+constexpr char kStatusNotifierPrefixFreedesktop[] =
+    "org.freedesktop.StatusNotifierItem";
+constexpr char kStatusNotifierWatcherPath[] = "/StatusNotifierWatcher";
+constexpr char kStatusNotifierWatcherKdeBusName[] =
+    "org.kde.StatusNotifierWatcher";
+constexpr char kStatusNotifierWatcherFreedesktopBusName[] =
+    "org.freedesktop.StatusNotifierWatcher";
+constexpr char kStatusNotifierWatcherKdeInterface[] =
+    "org.kde.StatusNotifierWatcher";
+constexpr char kStatusNotifierWatcherFreedesktopInterface[] =
+    "org.freedesktop.StatusNotifierWatcher";
+constexpr char kStatusNotifierItemKdeInterface[] = "org.kde.StatusNotifierItem";
+constexpr char kStatusNotifierItemFreedesktopInterface[] =
+    "org.freedesktop.StatusNotifierItem";
+constexpr char kDefaultStatusNotifierItemPath[] = "/StatusNotifierItem";
+constexpr gint kTrayIconSizePx = 16;
 void configure_layer_shell_bar_window(GtkWindow* window) {
   AliceSurfacePlacementFFI bar_placement = alice_layer_shell_bar_placement();
   GdkDisplay* display = gdk_display_get_default();
@@ -120,6 +141,12 @@ FlValue* build_config_value() {
                            fl_value_new_bool(config->show_network_label));
   fl_value_set_string_take(value, "maxVisibleTrayItems",
                            fl_value_new_int(config->max_visible_tray_items));
+  if (config->local_time_zone_label != nullptr &&
+      config->local_time_zone_label[0] != '\0') {
+    fl_value_set_string_take(
+        value, "localTimeZoneLabel",
+        fl_value_new_string(config->local_time_zone_label));
+  }
 
   FlValue* time_zones = fl_value_new_list();
   for (size_t index = 0; index < config->time_zone_count; index++) {
@@ -155,13 +182,24 @@ FlValue* build_workspace_value(const WorkspaceFFI& workspace) {
 }
 
 FlValue* build_media_value(const MediaFFI& media) {
+  const char* title = media.title == nullptr ? "" : media.title;
+  const char* artist = media.artist == nullptr ? "" : media.artist;
+  const char* album_title = media.album_title == nullptr ? "" : media.album_title;
+  const char* art_url = media.art_url == nullptr ? "" : media.art_url;
+  const char* position_label =
+      media.position_label == nullptr ? "" : media.position_label;
+  const char* length_label =
+      media.length_label == nullptr ? "" : media.length_label;
   FlValue* value = fl_value_new_map();
-  fl_value_set_string_take(value, "title", fl_value_new_string(media.title));
-  fl_value_set_string_take(value, "artist", fl_value_new_string(media.artist));
+  fl_value_set_string_take(value, "title", fl_value_new_string(title));
+  fl_value_set_string_take(value, "artist", fl_value_new_string(artist));
+  fl_value_set_string_take(value, "albumTitle",
+                           fl_value_new_string(album_title));
+  fl_value_set_string_take(value, "artUrl", fl_value_new_string(art_url));
   fl_value_set_string_take(value, "positionLabel",
-                           fl_value_new_string(media.position_label));
+                           fl_value_new_string(position_label));
   fl_value_set_string_take(value, "lengthLabel",
-                           fl_value_new_string(media.length_label));
+                           fl_value_new_string(length_label));
   fl_value_set_string_take(value, "isPlaying",
                            fl_value_new_bool(media.is_playing));
   return value;
@@ -190,10 +228,257 @@ FlValue* build_disconnected_network_value() {
 }
 
 
-FlValue* build_tray_item_value(const TrayItemFFI& tray_item) {
+GHashTable* tray_icon_png_cache() {
+  static GHashTable* cache = nullptr;
+  if (cache == nullptr) {
+    cache = g_hash_table_new_full(
+        g_str_hash, g_str_equal, g_free,
+        reinterpret_cast<GDestroyNotify>(g_bytes_unref));
+  }
+  return cache;
+}
+
+void free_rgba_buffer(guchar* pixels, gpointer user_data) {
+  g_free(pixels);
+}
+
+GDBusConnection* tray_icon_session_bus() {
+  static GDBusConnection* connection = nullptr;
+  if (connection != nullptr) {
+    return connection;
+  }
+
+  g_autoptr(GError) error = nullptr;
+  connection = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &error);
+  if (connection == nullptr) {
+    return nullptr;
+  }
+  return connection;
+}
+
+GBytes* encode_pixbuf_png_bytes(GdkPixbuf* pixbuf, const gchar* cache_key) {
+  if (pixbuf == nullptr) {
+    return nullptr;
+  }
+
+  g_autoptr(GError) error = nullptr;
+  gchar* buffer = nullptr;
+  gsize size = 0;
+  if (!gdk_pixbuf_save_to_buffer(pixbuf, &buffer, &size, "png", &error, nullptr) ||
+      buffer == nullptr || size == 0) {
+    if (buffer != nullptr) {
+      g_free(buffer);
+    }
+    return nullptr;
+  }
+
+  GBytes* bytes = g_bytes_new_take(reinterpret_cast<guint8*>(buffer), size);
+  if (cache_key != nullptr && cache_key[0] != '\0') {
+    g_hash_table_insert(tray_icon_png_cache(), g_strdup(cache_key), g_bytes_ref(bytes));
+  }
+  return bytes;
+}
+
+GBytes* png_bytes_from_icon_pixmap_variant(gint width, gint height, GVariant* bytes_variant) {
+  if (width <= 0 || height <= 0 || bytes_variant == nullptr) {
+    return nullptr;
+  }
+
+  gsize length = 0;
+  const guint8* argb = static_cast<const guint8*>(
+      g_variant_get_fixed_array(bytes_variant, &length, sizeof(guint8)));
+  if (argb == nullptr) {
+    return nullptr;
+  }
+
+  const gsize expected_size = static_cast<gsize>(width) * static_cast<gsize>(height) * 4;
+  if (length < expected_size) {
+    return nullptr;
+  }
+
+  guchar* rgba = static_cast<guchar*>(g_malloc(expected_size));
+  for (gsize index = 0; index < expected_size; index += 4) {
+    const guint8 a = argb[index + 0];
+    const guint8 r = argb[index + 1];
+    const guint8 g = argb[index + 2];
+    const guint8 b = argb[index + 3];
+    rgba[index + 0] = r;
+    rgba[index + 1] = g;
+    rgba[index + 2] = b;
+    rgba[index + 3] = a;
+  }
+
+  g_autoptr(GdkPixbuf) source = gdk_pixbuf_new_from_data(
+      rgba, GDK_COLORSPACE_RGB, TRUE, 8, width, height, width * 4,
+      free_rgba_buffer, nullptr);
+  if (source == nullptr) {
+    g_free(rgba);
+    return nullptr;
+  }
+
+  g_autoptr(GdkPixbuf) scaled = nullptr;
+  GdkPixbuf* target = source;
+  if (width != kTrayIconSizePx || height != kTrayIconSizePx) {
+    scaled = gdk_pixbuf_scale_simple(source, kTrayIconSizePx, kTrayIconSizePx,
+                                     GDK_INTERP_BILINEAR);
+    if (scaled != nullptr) {
+      target = scaled;
+    }
+  }
+
+  return encode_pixbuf_png_bytes(target, nullptr);
+}
+
+GBytes* load_tray_icon_png_bytes_from_sni_pixmap(const char* service_name,
+                                                 const char* object_path) {
+  if (service_name == nullptr || service_name[0] == '\0' || object_path == nullptr ||
+      object_path[0] == '\0') {
+    return nullptr;
+  }
+
+  g_autofree gchar* cache_key =
+      g_strdup_printf("pixmap|%s|%s", service_name, object_path);
+  GBytes* cached = static_cast<GBytes*>(
+      g_hash_table_lookup(tray_icon_png_cache(), cache_key));
+  if (cached != nullptr) {
+    return g_bytes_ref(cached);
+  }
+
+  GDBusConnection* session_bus = tray_icon_session_bus();
+  if (session_bus == nullptr) {
+    return nullptr;
+  }
+
+  const char* item_interfaces[] = {
+      kStatusNotifierItemKdeInterface,
+      kStatusNotifierItemFreedesktopInterface,
+  };
+  for (const char* item_interface : item_interfaces) {
+    g_autoptr(GError) error = nullptr;
+    g_autoptr(GVariant) result = g_dbus_connection_call_sync(
+        session_bus, service_name, object_path, "org.freedesktop.DBus.Properties",
+        "Get", g_variant_new("(ss)", item_interface, "IconPixmap"),
+        G_VARIANT_TYPE("(v)"), G_DBUS_CALL_FLAGS_NONE, 200, nullptr, &error);
+    if (result == nullptr) {
+      continue;
+    }
+
+    g_autoptr(GVariant) boxed_value = nullptr;
+    g_variant_get(result, "(@v)", &boxed_value);
+    if (boxed_value == nullptr) {
+      continue;
+    }
+    g_autoptr(GVariant) pixmaps = g_variant_get_variant(boxed_value);
+    if (pixmaps == nullptr || !g_variant_is_of_type(pixmaps, G_VARIANT_TYPE("a(iiay)"))) {
+      continue;
+    }
+
+    GBytes* best_bytes = nullptr;
+    gint64 best_area = 0;
+    const gsize child_count = g_variant_n_children(pixmaps);
+    for (gsize index = 0; index < child_count; index++) {
+      g_autoptr(GVariant) entry = g_variant_get_child_value(pixmaps, index);
+      gint32 width = 0;
+      gint32 height = 0;
+      g_autoptr(GVariant) bytes_variant = nullptr;
+      g_variant_get(entry, "(ii@ay)", &width, &height, &bytes_variant);
+      const gint64 area = static_cast<gint64>(width) * static_cast<gint64>(height);
+      if (area <= 0) {
+        continue;
+      }
+
+      g_autoptr(GBytes) png_bytes =
+          png_bytes_from_icon_pixmap_variant(width, height, bytes_variant);
+      if (png_bytes == nullptr) {
+        continue;
+      }
+
+      if (area > best_area) {
+        if (best_bytes != nullptr) {
+          g_bytes_unref(best_bytes);
+        }
+        best_bytes = g_bytes_ref(png_bytes);
+        best_area = area;
+      }
+    }
+
+    if (best_bytes != nullptr) {
+      g_hash_table_insert(tray_icon_png_cache(), g_strdup(cache_key),
+                          g_bytes_ref(best_bytes));
+      return best_bytes;
+    }
+  }
+
+  return nullptr;
+}
+
+GBytes* load_tray_icon_png_bytes(const char* icon_name, const char* icon_theme_path) {
+  if (icon_name == nullptr || icon_name[0] == '\0') {
+    return nullptr;
+  }
+
+  const char* theme_path = icon_theme_path == nullptr ? "" : icon_theme_path;
+  g_autofree gchar* cache_key = g_strdup_printf("%s|%s", icon_name, theme_path);
+  GHashTable* cache = tray_icon_png_cache();
+  GBytes* cached = static_cast<GBytes*>(g_hash_table_lookup(cache, cache_key));
+  if (cached != nullptr) {
+    return g_bytes_ref(cached);
+  }
+
+  g_autoptr(GError) error = nullptr;
+  g_autoptr(GdkPixbuf) pixbuf = nullptr;
+  if (g_path_is_absolute(icon_name)) {
+    pixbuf = gdk_pixbuf_new_from_file_at_scale(
+        icon_name, kTrayIconSizePx, kTrayIconSizePx, TRUE, &error);
+  } else {
+    GtkIconTheme* icon_theme = gtk_icon_theme_get_default();
+    if (icon_theme != nullptr && icon_theme_path != nullptr &&
+        icon_theme_path[0] != '\0') {
+      gtk_icon_theme_append_search_path(icon_theme, icon_theme_path);
+    }
+    pixbuf = icon_theme == nullptr
+                 ? nullptr
+                 : gtk_icon_theme_load_icon(
+                       icon_theme, icon_name, kTrayIconSizePx,
+                       static_cast<GtkIconLookupFlags>(GTK_ICON_LOOKUP_FORCE_SIZE),
+                       &error);
+  }
+
+  if (pixbuf == nullptr) {
+    return nullptr;
+  }
+  return encode_pixbuf_png_bytes(pixbuf, cache_key);
+}
+
+FlValue* build_tray_item_value(const TrayItemFFI& tray_item, bool include_icon_bytes) {
   FlValue* value = fl_value_new_map();
   fl_value_set_string_take(value, "id", fl_value_new_string(tray_item.id));
   fl_value_set_string_take(value, "label", fl_value_new_string(tray_item.label));
+  fl_value_set_string_take(value, "serviceName",
+                           fl_value_new_string(tray_item.service_name));
+  fl_value_set_string_take(value, "objectPath",
+                           fl_value_new_string(tray_item.object_path));
+  if (include_icon_bytes) {
+    g_autoptr(GBytes) icon_bytes =
+        load_tray_icon_png_bytes(tray_item.icon_name, tray_item.icon_theme_path);
+    if (icon_bytes == nullptr) {
+      g_autofree gchar* label_icon_name = g_ascii_strdown(tray_item.label, -1);
+      icon_bytes = load_tray_icon_png_bytes(label_icon_name, tray_item.icon_theme_path);
+    }
+    if (icon_bytes == nullptr) {
+      icon_bytes = load_tray_icon_png_bytes_from_sni_pixmap(
+          tray_item.service_name, tray_item.object_path);
+    }
+    if (icon_bytes != nullptr) {
+      gsize length = 0;
+      const guint8* data =
+          static_cast<const guint8*>(g_bytes_get_data(icon_bytes, &length));
+      if (data != nullptr && length > 0) {
+        fl_value_set_string_take(value, "iconPngBytes",
+                                 fl_value_new_uint8_list(data, length));
+      }
+    }
+  }
   return value;
 }
 
@@ -238,10 +523,23 @@ bool execute_command_for_action(const char* action) {
 
   gboolean spawned = FALSE;
   if (command != nullptr && command[0] != '\0') {
-    g_autoptr(GError) error = nullptr;
-    spawned = g_spawn_command_line_async(command, &error);
-    if (!spawned && error != nullptr) {
+    gchar* argv[] = {
+        const_cast<gchar*>("/bin/sh"),
+        const_cast<gchar*>("-c"),
+        const_cast<gchar*>(command),
+        nullptr,
+    };
+    GError* error = nullptr;
+    GPid pid = 0;
+    spawned = g_spawn_async(
+        nullptr, argv, nullptr,
+        static_cast<GSpawnFlags>(G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD),
+        nullptr, nullptr, &pid, &error);
+    if (spawned) {
+      g_spawn_close_pid(pid);
+    } else if (error != nullptr) {
       g_warning("Failed to execute power command: %s", error->message);
+      g_clear_error(&error);
     }
   }
 
@@ -258,8 +556,26 @@ struct _MyApplication {
   FlEventChannel* event_channel;
   GtkWindow* window;
   GtkWindow* dismiss_window;
-  guint snapshot_timer_id;
+  guint snapshot_debounce_id;
+  guint stats_timer_id;
+  guint clock_timer_id;
   gboolean event_stream_active;
+  GDBusConnection* session_bus;
+  guint tray_item_properties_changed_id;
+  guint mpris_properties_changed_id;
+  guint name_owner_changed_id;
+  guint status_notifier_watcher_kde_registration_id;
+  guint status_notifier_watcher_freedesktop_registration_id;
+  guint status_notifier_watcher_kde_owner_id;
+  guint status_notifier_watcher_freedesktop_owner_id;
+  GDBusNodeInfo* status_notifier_watcher_node_info;
+  GHashTable* status_notifier_registered_items;
+  gboolean status_notifier_host_registered;
+  GPid sway_pid;
+  GIOChannel* sway_stdout_channel;
+  guint sway_stdout_watch_id;
+  GFileMonitor* net_dir_monitor;
+  GHashTable* net_file_monitors;
   gboolean layer_shell_supported;
   gboolean is_panel_process;
   gboolean panel_first_frame_received;
@@ -330,9 +646,14 @@ static gchar** build_panel_process_argv(MyApplication* self) {
   return reinterpret_cast<gchar**>(g_ptr_array_free(g_steal_pointer(&args), FALSE));
 }
 
-static FlValue* build_snapshot_value(const gchar* active_panel_id) {
+static FlValue* build_snapshot_value(MyApplication* self,
+                                     const gchar* active_panel_id) {
   AliceSnapshotFFI* snapshot = alice_platform_read_snapshot();
   FlValue* value = fl_value_new_map();
+  const gboolean panel_process = self->is_panel_process;
+  const gboolean tray_panel_open =
+      active_panel_id != nullptr && g_strcmp0(active_panel_id, "trayOverflow") == 0;
+  const gboolean include_tray_icon_bytes = !panel_process || tray_panel_open;
 
   if (active_panel_id != nullptr && active_panel_id[0] != '\0') {
     fl_value_set_string_take(value, "activePanelId",
@@ -372,7 +693,8 @@ static FlValue* build_snapshot_value(const gchar* active_panel_id) {
                              build_clock_value(snapshot->clock));
     for (size_t index = 0; index < snapshot->tray_item_count; index++) {
       fl_value_append_take(tray_items,
-                           build_tray_item_value(snapshot->tray_items[index]));
+                           build_tray_item_value(snapshot->tray_items[index],
+                                                 include_tray_icon_bytes));
     }
   } else {
     fl_value_set_string_take(value, "network",
@@ -439,7 +761,7 @@ static void update_panel_window_geometry(MyApplication* self) {
       static_cast<gint>(self->panel_anchor_x) - monitor_x;
   const gint relative_anchor_y =
       static_cast<gint>(self->panel_anchor_y) - monitor_y;
-  gint margin_top = relative_anchor_y + 8;
+  gint margin_top = relative_anchor_y;
   margin_top = CLAMP(
       margin_top, 0,
       MAX(0, monitor_height - static_cast<gint>(placement.height)));
@@ -450,13 +772,15 @@ static void update_panel_window_geometry(MyApplication* self) {
   if (align_right) {
     margin_right = monitor_width - relative_anchor_x;
     margin_right = CLAMP(margin_right, 0, monitor_width);
-    if (margin_right + static_cast<gint>(placement.width) > monitor_width) {
-      margin_right = MAX(0, monitor_width - static_cast<gint>(placement.width));
+    const gint placement_width = static_cast<gint>(placement.width);
+    if (margin_right + placement_width > monitor_width) {
+      margin_right = MAX(0, monitor_width - placement_width);
     }
   } else {
-    margin_left = (monitor_width - static_cast<gint>(placement.width)) / 2;
-    margin_left = CLAMP(margin_left, 0,
-                        MAX(0, monitor_width - static_cast<gint>(placement.width)));
+    const gint placement_width = static_cast<gint>(placement.width);
+    margin_left = relative_anchor_x - (placement_width / 2);
+    margin_left =
+        CLAMP(margin_left, 0, MAX(0, monitor_width - placement_width));
   }
 
   if (self->layer_shell_supported && gtk_layer_is_supported()) {
@@ -569,7 +893,7 @@ static gboolean on_panel_socket_incoming(GSocketService* service,
   if (self->event_stream_active && self->event_channel != nullptr) {
     g_autoptr(GError) snapshot_error = nullptr;
     if (!fl_event_channel_send(self->event_channel,
-                               build_snapshot_value(self->panel_id), nullptr,
+                               build_snapshot_value(self, self->panel_id), nullptr,
                                &snapshot_error)) {
       g_warning("Failed to send snapshot: %s", snapshot_error->message);
     }
@@ -719,20 +1043,703 @@ static gboolean send_panel_command(MyApplication* self, const gchar* command) {
   return FALSE;
 }
 
-static gboolean send_snapshot(gpointer user_data) {
+static gboolean send_snapshot_now(gpointer user_data) {
   MyApplication* self = MY_APPLICATION(user_data);
+  self->snapshot_debounce_id = 0;
   if (!self->event_stream_active || self->event_channel == nullptr) {
-    self->snapshot_timer_id = 0;
     return G_SOURCE_REMOVE;
   }
 
   g_autoptr(GError) error = nullptr;
-  if (!fl_event_channel_send(self->event_channel, build_snapshot_value(self->panel_id),
-                             nullptr, &error)) {
+  if (!fl_event_channel_send(self->event_channel,
+                             build_snapshot_value(self, self->panel_id), nullptr,
+                             &error)) {
     g_warning("Failed to send snapshot: %s", error->message);
   }
 
+  return G_SOURCE_REMOVE;
+}
+
+static void schedule_snapshot(MyApplication* self) {
+  if (!self->event_stream_active || self->event_channel == nullptr) {
+    return;
+  }
+  if (self->snapshot_debounce_id != 0) {
+    return;
+  }
+  self->snapshot_debounce_id =
+      g_timeout_add(kSnapshotDebounceMs, send_snapshot_now, self);
+}
+
+static gboolean stats_tick(gpointer user_data) {
+  schedule_snapshot(MY_APPLICATION(user_data));
   return G_SOURCE_CONTINUE;
+}
+
+static gboolean clock_tick(gpointer user_data) {
+  schedule_snapshot(MY_APPLICATION(user_data));
+  return G_SOURCE_CONTINUE;
+}
+
+static gboolean is_relevant_dbus_name(const gchar* name) {
+  if (name == nullptr) {
+    return FALSE;
+  }
+  return g_str_has_prefix(name, kMprisPrefix) ||
+         g_str_has_prefix(name, kStatusNotifierPrefixKde) ||
+         g_str_has_prefix(name, kStatusNotifierPrefixFreedesktop);
+}
+
+static gboolean is_tray_dbus_name(const gchar* name) {
+  if (name == nullptr) {
+    return FALSE;
+  }
+  return g_str_has_prefix(name, kStatusNotifierPrefixKde) ||
+         g_str_has_prefix(name, kStatusNotifierPrefixFreedesktop);
+}
+
+static gchar* canonical_status_notifier_item_id(const gchar* sender_name,
+                                                const gchar* service_or_path) {
+  if (service_or_path == nullptr || service_or_path[0] == '\0') {
+    return nullptr;
+  }
+
+  if (service_or_path[0] == '/') {
+    if (sender_name == nullptr || sender_name[0] == '\0') {
+      return nullptr;
+    }
+    return g_strdup_printf("%s%s", sender_name, service_or_path);
+  }
+
+  if (strchr(service_or_path, '/') != nullptr) {
+    return g_strdup(service_or_path);
+  }
+
+  return g_strdup_printf("%s%s", service_or_path, kDefaultStatusNotifierItemPath);
+}
+
+static void emit_status_notifier_item_signal(MyApplication* self,
+                                             const gchar* signal_name,
+                                             const gchar* item_id) {
+  if (self->session_bus == nullptr) {
+    return;
+  }
+  if (item_id == nullptr || item_id[0] == '\0') {
+    return;
+  }
+
+  g_dbus_connection_emit_signal(
+      self->session_bus, nullptr, kStatusNotifierWatcherPath,
+      kStatusNotifierWatcherKdeInterface, signal_name,
+      g_variant_new("(s)", item_id), nullptr);
+  g_dbus_connection_emit_signal(self->session_bus, nullptr,
+                                kStatusNotifierWatcherPath,
+                                kStatusNotifierWatcherFreedesktopInterface,
+                                signal_name, g_variant_new("(s)", item_id),
+                                nullptr);
+}
+
+static void emit_status_notifier_host_signal(MyApplication* self,
+                                             const gchar* signal_name) {
+  if (self->session_bus == nullptr) {
+    return;
+  }
+
+  g_dbus_connection_emit_signal(
+      self->session_bus, nullptr, kStatusNotifierWatcherPath,
+      kStatusNotifierWatcherKdeInterface, signal_name, nullptr, nullptr);
+  g_dbus_connection_emit_signal(
+      self->session_bus, nullptr, kStatusNotifierWatcherPath,
+      kStatusNotifierWatcherFreedesktopInterface, signal_name, nullptr,
+      nullptr);
+}
+
+static GVariant* build_registered_status_notifier_items_variant(
+    MyApplication* self) {
+  g_autoptr(GPtrArray) items =
+      g_ptr_array_new_with_free_func(reinterpret_cast<GDestroyNotify>(g_free));
+  if (self->status_notifier_registered_items != nullptr) {
+    GHashTableIter iter;
+    gpointer key = nullptr;
+    gpointer value = nullptr;
+    g_hash_table_iter_init(&iter, self->status_notifier_registered_items);
+    while (g_hash_table_iter_next(&iter, &key, &value)) {
+      g_ptr_array_add(items, g_strdup(static_cast<const gchar*>(key)));
+    }
+  }
+  g_ptr_array_sort(items, reinterpret_cast<GCompareFunc>(g_strcmp0));
+
+  GVariantBuilder builder;
+  g_variant_builder_init(&builder, G_VARIANT_TYPE("as"));
+  for (guint index = 0; index < items->len; index++) {
+    g_variant_builder_add(&builder, "s",
+                          static_cast<const gchar*>(items->pdata[index]));
+  }
+  return g_variant_builder_end(&builder);
+}
+
+static gboolean add_registered_status_notifier_item(MyApplication* self,
+                                                    const gchar* item_id) {
+  if (self->status_notifier_registered_items == nullptr || item_id == nullptr ||
+      item_id[0] == '\0') {
+    return FALSE;
+  }
+  if (g_hash_table_contains(self->status_notifier_registered_items, item_id)) {
+    return FALSE;
+  }
+
+  g_hash_table_insert(self->status_notifier_registered_items, g_strdup(item_id),
+                      GINT_TO_POINTER(1));
+  emit_status_notifier_item_signal(self, "StatusNotifierItemRegistered", item_id);
+  return TRUE;
+}
+
+static gboolean remove_registered_status_notifier_item(MyApplication* self,
+                                                       const gchar* item_id) {
+  if (self->status_notifier_registered_items == nullptr || item_id == nullptr ||
+      item_id[0] == '\0') {
+    return FALSE;
+  }
+
+  if (!g_hash_table_remove(self->status_notifier_registered_items, item_id)) {
+    return FALSE;
+  }
+
+  emit_status_notifier_item_signal(self, "StatusNotifierItemUnregistered",
+                                   item_id);
+  return TRUE;
+}
+
+static gboolean remove_registered_status_notifier_items_for_service(
+    MyApplication* self, const gchar* service_name) {
+  if (self->status_notifier_registered_items == nullptr || service_name == nullptr ||
+      service_name[0] == '\0') {
+    return FALSE;
+  }
+
+  g_autoptr(GPtrArray) to_remove =
+      g_ptr_array_new_with_free_func(reinterpret_cast<GDestroyNotify>(g_free));
+  const gsize service_len = strlen(service_name);
+  GHashTableIter iter;
+  gpointer key = nullptr;
+  gpointer value = nullptr;
+  g_hash_table_iter_init(&iter, self->status_notifier_registered_items);
+  while (g_hash_table_iter_next(&iter, &key, &value)) {
+    const gchar* item_id = static_cast<const gchar*>(key);
+    if (g_str_has_prefix(item_id, service_name) && item_id[service_len] == '/') {
+      g_ptr_array_add(to_remove, g_strdup(item_id));
+    }
+  }
+
+  gboolean removed_any = FALSE;
+  for (guint index = 0; index < to_remove->len; index++) {
+    removed_any = remove_registered_status_notifier_item(
+                      self, static_cast<const gchar*>(to_remove->pdata[index])) ||
+                  removed_any;
+  }
+  return removed_any;
+}
+
+static void status_notifier_watcher_method_call(
+    GDBusConnection* connection, const gchar* sender_name,
+    const gchar* object_path, const gchar* interface_name,
+    const gchar* method_name, GVariant* parameters,
+    GDBusMethodInvocation* invocation, gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+
+  if (g_strcmp0(method_name, "RegisterStatusNotifierItem") == 0) {
+    const gchar* service_or_path = nullptr;
+    g_variant_get(parameters, "(&s)", &service_or_path);
+    g_autofree gchar* item_id =
+        canonical_status_notifier_item_id(sender_name, service_or_path);
+    const gboolean added =
+        item_id == nullptr ? FALSE : add_registered_status_notifier_item(self, item_id);
+    g_dbus_method_invocation_return_value(invocation, nullptr);
+    if (added) {
+      schedule_snapshot(self);
+    }
+    return;
+  }
+
+  if (g_strcmp0(method_name, "RegisterStatusNotifierHost") == 0) {
+    if (!self->status_notifier_host_registered) {
+      self->status_notifier_host_registered = TRUE;
+      emit_status_notifier_host_signal(self, "StatusNotifierHostRegistered");
+    }
+    g_dbus_method_invocation_return_value(invocation, nullptr);
+    return;
+  }
+
+  g_dbus_method_invocation_return_dbus_error(
+      invocation, "org.freedesktop.DBus.Error.UnknownMethod",
+      "Unknown StatusNotifierWatcher method");
+}
+
+static GVariant* status_notifier_watcher_get_property(
+    GDBusConnection* connection, const gchar* sender_name,
+    const gchar* object_path, const gchar* interface_name,
+    const gchar* property_name, GError** error, gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+
+  if (g_strcmp0(property_name, "RegisteredStatusNotifierItems") == 0) {
+    return build_registered_status_notifier_items_variant(self);
+  }
+  if (g_strcmp0(property_name, "IsStatusNotifierHostRegistered") == 0) {
+    return g_variant_new_boolean(self->status_notifier_host_registered);
+  }
+  if (g_strcmp0(property_name, "ProtocolVersion") == 0) {
+    return g_variant_new_int32(0);
+  }
+
+  g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_PROPERTY,
+              "Unknown property %s", property_name);
+  return nullptr;
+}
+
+static void ensure_status_notifier_watcher(MyApplication* self) {
+  if (self->is_panel_process) {
+    return;
+  }
+  if (self->session_bus == nullptr) {
+    return;
+  }
+  if (self->status_notifier_watcher_node_info != nullptr) {
+    return;
+  }
+
+  constexpr char kWatcherIntrospectionXml[] =
+      "<node>"
+      "  <interface name='org.kde.StatusNotifierWatcher'>"
+      "    <method name='RegisterStatusNotifierItem'>"
+      "      <arg name='service' type='s' direction='in'/>"
+      "    </method>"
+      "    <method name='RegisterStatusNotifierHost'>"
+      "      <arg name='service' type='s' direction='in'/>"
+      "    </method>"
+      "    <property name='RegisteredStatusNotifierItems' type='as' access='read'/>"
+      "    <property name='IsStatusNotifierHostRegistered' type='b' access='read'/>"
+      "    <property name='ProtocolVersion' type='i' access='read'/>"
+      "    <signal name='StatusNotifierItemRegistered'>"
+      "      <arg name='service' type='s'/>"
+      "    </signal>"
+      "    <signal name='StatusNotifierItemUnregistered'>"
+      "      <arg name='service' type='s'/>"
+      "    </signal>"
+      "    <signal name='StatusNotifierHostRegistered'/>"
+      "    <signal name='StatusNotifierHostUnregistered'/>"
+      "  </interface>"
+      "  <interface name='org.freedesktop.StatusNotifierWatcher'>"
+      "    <method name='RegisterStatusNotifierItem'>"
+      "      <arg name='service' type='s' direction='in'/>"
+      "    </method>"
+      "    <method name='RegisterStatusNotifierHost'>"
+      "      <arg name='service' type='s' direction='in'/>"
+      "    </method>"
+      "    <property name='RegisteredStatusNotifierItems' type='as' access='read'/>"
+      "    <property name='IsStatusNotifierHostRegistered' type='b' access='read'/>"
+      "    <property name='ProtocolVersion' type='i' access='read'/>"
+      "    <signal name='StatusNotifierItemRegistered'>"
+      "      <arg name='service' type='s'/>"
+      "    </signal>"
+      "    <signal name='StatusNotifierItemUnregistered'>"
+      "      <arg name='service' type='s'/>"
+      "    </signal>"
+      "    <signal name='StatusNotifierHostRegistered'/>"
+      "    <signal name='StatusNotifierHostUnregistered'/>"
+      "  </interface>"
+      "</node>";
+
+  g_autoptr(GError) error = nullptr;
+  self->status_notifier_watcher_node_info =
+      g_dbus_node_info_new_for_xml(kWatcherIntrospectionXml, &error);
+  if (self->status_notifier_watcher_node_info == nullptr) {
+    g_warning("Failed to parse StatusNotifierWatcher introspection: %s",
+              error == nullptr ? "unknown error" : error->message);
+    return;
+  }
+
+  static const GDBusInterfaceVTable watcher_vtable = {
+      status_notifier_watcher_method_call, status_notifier_watcher_get_property,
+      nullptr};
+
+  GDBusInterfaceInfo* kde_interface_info = g_dbus_node_info_lookup_interface(
+      self->status_notifier_watcher_node_info,
+      kStatusNotifierWatcherKdeInterface);
+  self->status_notifier_watcher_kde_registration_id = g_dbus_connection_register_object(
+      self->session_bus, kStatusNotifierWatcherPath, kde_interface_info,
+      &watcher_vtable, self, nullptr, &error);
+  if (self->status_notifier_watcher_kde_registration_id == 0) {
+    g_warning("Failed to register KDE StatusNotifierWatcher object: %s",
+              error == nullptr ? "unknown error" : error->message);
+    return;
+  }
+
+  GDBusInterfaceInfo* freedesktop_interface_info = g_dbus_node_info_lookup_interface(
+      self->status_notifier_watcher_node_info,
+      kStatusNotifierWatcherFreedesktopInterface);
+  self->status_notifier_watcher_freedesktop_registration_id =
+      g_dbus_connection_register_object(
+          self->session_bus, kStatusNotifierWatcherPath,
+          freedesktop_interface_info, &watcher_vtable, self, nullptr, &error);
+  if (self->status_notifier_watcher_freedesktop_registration_id == 0) {
+    g_warning("Failed to register freedesktop StatusNotifierWatcher object: %s",
+              error == nullptr ? "unknown error" : error->message);
+  }
+
+  self->status_notifier_watcher_kde_owner_id = g_bus_own_name_on_connection(
+      self->session_bus, kStatusNotifierWatcherKdeBusName,
+      G_BUS_NAME_OWNER_FLAGS_REPLACE, nullptr, nullptr, nullptr, nullptr);
+  self->status_notifier_watcher_freedesktop_owner_id = g_bus_own_name_on_connection(
+      self->session_bus, kStatusNotifierWatcherFreedesktopBusName,
+      G_BUS_NAME_OWNER_FLAGS_REPLACE, nullptr, nullptr, nullptr, nullptr);
+
+  self->status_notifier_host_registered = TRUE;
+  emit_status_notifier_host_signal(self, "StatusNotifierHostRegistered");
+}
+
+static void stop_status_notifier_watcher(MyApplication* self) {
+  if (self->status_notifier_host_registered) {
+    emit_status_notifier_host_signal(self, "StatusNotifierHostUnregistered");
+    self->status_notifier_host_registered = FALSE;
+  }
+  if (self->status_notifier_watcher_kde_owner_id != 0) {
+    g_bus_unown_name(self->status_notifier_watcher_kde_owner_id);
+    self->status_notifier_watcher_kde_owner_id = 0;
+  }
+  if (self->status_notifier_watcher_freedesktop_owner_id != 0) {
+    g_bus_unown_name(self->status_notifier_watcher_freedesktop_owner_id);
+    self->status_notifier_watcher_freedesktop_owner_id = 0;
+  }
+  if (self->session_bus != nullptr) {
+    if (self->status_notifier_watcher_kde_registration_id != 0) {
+      g_dbus_connection_unregister_object(
+          self->session_bus, self->status_notifier_watcher_kde_registration_id);
+      self->status_notifier_watcher_kde_registration_id = 0;
+    }
+    if (self->status_notifier_watcher_freedesktop_registration_id != 0) {
+      g_dbus_connection_unregister_object(
+          self->session_bus,
+          self->status_notifier_watcher_freedesktop_registration_id);
+      self->status_notifier_watcher_freedesktop_registration_id = 0;
+    }
+  }
+  if (self->status_notifier_registered_items != nullptr) {
+    g_hash_table_remove_all(self->status_notifier_registered_items);
+  }
+  if (self->status_notifier_watcher_node_info != nullptr) {
+    g_dbus_node_info_unref(self->status_notifier_watcher_node_info);
+    self->status_notifier_watcher_node_info = nullptr;
+  }
+}
+
+static void on_dbus_properties_changed(GDBusConnection* connection,
+                                       const gchar* sender_name,
+                                       const gchar* object_path,
+                                       const gchar* interface_name,
+                                       const gchar* signal_name,
+                                       GVariant* parameters,
+                                       gpointer user_data) {
+  const gchar* changed_interface = nullptr;
+  if (parameters != nullptr && g_variant_n_children(parameters) > 0) {
+    g_variant_get_child(parameters, 0, "&s", &changed_interface);
+  }
+
+  const gboolean tray_change =
+      is_tray_dbus_name(sender_name) ||
+      g_strcmp0(changed_interface, kStatusNotifierItemKdeInterface) == 0 ||
+      g_strcmp0(changed_interface, kStatusNotifierItemFreedesktopInterface) == 0;
+  if (tray_change) {
+    alice_platform_clear_tray_cache();
+  }
+
+  if (is_relevant_dbus_name(sender_name) ||
+      g_strcmp0(changed_interface, kStatusNotifierItemKdeInterface) == 0 ||
+      g_strcmp0(changed_interface, kStatusNotifierItemFreedesktopInterface) == 0) {
+    schedule_snapshot(MY_APPLICATION(user_data));
+  }
+}
+
+static void on_name_owner_changed(GDBusConnection* connection,
+                                  const gchar* sender_name,
+                                  const gchar* object_path,
+                                  const gchar* interface_name,
+                                  const gchar* signal_name,
+                                  GVariant* parameters,
+                                  gpointer user_data) {
+  const gchar* name = nullptr;
+  const gchar* old_owner = nullptr;
+  const gchar* new_owner = nullptr;
+  g_variant_get(parameters, "(&s&s&s)", &name, &old_owner, &new_owner);
+  MyApplication* self = MY_APPLICATION(user_data);
+  if (name != nullptr && old_owner != nullptr && old_owner[0] != '\0' &&
+      new_owner != nullptr && new_owner[0] == '\0') {
+    if (remove_registered_status_notifier_items_for_service(self, name)) {
+      alice_platform_clear_tray_cache();
+      schedule_snapshot(self);
+    }
+  }
+  if (is_tray_dbus_name(name)) {
+    alice_platform_clear_tray_cache();
+  }
+  if (is_relevant_dbus_name(name)) {
+    schedule_snapshot(self);
+  }
+}
+
+static void start_dbus_subscriptions(MyApplication* self) {
+  if (self->session_bus != nullptr) {
+    return;
+  }
+
+  g_autoptr(GError) error = nullptr;
+  self->session_bus = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &error);
+  if (self->session_bus == nullptr) {
+    g_warning("Failed to connect to session bus: %s",
+              error == nullptr ? "unknown error" : error->message);
+    return;
+  }
+
+  self->mpris_properties_changed_id = g_dbus_connection_signal_subscribe(
+      self->session_bus, nullptr, "org.freedesktop.DBus.Properties",
+      "PropertiesChanged", "/org/mpris/MediaPlayer2", nullptr,
+      G_DBUS_SIGNAL_FLAGS_NONE, on_dbus_properties_changed, self, nullptr);
+  self->tray_item_properties_changed_id = g_dbus_connection_signal_subscribe(
+      self->session_bus, nullptr, "org.freedesktop.DBus.Properties",
+      "PropertiesChanged", nullptr, nullptr,
+      G_DBUS_SIGNAL_FLAGS_NONE, on_dbus_properties_changed, self, nullptr);
+
+  self->name_owner_changed_id = g_dbus_connection_signal_subscribe(
+      self->session_bus, "org.freedesktop.DBus", "org.freedesktop.DBus",
+      "NameOwnerChanged", "/org/freedesktop/DBus", nullptr,
+      G_DBUS_SIGNAL_FLAGS_NONE, on_name_owner_changed, self, nullptr);
+  ensure_status_notifier_watcher(self);
+}
+
+static void stop_dbus_subscriptions(MyApplication* self) {
+  if (self->session_bus == nullptr) {
+    return;
+  }
+
+  if (self->mpris_properties_changed_id != 0) {
+    g_dbus_connection_signal_unsubscribe(self->session_bus,
+                                         self->mpris_properties_changed_id);
+    self->mpris_properties_changed_id = 0;
+  }
+  if (self->tray_item_properties_changed_id != 0) {
+    g_dbus_connection_signal_unsubscribe(self->session_bus,
+                                         self->tray_item_properties_changed_id);
+    self->tray_item_properties_changed_id = 0;
+  }
+  if (self->name_owner_changed_id != 0) {
+    g_dbus_connection_signal_unsubscribe(self->session_bus,
+                                         self->name_owner_changed_id);
+    self->name_owner_changed_id = 0;
+  }
+
+  stop_status_notifier_watcher(self);
+  g_clear_object(&self->session_bus);
+}
+
+static void on_net_file_changed(GFileMonitor* monitor, GFile* file,
+                                GFile* other_file, GFileMonitorEvent event_type,
+                                gpointer user_data) {
+  schedule_snapshot(MY_APPLICATION(user_data));
+}
+
+static void refresh_network_monitors(MyApplication* self) {
+  if (self->net_file_monitors == nullptr) {
+    return;
+  }
+
+  g_hash_table_remove_all(self->net_file_monitors);
+  g_autoptr(GError) error = nullptr;
+  GDir* dir = g_dir_open("/sys/class/net", 0, &error);
+  if (dir == nullptr) {
+    g_warning("Failed to open /sys/class/net: %s",
+              error == nullptr ? "unknown error" : error->message);
+    return;
+  }
+
+  const gchar* name = nullptr;
+  while ((name = g_dir_read_name(dir)) != nullptr) {
+    if (g_strcmp0(name, "lo") == 0) {
+      continue;
+    }
+    g_autofree gchar* path =
+        g_build_filename("/sys/class/net", name, "operstate", nullptr);
+    g_autoptr(GFile) file = g_file_new_for_path(path);
+    g_autoptr(GError) monitor_error = nullptr;
+    GFileMonitor* monitor =
+        g_file_monitor_file(file, G_FILE_MONITOR_NONE, nullptr, &monitor_error);
+    if (monitor == nullptr) {
+      continue;
+    }
+    g_signal_connect(monitor, "changed", G_CALLBACK(on_net_file_changed), self);
+    g_hash_table_insert(self->net_file_monitors, g_strdup(path), monitor);
+  }
+  g_dir_close(dir);
+}
+
+static void on_net_dir_changed(GFileMonitor* monitor, GFile* file,
+                               GFile* other_file, GFileMonitorEvent event_type,
+                               gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+  refresh_network_monitors(self);
+  schedule_snapshot(self);
+}
+
+static void start_network_monitors(MyApplication* self) {
+  if (self->net_dir_monitor != nullptr) {
+    return;
+  }
+
+  g_autoptr(GFile) net_dir = g_file_new_for_path("/sys/class/net");
+  g_autoptr(GError) error = nullptr;
+  self->net_dir_monitor =
+      g_file_monitor_directory(net_dir, G_FILE_MONITOR_NONE, nullptr, &error);
+  if (self->net_dir_monitor == nullptr) {
+    g_warning("Failed to monitor /sys/class/net: %s",
+              error == nullptr ? "unknown error" : error->message);
+    return;
+  }
+
+  g_signal_connect(self->net_dir_monitor, "changed",
+                   G_CALLBACK(on_net_dir_changed), self);
+  refresh_network_monitors(self);
+}
+
+static void stop_network_monitors(MyApplication* self) {
+  g_clear_object(&self->net_dir_monitor);
+  if (self->net_file_monitors != nullptr) {
+    g_hash_table_remove_all(self->net_file_monitors);
+  }
+}
+
+static void on_sway_process_exit(GPid pid, gint status, gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+  if (self->sway_pid == pid) {
+    g_spawn_close_pid(self->sway_pid);
+    self->sway_pid = 0;
+  } else {
+    g_spawn_close_pid(pid);
+  }
+}
+
+static gboolean on_sway_stdout_ready(GIOChannel* source,
+                                     GIOCondition condition,
+                                     gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+  if (condition & (G_IO_HUP | G_IO_ERR | G_IO_NVAL)) {
+    return G_SOURCE_REMOVE;
+  }
+
+  g_autoptr(GError) error = nullptr;
+  g_autofree gchar* line = nullptr;
+  gsize length = 0;
+  GIOStatus status = g_io_channel_read_line(source, &line, &length, nullptr,
+                                            &error);
+  if (status == G_IO_STATUS_NORMAL && length > 0) {
+    schedule_snapshot(self);
+  }
+
+  return G_SOURCE_CONTINUE;
+}
+
+static void start_sway_subscription(MyApplication* self) {
+  if (self->sway_pid != 0) {
+    return;
+  }
+
+  g_autofree gchar* swaymsg = g_find_program_in_path("swaymsg");
+  if (swaymsg == nullptr) {
+    g_warning("swaymsg not found; workspace events will be delayed");
+    return;
+  }
+
+  gchar* argv[] = {const_cast<gchar*>(swaymsg),
+                   const_cast<gchar*>("-t"),
+                   const_cast<gchar*>("subscribe"),
+                   const_cast<gchar*>("[\"workspace\"]"),
+                   nullptr};
+  g_autoptr(GError) error = nullptr;
+  gint stdout_fd = -1;
+  gint stderr_fd = -1;
+  if (!g_spawn_async_with_pipes(nullptr, argv, nullptr,
+                                static_cast<GSpawnFlags>(
+                                    G_SPAWN_DO_NOT_REAP_CHILD |
+                                    G_SPAWN_SEARCH_PATH),
+                                nullptr, nullptr, &self->sway_pid, nullptr,
+                                &stdout_fd, &stderr_fd, &error)) {
+    g_warning("Failed to start swaymsg subscription: %s",
+              error == nullptr ? "unknown error" : error->message);
+    self->sway_pid = 0;
+    return;
+  }
+
+  if (stderr_fd >= 0) {
+    close(stderr_fd);
+  }
+
+  self->sway_stdout_channel = g_io_channel_unix_new(stdout_fd);
+  g_io_channel_set_close_on_unref(self->sway_stdout_channel, TRUE);
+  g_io_channel_set_encoding(self->sway_stdout_channel, nullptr, nullptr);
+  g_io_channel_set_flags(self->sway_stdout_channel, G_IO_FLAG_NONBLOCK, nullptr);
+  self->sway_stdout_watch_id =
+      g_io_add_watch(self->sway_stdout_channel, static_cast<GIOCondition>(
+                                                   G_IO_IN | G_IO_HUP | G_IO_ERR |
+                                                   G_IO_NVAL),
+                     on_sway_stdout_ready, self);
+  g_child_watch_add(self->sway_pid, on_sway_process_exit, self);
+}
+
+static void stop_sway_subscription(MyApplication* self) {
+  if (self->sway_stdout_watch_id != 0) {
+    g_source_remove(self->sway_stdout_watch_id);
+    self->sway_stdout_watch_id = 0;
+  }
+  if (self->sway_stdout_channel != nullptr) {
+    g_io_channel_shutdown(self->sway_stdout_channel, TRUE, nullptr);
+    g_io_channel_unref(self->sway_stdout_channel);
+    self->sway_stdout_channel = nullptr;
+  }
+  if (self->sway_pid != 0) {
+    kill(self->sway_pid, SIGTERM);
+    g_spawn_close_pid(self->sway_pid);
+    self->sway_pid = 0;
+  }
+}
+
+static void start_event_sources(MyApplication* self) {
+  if (self->stats_timer_id == 0) {
+    self->stats_timer_id =
+        g_timeout_add_seconds(kStatsIntervalSeconds, stats_tick, self);
+  }
+  if (self->clock_timer_id == 0) {
+    self->clock_timer_id =
+        g_timeout_add_seconds(kClockIntervalSeconds, clock_tick, self);
+  }
+  start_dbus_subscriptions(self);
+  start_network_monitors(self);
+  start_sway_subscription(self);
+  schedule_snapshot(self);
+}
+
+static void stop_event_sources(MyApplication* self) {
+  if (self->stats_timer_id != 0) {
+    g_source_remove(self->stats_timer_id);
+    self->stats_timer_id = 0;
+  }
+  if (self->clock_timer_id != 0) {
+    g_source_remove(self->clock_timer_id);
+    self->clock_timer_id = 0;
+  }
+  if (self->snapshot_debounce_id != 0) {
+    g_source_remove(self->snapshot_debounce_id);
+    self->snapshot_debounce_id = 0;
+  }
+  stop_dbus_subscriptions(self);
+  stop_network_monitors(self);
+  stop_sway_subscription(self);
 }
 
 static FlMethodErrorResponse* platform_listen_cb(FlEventChannel* channel,
@@ -740,10 +1747,7 @@ static FlMethodErrorResponse* platform_listen_cb(FlEventChannel* channel,
                                                  gpointer user_data) {
   MyApplication* self = MY_APPLICATION(user_data);
   self->event_stream_active = TRUE;
-  if (self->snapshot_timer_id == 0) {
-    self->snapshot_timer_id = g_timeout_add_seconds(1, send_snapshot, self);
-  }
-  send_snapshot(self);
+  start_event_sources(self);
   return nullptr;
 }
 
@@ -752,10 +1756,7 @@ static FlMethodErrorResponse* platform_cancel_cb(FlEventChannel* channel,
                                                  gpointer user_data) {
   MyApplication* self = MY_APPLICATION(user_data);
   self->event_stream_active = FALSE;
-  if (self->snapshot_timer_id != 0) {
-    g_source_remove(self->snapshot_timer_id);
-    self->snapshot_timer_id = 0;
-  }
+  stop_event_sources(self);
   return nullptr;
 }
 
@@ -821,6 +1822,31 @@ static void platform_method_call_cb(FlMethodChannel* channel,
       response = FL_METHOD_RESPONSE(fl_method_error_response_new(
           "media_action_failed", "Failed to send media action", nullptr));
     }
+  } else if (strcmp(method, "sendTrayAction") == 0) {
+    FlValue* service_name_value =
+        args == nullptr ? nullptr : fl_value_lookup_string(args, "serviceName");
+    FlValue* object_path_value =
+        args == nullptr ? nullptr : fl_value_lookup_string(args, "objectPath");
+    FlValue* action_value =
+        args == nullptr ? nullptr : fl_value_lookup_string(args, "action");
+    FlValue* x_value = args == nullptr ? nullptr : fl_value_lookup_string(args, "x");
+    FlValue* y_value = args == nullptr ? nullptr : fl_value_lookup_string(args, "y");
+    const gchar* service_name =
+        service_name_value == nullptr ? nullptr : fl_value_get_string(service_name_value);
+    const gchar* object_path =
+        object_path_value == nullptr ? nullptr : fl_value_get_string(object_path_value);
+    const gchar* action_name =
+        action_value == nullptr ? nullptr : fl_value_get_string(action_value);
+    const gint x = x_value == nullptr ? 0 : static_cast<gint>(fl_value_get_int(x_value));
+    const gint y = y_value == nullptr ? 0 : static_cast<gint>(fl_value_get_int(y_value));
+    if (service_name != nullptr && object_path != nullptr && action_name != nullptr &&
+        alice_platform_send_tray_action(service_name, object_path, action_name, x, y)) {
+      response = FL_METHOD_RESPONSE(
+          fl_method_success_response_new(fl_value_new_null()));
+    } else {
+      response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "tray_action_failed", "Failed to send tray action", nullptr));
+    }
   } else if (strcmp(method, "executePowerAction") == 0) {
     FlValue* action = args == nullptr ? nullptr : fl_value_lookup_string(args, "action");
     const gchar* action_name = action == nullptr ? nullptr : fl_value_get_string(action);
@@ -830,6 +1856,24 @@ static void platform_method_call_cb(FlMethodChannel* channel,
     } else {
       response = FL_METHOD_RESPONSE(fl_method_error_response_new(
           "power_action_failed", "Failed to execute power action", nullptr));
+    }
+  } else if (strcmp(method, "focusWorkspace") == 0) {
+    FlValue* label = args == nullptr ? nullptr : fl_value_lookup_string(args, "label");
+    const gchar* label_text = label == nullptr ? nullptr : fl_value_get_string(label);
+    if (label_text != nullptr && alice_platform_focus_workspace(label_text)) {
+      if (self->event_stream_active && self->event_channel != nullptr) {
+        g_autoptr(GError) snapshot_error = nullptr;
+        if (!fl_event_channel_send(self->event_channel,
+                                   build_snapshot_value(self, self->panel_id), nullptr,
+                                   &snapshot_error)) {
+          g_warning("Failed to send snapshot: %s", snapshot_error->message);
+        }
+      }
+      response = FL_METHOD_RESPONSE(
+          fl_method_success_response_new(fl_value_new_null()));
+    } else {
+      response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "focus_workspace_failed", "Failed to focus workspace", nullptr));
     }
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
@@ -1137,10 +2181,7 @@ static void my_application_startup(GApplication* application) {
 
 static void my_application_shutdown(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
-  if (self->snapshot_timer_id != 0) {
-    g_source_remove(self->snapshot_timer_id);
-    self->snapshot_timer_id = 0;
-  }
+  stop_event_sources(self);
   if (self->panel_socket_service != nullptr) {
     g_socket_service_stop(self->panel_socket_service);
   }
@@ -1161,6 +2202,29 @@ static void my_application_dispose(GObject* object) {
   g_clear_object(&self->platform_channel);
   g_clear_object(&self->event_channel);
   g_clear_object(&self->panel_socket_service);
+  stop_status_notifier_watcher(self);
+  g_clear_object(&self->session_bus);
+  g_clear_object(&self->net_dir_monitor);
+  if (self->net_file_monitors != nullptr) {
+    g_hash_table_destroy(self->net_file_monitors);
+    self->net_file_monitors = nullptr;
+  }
+  if (self->status_notifier_registered_items != nullptr) {
+    g_hash_table_destroy(self->status_notifier_registered_items);
+    self->status_notifier_registered_items = nullptr;
+  }
+  if (self->sway_stdout_watch_id != 0) {
+    g_source_remove(self->sway_stdout_watch_id);
+    self->sway_stdout_watch_id = 0;
+  }
+  if (self->sway_stdout_channel != nullptr) {
+    g_io_channel_unref(self->sway_stdout_channel);
+    self->sway_stdout_channel = nullptr;
+  }
+  if (self->sway_pid != 0) {
+    g_spawn_close_pid(self->sway_pid);
+    self->sway_pid = 0;
+  }
   g_clear_pointer(&self->panel_id, g_free);
   g_clear_pointer(&self->panel_alignment, g_free);
   g_clear_pointer(&self->panel_socket_path, g_free);
@@ -1179,8 +2243,28 @@ static void my_application_class_init(MyApplicationClass* klass) {
 static void my_application_init(MyApplication* self) {
   self->window = nullptr;
   self->dismiss_window = nullptr;
-  self->snapshot_timer_id = 0;
+  self->snapshot_debounce_id = 0;
+  self->stats_timer_id = 0;
+  self->clock_timer_id = 0;
   self->event_stream_active = FALSE;
+  self->session_bus = nullptr;
+  self->tray_item_properties_changed_id = 0;
+  self->mpris_properties_changed_id = 0;
+  self->name_owner_changed_id = 0;
+  self->status_notifier_watcher_kde_registration_id = 0;
+  self->status_notifier_watcher_freedesktop_registration_id = 0;
+  self->status_notifier_watcher_kde_owner_id = 0;
+  self->status_notifier_watcher_freedesktop_owner_id = 0;
+  self->status_notifier_watcher_node_info = nullptr;
+  self->status_notifier_registered_items =
+      g_hash_table_new_full(g_str_hash, g_str_equal, g_free, nullptr);
+  self->status_notifier_host_registered = FALSE;
+  self->sway_pid = 0;
+  self->sway_stdout_channel = nullptr;
+  self->sway_stdout_watch_id = 0;
+  self->net_dir_monitor = nullptr;
+  self->net_file_monitors = g_hash_table_new_full(
+      g_str_hash, g_str_equal, g_free, g_object_unref);
   self->layer_shell_supported = FALSE;
   self->is_panel_process = FALSE;
   self->panel_first_frame_received = FALSE;

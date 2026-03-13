@@ -155,12 +155,16 @@ fn read_player_snapshot(
     }
 
     let artist = metadata_artists(&metadata).unwrap_or_else(|| "Unknown artist".into());
+    let album_title = metadata_string(&metadata, "xesam:album").unwrap_or_default();
+    let art_url = metadata_string(&metadata, "mpris:artUrl").unwrap_or_default();
     let length_micros = metadata_i64(&metadata, "mpris:length").unwrap_or(0);
     let position_micros: i64 = proxy.get_property("Position").unwrap_or(0_i64);
 
     Ok(Some(MediaSnapshot {
         title: title.unwrap_or_else(|| "Unknown title".into()),
         artist,
+        album_title,
+        art_url,
         position_label: format_duration(position_micros),
         length_label: format_duration(length_micros),
         is_playing: playback_status == "Playing",

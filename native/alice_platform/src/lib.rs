@@ -13,7 +13,7 @@ pub mod stats;
 pub mod sway;
 pub mod tray;
 
-use std::ffi::{CString, c_char};
+use std::ffi::{CStr, CString, c_char};
 use std::ptr;
 
 use clock::LocalClockProvider;
@@ -27,8 +27,8 @@ use state::{
     BarSnapshot, ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot, WorkspaceSnapshot,
 };
 use stats::ProcStatsProvider;
-use sway::SwayWorkspaceProvider;
-use tray::StatusNotifierTrayProvider;
+use sway::{SwayWorkspaceProvider, focus_workspace};
+use tray::{StatusNotifierTrayProvider, TrayItemAction, clear_tray_cache, send_tray_action};
 
 /// Aggregates provider implementations into a single snapshot-oriented service.
 pub struct AlicePlatformService<W, M, S, N, C, T> {
@@ -108,6 +108,15 @@ fn parse_media_action(action: &str) -> Option<MediaControlAction> {
     }
 }
 
+fn parse_tray_action(action: &str) -> Option<TrayItemAction> {
+    match action {
+        "activate" => Some(TrayItemAction::Activate),
+        "secondaryActivate" => Some(TrayItemAction::SecondaryActivate),
+        "contextMenu" => Some(TrayItemAction::ContextMenu),
+        _ => None,
+    }
+}
+
 fn load_native_config() -> AliceConfig {
     match config::default_config_path().and_then(|path| AliceConfig::load_or_create_default(&path))
     {
@@ -156,6 +165,7 @@ pub struct AliceConfigFFI {
     pub accent_color: *mut c_char,
     pub show_network_label: bool,
     pub max_visible_tray_items: u32,
+    pub local_time_zone_label: *mut c_char,
     pub time_zones: *mut AliceTimeZoneFFI,
     pub time_zone_count: usize,
     pub power_commands: AlicePowerCommandsFFI,
@@ -176,6 +186,7 @@ impl From<AliceConfig> for AliceConfigFFI {
             accent_color: string_into_raw(value.accent_color),
             show_network_label: value.show_network_label,
             max_visible_tray_items: value.max_visible_tray_items,
+            local_time_zone_label: string_into_raw_option(value.local_time_zone_label),
             time_zones: time_zones_ptr,
             time_zone_count,
             power_commands: value.power_commands.into(),
@@ -204,6 +215,8 @@ impl From<WorkspaceSnapshot> for WorkspaceFFI {
 pub struct MediaFFI {
     pub title: *mut c_char,
     pub artist: *mut c_char,
+    pub album_title: *mut c_char,
+    pub art_url: *mut c_char,
     pub position_label: *mut c_char,
     pub length_label: *mut c_char,
     pub is_playing: bool,
@@ -214,6 +227,8 @@ impl From<MediaSnapshot> for MediaFFI {
         Self {
             title: string_into_raw(value.title),
             artist: string_into_raw(value.artist),
+            album_title: string_into_raw(value.album_title),
+            art_url: string_into_raw(value.art_url),
             position_label: string_into_raw(value.position_label),
             length_label: string_into_raw(value.length_label),
             is_playing: value.is_playing,
@@ -261,6 +276,10 @@ impl From<ClockSnapshot> for ClockFFI {
 pub struct TrayItemFFI {
     pub id: *mut c_char,
     pub label: *mut c_char,
+    pub icon_name: *mut c_char,
+    pub icon_theme_path: *mut c_char,
+    pub service_name: *mut c_char,
+    pub object_path: *mut c_char,
 }
 
 impl From<crate::state::TrayItemSnapshot> for TrayItemFFI {
@@ -268,6 +287,10 @@ impl From<crate::state::TrayItemSnapshot> for TrayItemFFI {
         Self {
             id: string_into_raw(value.id),
             label: string_into_raw(value.label),
+            icon_name: string_into_raw(value.icon_name),
+            icon_theme_path: string_into_raw(value.icon_theme_path),
+            service_name: string_into_raw(value.service_name),
+            object_path: string_into_raw(value.object_path),
         }
     }
 }
@@ -289,6 +312,10 @@ fn string_into_raw(value: String) -> *mut c_char {
     CString::new(value)
         .unwrap_or_else(|_| CString::new("").expect("empty CString"))
         .into_raw()
+}
+
+fn string_into_raw_option(value: Option<String>) -> *mut c_char {
+    value.map(string_into_raw).unwrap_or(ptr::null_mut())
 }
 
 unsafe fn string_from_raw(value: *mut c_char) {
@@ -325,6 +352,7 @@ pub unsafe extern "C" fn alice_platform_free_config(config: *mut AliceConfigFFI)
 
     let config = unsafe { Box::from_raw(config) };
     unsafe { string_from_raw(config.accent_color) };
+    unsafe { string_from_raw(config.local_time_zone_label) };
     let time_zones = unsafe { vec_from_raw(config.time_zones, config.time_zone_count) };
     for time_zone in time_zones {
         unsafe { string_from_raw(time_zone.label) };
@@ -411,6 +439,8 @@ pub unsafe extern "C" fn alice_platform_free_snapshot(snapshot: *mut AliceSnapsh
         let media = unsafe { Box::from_raw(snapshot.media) };
         unsafe { string_from_raw(media.title) };
         unsafe { string_from_raw(media.artist) };
+        unsafe { string_from_raw(media.album_title) };
+        unsafe { string_from_raw(media.art_url) };
         unsafe { string_from_raw(media.position_label) };
         unsafe { string_from_raw(media.length_label) };
     }
@@ -422,6 +452,10 @@ pub unsafe extern "C" fn alice_platform_free_snapshot(snapshot: *mut AliceSnapsh
     for tray_item in tray_items {
         unsafe { string_from_raw(tray_item.id) };
         unsafe { string_from_raw(tray_item.label) };
+        unsafe { string_from_raw(tray_item.icon_name) };
+        unsafe { string_from_raw(tray_item.icon_theme_path) };
+        unsafe { string_from_raw(tray_item.service_name) };
+        unsafe { string_from_raw(tray_item.object_path) };
     }
 }
 
@@ -440,6 +474,56 @@ pub unsafe extern "C" fn alice_platform_send_media_action(action: *const c_char)
     };
 
     send_media_action(action).is_ok()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn alice_platform_focus_workspace(label: *const c_char) -> bool {
+    if label.is_null() {
+        return false;
+    }
+
+    let label = match unsafe { CStr::from_ptr(label) }.to_str() {
+        Ok(label) => label,
+        Err(_) => return false,
+    };
+
+    focus_workspace(label).is_ok()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn alice_platform_send_tray_action(
+    service_name: *const c_char,
+    object_path: *const c_char,
+    action: *const c_char,
+    x: i32,
+    y: i32,
+) -> bool {
+    if service_name.is_null() || object_path.is_null() || action.is_null() {
+        return false;
+    }
+
+    let service_name = match unsafe { CStr::from_ptr(service_name) }.to_str() {
+        Ok(service_name) => service_name,
+        Err(_) => return false,
+    };
+    let object_path = match unsafe { CStr::from_ptr(object_path) }.to_str() {
+        Ok(object_path) => object_path,
+        Err(_) => return false,
+    };
+    let action = match unsafe { CStr::from_ptr(action) }.to_str() {
+        Ok(action) => action,
+        Err(_) => return false,
+    };
+    let Some(action) = parse_tray_action(action) else {
+        return false;
+    };
+
+    send_tray_action(service_name, object_path, action, x, y).is_ok()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn alice_platform_clear_tray_cache() {
+    clear_tray_cache();
 }
 
 #[cfg(test)]
@@ -475,6 +559,8 @@ mod tests {
             Ok(Some(MediaSnapshot {
                 title: "Song".into(),
                 artist: "Artist".into(),
+                album_title: "Album".into(),
+                art_url: "".into(),
                 position_label: "0:10".into(),
                 length_label: "1:00".into(),
                 is_playing: true,
@@ -511,6 +597,10 @@ mod tests {
             Ok(vec![TrayItemSnapshot {
                 id: "discord".into(),
                 label: "Discord".into(),
+                icon_name: "discord".into(),
+                icon_theme_path: String::new(),
+                service_name: "org.kde.StatusNotifierItem.discord".into(),
+                object_path: "/StatusNotifierItem".into(),
             }])
         }
     }

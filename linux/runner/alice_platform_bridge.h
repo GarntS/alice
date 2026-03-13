@@ -26,6 +26,7 @@ typedef struct {
   char* accent_color;
   bool show_network_label;
   uint32_t max_visible_tray_items;
+  char* local_time_zone_label;
   AliceTimeZoneFFI* time_zones;
   size_t time_zone_count;
   AlicePowerCommandsFFI power_commands;
@@ -40,6 +41,8 @@ typedef struct {
 typedef struct {
   char* title;
   char* artist;
+  char* album_title;
+  char* art_url;
   char* position_label;
   char* length_label;
   bool is_playing;
@@ -59,6 +62,10 @@ typedef struct {
 typedef struct {
   char* id;
   char* label;
+  char* icon_name;
+  char* icon_theme_path;
+  char* service_name;
+  char* object_path;
 } TrayItemFFI;
 
 typedef struct {
@@ -78,6 +85,13 @@ void alice_platform_free_config(AliceConfigFFI* config);
 AliceSnapshotFFI* alice_platform_read_snapshot(void);
 void alice_platform_free_snapshot(AliceSnapshotFFI* snapshot);
 bool alice_platform_send_media_action(const char* action);
+bool alice_platform_focus_workspace(const char* label);
+bool alice_platform_send_tray_action(const char* service_name,
+                                     const char* object_path,
+                                     const char* action,
+                                     int32_t x,
+                                     int32_t y);
+void alice_platform_clear_tray_cache(void);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use crate::{
@@ -48,9 +49,14 @@ impl SysNetworkProvider {
             }
 
             if is_wireless(&interface_path) {
+                let label = if net_root == Path::new("/sys/class/net") {
+                    read_wifi_ssid(&interface_name).unwrap_or_else(|| interface_name.clone())
+                } else {
+                    interface_name.clone()
+                };
                 return Ok(NetworkSnapshot {
                     kind: NetworkKind::Wifi,
-                    label: interface_name,
+                    label,
                 });
             }
 
@@ -89,6 +95,31 @@ fn is_connected(interface_path: &Path) -> bool {
 
 fn is_wireless(interface_path: &Path) -> bool {
     interface_path.join("wireless").exists()
+}
+
+fn read_wifi_ssid(interface_name: &str) -> Option<String> {
+    let output = Command::new("iw")
+        .arg("dev")
+        .arg(interface_name)
+        .arg("link")
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for line in stdout.lines() {
+        let line = line.trim();
+        if let Some(rest) = line.strip_prefix("SSID:") {
+            let ssid = rest.trim();
+            if !ssid.is_empty() {
+                return Some(ssid.to_string());
+            }
+        }
+    }
+
+    None
 }
 
 #[cfg(test)]

@@ -3,7 +3,6 @@
 *.swp
 *.swo
 *.tmp
-*.log
 .idea/
 *.iml
 
@@ -19,6 +18,9 @@ coverage/
 **/ios/Flutter/.last_build_id
 app.*.symbols
 app.*.map.json
+.cargo-home/
+.cache/
+.nix-home/
 
 # Flutter Linux generated files
 linux/flutter/ephemeral/
@@ -30,10 +32,8 @@ linux/flutter/generated_plugin_registrant.h
 target/
 native/target/
 
-# Local dev shell / repo-local caches
-.cache/
-.cargo-home/
-.nix-home/
+# LLM-related Nonsense
+.claude/
 
 # Optional local IDE config
 # .vscode/

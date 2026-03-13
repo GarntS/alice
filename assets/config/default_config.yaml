@@ -21,12 +21,17 @@ tray:
   max_visible_items: 5
 
 clock:
+  # Optional label for the local time zone shown in the bar and clock panel.
+  # local_time_zone_label: EST
+
   # Additional time zones shown in the clock panel.
   additional_time_zones:
-    - label: UTC
-      offset_hours: 0
-    - label: AEST
-      offset_hours: 10
+    # Pick exactly one: offset_hours, tz_name, or tz_abbrev_name.
+    # label overrides the default abbreviation shown in the UI.
+    - tz_name: UTC
+    - tz_name: Australia/Sydney
+    # Example using a timezone abbreviation.
+    # - tz_abbrev_name: AEST
 
 power:
   # Commands are delegated to the shell and may be customized by the user.

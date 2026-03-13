@@ -1,7 +1,10 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
-import '../../models/alice_config.dart';
-import '../../models/bar_snapshot.dart';
+import '../../data/alice_config.dart';
+import '../../data/bar_snapshot.dart';
 import '../../state/panel_controller.dart';
 import 'panel_spec.dart';
 
@@ -23,6 +26,7 @@ class AlicePanelCard extends StatelessWidget {
     required this.snapshot,
     required this.onPowerAction,
     required this.onMediaAction,
+    required this.onTrayAction,
   });
 
   final AlicePanel panel;
@@ -30,6 +34,7 @@ class AlicePanelCard extends StatelessWidget {
   final BarSnapshot snapshot;
   final Future<void> Function(String) onPowerAction;
   final Future<void> Function(String) onMediaAction;
+  final Future<void> Function(TrayItemSnapshot) onTrayAction;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +48,7 @@ class AlicePanelCard extends StatelessWidget {
       AlicePanel.trayOverflow => _TrayPanel(
         trayItems: snapshot.trayItems,
         maxVisibleTrayItems: config.maxVisibleTrayItems,
+        onTrayAction: onTrayAction,
       ),
       AlicePanel.power => _PowerPanel(onAction: onPowerAction),
     };
@@ -75,25 +81,38 @@ class AlicePanelCard extends StatelessWidget {
 }
 
 class _PanelShell extends StatelessWidget {
-  const _PanelShell({required this.title, required this.child});
+  const _PanelShell({
+    required this.title,
+    required this.child,
+    this.crossAxisAlignment = CrossAxisAlignment.start,
+    this.titleAlign = TextAlign.start,
+  });
 
-  final String title;
+  final String? title;
   final Widget child;
+  final CrossAxisAlignment crossAxisAlignment;
+  final TextAlign titleAlign;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final titleText = title?.trim() ?? '';
+    final hasTitle = titleText.isNotEmpty;
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: crossAxisAlignment,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+        if (hasTitle) ...[
+          Text(
+            titleText,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: titleAlign,
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
+        ],
         child,
       ],
     );
@@ -111,29 +130,90 @@ class _MediaPanel extends StatelessWidget {
     final theme = Theme.of(context);
     if (media == null) {
       return const _PanelShell(
-        title: 'Media',
+        title: null,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        titleAlign: TextAlign.center,
         child: Text('No active MPRIS player.'),
       );
     }
 
+    final albumTitle = media!.albumTitle.trim();
+    final hasAlbumArt = media!.artUrl.trim().isNotEmpty;
+    final header = hasAlbumArt
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: _AlbumArt(url: media!.artUrl),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    media!.title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(media!.artist, style: theme.textTheme.bodyLarge),
+                  if (albumTitle.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(albumTitle, style: theme.textTheme.bodyMedium),
+                  ],
+                ],
+              ),
+            ],
+          )
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                media!.title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                media!.artist,
+                style: theme.textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+              if (albumTitle.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  albumTitle,
+                  style: theme.textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
+          );
+
     return _PanelShell(
-      title: 'Media',
+      title: null,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      titleAlign: TextAlign.center,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
+          header,
+          const SizedBox(height: 12),
           Text(
-            media!.title,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            '${media!.positionLabel} / ${media!.lengthLabel}',
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 4),
-          Text(media!.artist, style: theme.textTheme.bodyLarge),
-          const SizedBox(height: 8),
-          Text('${media!.positionLabel} / ${media!.lengthLabel}'),
-          const SizedBox(height: 16),
+          const SizedBox(height: 6),
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _ActionButton(
                 icon: Icons.skip_previous_rounded,
@@ -169,13 +249,15 @@ class _ClockPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nowUtc = DateTime.now().toUtc();
+    final localTimeZoneLabel =
+        config.localTimeZoneLabel ?? snapshot.timeZoneCode;
     return _PanelShell(
       title: 'World Clock',
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _ClockRow(
-            label: snapshot.timeZoneCode,
+            label: localTimeZoneLabel,
             dateLabel: snapshot.dateLabel,
             timeLabel: snapshot.timeLabel,
             highlighted: true,
@@ -222,10 +304,12 @@ class _TrayPanel extends StatelessWidget {
   const _TrayPanel({
     required this.trayItems,
     required this.maxVisibleTrayItems,
+    required this.onTrayAction,
   });
 
   final List<TrayItemSnapshot> trayItems;
   final int maxVisibleTrayItems;
+  final Future<void> Function(TrayItemSnapshot) onTrayAction;
 
   @override
   Widget build(BuildContext context) {
@@ -241,29 +325,56 @@ class _TrayPanel extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: items
                   .map(
-                    (item) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.secondary.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.apps_rounded, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(item.label)),
-                        ],
+                    (item) => InkWell(
+                      onTap: () => onTrayAction(item),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.secondary.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            _TrayItemIcon(iconPngBytes: item.iconPngBytes),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(item.label)),
+                          ],
+                        ),
                       ),
                     ),
                   )
                   .toList(),
             ),
+    );
+  }
+}
+
+class _TrayItemIcon extends StatelessWidget {
+  const _TrayItemIcon({required this.iconPngBytes});
+
+  final Uint8List? iconPngBytes;
+
+  @override
+  Widget build(BuildContext context) {
+    if (iconPngBytes == null || iconPngBytes!.isEmpty) {
+      return const Icon(Icons.apps_rounded, size: 18);
+    }
+
+    return Image.memory(
+      iconPngBytes!,
+      width: 18,
+      height: 18,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        return const Icon(Icons.apps_rounded, size: 18);
+      },
     );
   }
 }
@@ -348,6 +459,53 @@ class _ClockRow extends StatelessWidget {
           Text(timeLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
         ],
       ),
+    );
+  }
+}
+
+class _AlbumArt extends StatelessWidget {
+  const _AlbumArt({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    const artSize = 108.0;
+    final uri = Uri.tryParse(url);
+    final image = uri != null && uri.scheme == 'file'
+        ? Image.file(
+            File.fromUri(uri),
+            width: artSize,
+            height: artSize,
+            fit: BoxFit.cover,
+          )
+        : Image.network(
+            url,
+            width: artSize,
+            height: artSize,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _AlbumArtFallback(size: artSize);
+            },
+          );
+
+    return ClipRRect(borderRadius: BorderRadius.circular(10), child: image);
+  }
+}
+
+class _AlbumArtFallback extends StatelessWidget {
+  const _AlbumArtFallback({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: size,
+      height: size,
+      color: theme.colorScheme.secondary.withValues(alpha: 0.6),
+      child: Icon(Icons.album_rounded, color: theme.colorScheme.onSurface),
     );
   }
 }

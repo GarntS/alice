@@ -6,6 +6,7 @@ class AliceConfig {
     required this.accentColor,
     required this.showNetworkLabel,
     required this.maxVisibleTrayItems,
+    required this.localTimeZoneLabel,
     required this.timeZones,
     required this.powerCommands,
   });
@@ -14,6 +15,7 @@ class AliceConfig {
   final Color accentColor;
   final bool showNetworkLabel;
   final int maxVisibleTrayItems;
+  final String? localTimeZoneLabel;
   final List<TimeZoneConfig> timeZones;
   final PowerCommandConfig powerCommands;
 
@@ -23,6 +25,7 @@ class AliceConfig {
       accentColor: Color(0xFF4C956C),
       showNetworkLabel: true,
       maxVisibleTrayItems: 5,
+      localTimeZoneLabel: null,
       timeZones: [
         TimeZoneConfig(label: 'UTC', offsetHours: 0),
         TimeZoneConfig(label: 'AEST', offsetHours: 10),

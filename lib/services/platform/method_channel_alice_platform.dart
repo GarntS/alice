@@ -1,24 +1,26 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart' show Color, ThemeMode;
 import 'package:flutter/services.dart';
 
-import '../../models/alice_config.dart';
-import '../../models/bar_snapshot.dart';
-import 'alice_platform.dart';
-import 'channel_names.dart';
+import '../../data/alice_config.dart';
+import '../../data/bar_snapshot.dart';
+const _methodChannelName = 'alice/platform';
+const _eventChannelName = 'alice/platform/events';
 
-class MethodChannelAlicePlatform implements AlicePlatform {
+class MethodChannelAlicePlatform {
   MethodChannelAlicePlatform({
     MethodChannel? methodChannel,
     EventChannel? eventChannel,
   }) : _methodChannel =
-           methodChannel ?? const MethodChannel(aliceMethodChannelName),
+           methodChannel ?? const MethodChannel(_methodChannelName),
        _eventChannel =
-           eventChannel ?? const EventChannel(aliceEventChannelName);
+           eventChannel ?? const EventChannel(_eventChannelName);
 
   final MethodChannel _methodChannel;
   final EventChannel _eventChannel;
+  final Map<String, Uint8List> _trayIconCache = <String, Uint8List>{};
 
   Stream<BarSnapshot> watchBarSnapshots() {
     return _eventChannel.receiveBroadcastStream().map((dynamic event) {
@@ -72,24 +74,28 @@ class MethodChannelAlicePlatform implements AlicePlatform {
     );
   }
 
-  @override
-  BarSnapshot get snapshot => const BarSnapshot(
-    activePanelId: null,
-    workspaces: [],
-    media: null,
-    memoryUsagePercent: 0,
-    cpuUsageCores: 0,
-    network: NetworkSnapshot(
-      kind: NetworkKind.disconnected,
-      label: 'Disconnected',
-    ),
-    clock: ClockSnapshot(
-      timeZoneCode: 'UTC',
-      dateLabel: '-- ---',
-      timeLabel: '--:--',
-    ),
-    trayItems: [],
-  );
+  Future<void> sendTrayAction(
+    TrayItemSnapshot item, {
+    required String action,
+    int x = 0,
+    int y = 0,
+  }) {
+    return _methodChannel
+        .invokeMethod<void>('sendTrayAction', <String, Object?>{
+          'serviceName': item.serviceName,
+          'objectPath': item.objectPath,
+          'action': action,
+          'x': x,
+          'y': y,
+        });
+  }
+
+  Future<void> focusWorkspace(String label) {
+    return _methodChannel.invokeMethod<void>(
+      'focusWorkspace',
+      <String, Object?>{'label': label},
+    );
+  }
 
   AliceConfig _configFromMap(Map<Object?, Object?> map) {
     final themeMode = switch (map['themeMode']) {
@@ -101,6 +107,7 @@ class MethodChannelAlicePlatform implements AlicePlatform {
     final accentHex = map['accentColor'] as String? ?? '#4C956C';
     final trayItems = (map['maxVisibleTrayItems'] as num?)?.toInt() ?? 5;
     final showNetworkLabel = map['showNetworkLabel'] as bool? ?? true;
+    final localTimeZoneLabel = _stringOrNull(map['localTimeZoneLabel']);
     final timeZoneList =
         (map['timeZones'] as List<Object?>? ?? const <Object?>[])
             .whereType<Map<Object?, Object?>>()
@@ -121,6 +128,7 @@ class MethodChannelAlicePlatform implements AlicePlatform {
       accentColor: _colorFromHex(accentHex),
       showNetworkLabel: showNetworkLabel,
       maxVisibleTrayItems: trayItems,
+      localTimeZoneLabel: localTimeZoneLabel,
       timeZones: timeZoneList,
       powerCommands: PowerCommandConfig(
         lock: power['lock'] as String? ?? 'loginctl lock-session',
@@ -152,6 +160,8 @@ class MethodChannelAlicePlatform implements AlicePlatform {
         : MediaSnapshot(
             title: mediaMap['title'] as String? ?? '',
             artist: mediaMap['artist'] as String? ?? '',
+            albumTitle: mediaMap['albumTitle'] as String? ?? '',
+            artUrl: mediaMap['artUrl'] as String? ?? '',
             positionLabel: mediaMap['positionLabel'] as String? ?? '0:00',
             lengthLabel: mediaMap['lengthLabel'] as String? ?? '0:00',
             isPlaying: mediaMap['isPlaying'] as bool? ?? false,
@@ -163,15 +173,27 @@ class MethodChannelAlicePlatform implements AlicePlatform {
     final clockMap = Map<Object?, Object?>.from(
       map['clock'] as Map<Object?, Object?>? ?? const <Object?, Object?>{},
     );
+    final activeTrayKeys = <String>{};
     final trayItems = (map['trayItems'] as List<Object?>? ?? const <Object?>[])
         .whereType<Map<Object?, Object?>>()
-        .map(
-          (item) => TrayItemSnapshot(
+        .map((item) {
+          final serviceName = item['serviceName'] as String? ?? '';
+          final objectPath = item['objectPath'] as String? ?? '';
+          final iconKey = '$serviceName|$objectPath';
+          activeTrayKeys.add(iconKey);
+          return TrayItemSnapshot(
             id: item['id'] as String? ?? '',
             label: item['label'] as String? ?? '',
-          ),
-        )
+            serviceName: serviceName,
+            objectPath: objectPath,
+            iconPngBytes: _stableTrayIconBytes(
+              iconKey,
+              _uint8ListOrNull(item['iconPngBytes']),
+            ),
+          );
+        })
         .toList();
+    _trayIconCache.removeWhere((key, _) => !activeTrayKeys.contains(key));
 
     return BarSnapshot(
       activePanelId: map['activePanelId'] as String?,
@@ -201,5 +223,41 @@ class MethodChannelAlicePlatform implements AlicePlatform {
     final hex = normalized.length == 6 ? 'FF$normalized' : normalized;
     final colorValue = int.tryParse(hex, radix: 16) ?? 0xFF4C956C;
     return Color(colorValue);
+  }
+
+  String? _stringOrNull(Object? value) {
+    final text = value as String?;
+    if (text == null) {
+      return null;
+    }
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    return trimmed;
+  }
+
+  Uint8List? _uint8ListOrNull(Object? value) {
+    if (value is Uint8List) {
+      return value;
+    }
+    if (value is List<int>) {
+      return Uint8List.fromList(value);
+    }
+    return null;
+  }
+
+  Uint8List? _stableTrayIconBytes(String key, Uint8List? next) {
+    final cached = _trayIconCache[key];
+    if (next == null) {
+      return cached;
+    }
+
+    if (cached != null && listEquals(cached, next)) {
+      return cached;
+    }
+
+    _trayIconCache[key] = next;
+    return next;
   }
 }

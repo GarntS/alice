@@ -30,3 +30,21 @@ flutter build linux --debug
 ```
 
 The shell also redirects caches into the repo so development does not depend on writable global home-directory state.
+
+## Nix Package
+
+You can build `alice` as a Nix package:
+
+```bash
+# legacy Nix workflow
+nix-build
+
+# flake workflow
+nix build .#alice
+```
+
+Run it directly from the result symlink:
+
+```bash
+./result/bin/alice
+```

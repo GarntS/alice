@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import 'models/alice_config.dart';
-import 'models/bar_snapshot.dart';
+import 'data/alice_config.dart';
+import 'data/bar_snapshot.dart';
 import 'services/platform/method_channel_alice_platform.dart';
 import 'state/panel_controller.dart';
 import 'theme/alice_theme.dart';
@@ -156,6 +156,22 @@ class _AliceAppState extends State<AliceApp> {
     }
   }
 
+  Future<void> _handleWorkspaceFocus(String label) async {
+    try {
+      await _platform.focusWorkspace(label);
+    } catch (error) {
+      debugPrint('Failed to focus workspace: $error');
+    }
+  }
+
+  Future<void> _handleTrayActivate(TrayItemSnapshot item) async {
+    try {
+      await _platform.sendTrayAction(item, action: 'activate');
+    } catch (error) {
+      debugPrint('Failed to activate tray item: $error');
+    }
+  }
+
   String _panelId(AlicePanel panel) {
     return switch (panel) {
       AlicePanel.media => 'media',
@@ -194,6 +210,8 @@ class _AliceAppState extends State<AliceApp> {
                       config: _config,
                       snapshot: _snapshot,
                       panelController: _panelController,
+                      onWorkspaceTap: _handleWorkspaceFocus,
+                      onTrayItemTap: _handleTrayActivate,
                       onBackgroundTap: () {
                         _closePanel();
                       },
@@ -209,6 +227,7 @@ class _AliceAppState extends State<AliceApp> {
                             snapshot: _snapshot,
                             onPowerAction: _handlePowerAction,
                             onMediaAction: _handleMediaAction,
+                            onTrayAction: _handleTrayActivate,
                           ),
                   ),
           ),

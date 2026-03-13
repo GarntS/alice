@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/alice_config.dart';
+import '../data/alice_config.dart';
 
 ThemeData buildAliceTheme(AliceConfig config, Brightness brightness) {
   final isDark = brightness == Brightness.dark;

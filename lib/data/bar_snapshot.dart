@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 class BarSnapshot {
   const BarSnapshot({
     required this.activePanelId,
@@ -36,6 +38,8 @@ class MediaSnapshot {
   const MediaSnapshot({
     required this.title,
     required this.artist,
+    required this.albumTitle,
+    required this.artUrl,
     required this.positionLabel,
     required this.lengthLabel,
     required this.isPlaying,
@@ -43,6 +47,8 @@ class MediaSnapshot {
 
   final String title;
   final String artist;
+  final String albumTitle;
+  final String artUrl;
   final String positionLabel;
   final String lengthLabel;
   final bool isPlaying;
@@ -70,8 +76,17 @@ class ClockSnapshot {
 }
 
 class TrayItemSnapshot {
-  const TrayItemSnapshot({required this.id, required this.label});
+  const TrayItemSnapshot({
+    required this.id,
+    required this.label,
+    required this.serviceName,
+    required this.objectPath,
+    required this.iconPngBytes,
+  });
 
   final String id;
   final String label;
+  final String serviceName;
+  final String objectPath;
+  final Uint8List? iconPngBytes;
 }
