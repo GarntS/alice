@@ -2,8 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../../../data/bar_snapshot.dart';
-import '../../../state/panel_controller.dart';
+import '../../rust_gen/state.dart';
+import '../../panel_controller.dart';
 import 'panel_tap_target.dart';
 import 'pill.dart';
 

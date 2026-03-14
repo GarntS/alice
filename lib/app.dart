@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import 'data/alice_config.dart';
-import 'data/bar_snapshot.dart';
-import 'services/platform/method_channel_alice_platform.dart';
-import 'state/panel_controller.dart';
-import 'theme/alice_theme.dart';
+import 'alice_config.dart';
+import 'rust_gen/state.dart';
+import 'alice_platform.dart';
+import 'panel_controller.dart';
+import 'alice_theme.dart';
 import 'widgets/panels/panel_host.dart';
 import 'widgets/panels/panel_spec.dart';
 import 'widgets/top_bar.dart';
@@ -38,14 +38,14 @@ class AliceApp extends StatefulWidget {
 }
 
 class _AliceAppState extends State<AliceApp> {
-  late final MethodChannelAlicePlatform _platform =
-      MethodChannelAlicePlatform();
+  late final AlicePlatform _platform = AlicePlatform();
   late final PanelController _panelController = PanelController();
   late final StreamSubscription<BarSnapshot> _snapshotSubscription;
+  late final StreamSubscription<AlicePanel?> _panelTypeSubscription;
 
   AliceConfig _config = AliceConfig.fallback();
+  AlicePanel? _activePanel;
   BarSnapshot _snapshot = const BarSnapshot(
-    activePanelId: null,
     workspaces: [],
     media: null,
     memoryUsagePercent: 0,
@@ -67,6 +67,13 @@ class _AliceAppState extends State<AliceApp> {
     super.initState();
     _panelController.addListener(_syncPanelState);
     _loadConfig();
+    _panelTypeSubscription = _platform.watchPanelType().listen(
+      (panel) {
+        if (mounted) setState(() => _activePanel = panel);
+      },
+      onError: (Object e, StackTrace st) =>
+          debugPrint('Failed to receive panel type: $e'),
+    );
     _snapshotSubscription = _platform.watchBarSnapshots().listen(
       (snapshot) {
         if (!mounted) {
@@ -124,6 +131,7 @@ class _AliceAppState extends State<AliceApp> {
         },
         width: panelSize.width,
         height: panelSize.height,
+        includeTrayIconBytes: openPanel == AlicePanel.trayOverflow,
       );
     } catch (error) {
       debugPrint('Failed to sync panel state: $error');
@@ -156,6 +164,14 @@ class _AliceAppState extends State<AliceApp> {
     }
   }
 
+  Future<void> _handleMediaSeek(int positionMicros) async {
+    try {
+      await _platform.seekMedia(positionMicros);
+    } catch (error) {
+      debugPrint('Failed to seek media: $error');
+    }
+  }
+
   Future<void> _handleWorkspaceFocus(String label) async {
     try {
       await _platform.focusWorkspace(label);
@@ -183,6 +199,7 @@ class _AliceAppState extends State<AliceApp> {
 
   @override
   void dispose() {
+    _panelTypeSubscription.cancel();
     _snapshotSubscription.cancel();
     _panelController.removeListener(_syncPanelState);
     _panelController.dispose();
@@ -191,7 +208,6 @@ class _AliceAppState extends State<AliceApp> {
 
   @override
   Widget build(BuildContext context) {
-    final activePanel = alicePanelFromId(_snapshot.activePanelId);
     return AnimatedBuilder(
       animation: _panelController,
       builder: (context, _) {
@@ -219,14 +235,15 @@ class _AliceAppState extends State<AliceApp> {
                   )
                 : Align(
                     alignment: Alignment.topRight,
-                    child: activePanel == null
+                    child: _activePanel == null
                         ? const SizedBox.shrink()
                         : AlicePanelCard(
-                            panel: activePanel,
+                            panel: _activePanel!,
                             config: _config,
                             snapshot: _snapshot,
                             onPowerAction: _handlePowerAction,
                             onMediaAction: _handleMediaAction,
+                            onSeekMedia: _handleMediaSeek,
                             onTrayAction: _handleTrayActivate,
                           ),
                   ),

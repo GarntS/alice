@@ -51,6 +51,7 @@ pkg_check_modules(GTK_LAYER_SHELL REQUIRED IMPORTED_TARGET gtk-layer-shell-0)
 add_subdirectory("runner")
 
 add_dependencies(${BINARY_NAME} flutter_assemble)
+add_dependencies(flutter_assemble frb_codegen)
 
 set_target_properties(${BINARY_NAME}
   PROPERTIES

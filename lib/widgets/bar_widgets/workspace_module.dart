@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/bar_snapshot.dart';
+import '../../rust_gen/state.dart';
 
 class TopBarWorkspaceModule extends StatelessWidget {
   const TopBarWorkspaceModule({

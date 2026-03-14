@@ -1,86 +1,37 @@
-//! Native platform service boundary for Alice.
+//! Native platform library for Alice.
 //!
-//! This crate aggregates Linux data providers such as sway IPC, MPRIS,
-//! network status, and system statistics behind a UI-facing API.
+//! This crate is consumed in two ways:
+//!
+//! 1. Via `flutter_rust_bridge` — the generated bridge code in
+//!    `frb_generated.rs` calls the public functions in `api.rs` from Dart.
+//!    Run `flutter_rust_bridge_codegen generate` to (re)produce that file.
+//!
+//! 2. Via two thin `extern "C"` functions used by the C++ panel-process socket
+//!    listener to forward show/hide events into the Dart `StreamSink`.
 
+pub mod api;
 pub mod clock;
 pub mod config;
 pub mod mpris;
 pub mod network;
 pub mod providers;
+pub mod runtime;
 pub mod state;
 pub mod stats;
 pub mod sway;
 pub mod tray;
 
-use std::ffi::{CStr, CString, c_char};
-use std::ptr;
+// frb_generated.rs is produced by `flutter_rust_bridge_codegen generate`.
+mod frb_generated;
 
-use clock::LocalClockProvider;
-use config::{AliceConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig};
-use mpris::{MediaControlAction, MprisMediaProvider, send_media_action};
-use network::SysNetworkProvider;
-use providers::{
-    ClockProvider, MediaProvider, NetworkProvider, StatsProvider, TrayProvider, WorkspaceProvider,
-};
-use state::{
-    BarSnapshot, ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot, WorkspaceSnapshot,
-};
-use stats::ProcStatsProvider;
-use sway::{SwayWorkspaceProvider, focus_workspace};
-use tray::{StatusNotifierTrayProvider, TrayItemAction, clear_tray_cache, send_tray_action};
+use std::ffi::CStr;
+use std::os::raw::c_char;
 
-/// Aggregates provider implementations into a single snapshot-oriented service.
-pub struct AlicePlatformService<W, M, S, N, C, T> {
-    workspace_provider: W,
-    media_provider: M,
-    stats_provider: S,
-    network_provider: N,
-    clock_provider: C,
-    tray_provider: T,
-}
+use config::AliceConfig;
 
-impl<W, M, S, N, C, T> AlicePlatformService<W, M, S, N, C, T>
-where
-    W: WorkspaceProvider,
-    M: MediaProvider,
-    S: StatsProvider,
-    N: NetworkProvider,
-    C: ClockProvider,
-    T: TrayProvider,
-{
-    pub fn new(
-        workspace_provider: W,
-        media_provider: M,
-        stats_provider: S,
-        network_provider: N,
-        clock_provider: C,
-        tray_provider: T,
-    ) -> Self {
-        Self {
-            workspace_provider,
-            media_provider,
-            stats_provider,
-            network_provider,
-            clock_provider,
-            tray_provider,
-        }
-    }
-
-    pub fn snapshot(&self) -> Result<BarSnapshot, PlatformError> {
-        let stats = self.stats_provider.read_stats()?;
-
-        Ok(BarSnapshot {
-            workspaces: self.workspace_provider.read_workspaces()?,
-            media: self.media_provider.read_media()?,
-            memory_usage_percent: stats.memory_usage_percent,
-            cpu_usage_cores: stats.cpu_usage_cores,
-            network: self.network_provider.read_network()?,
-            clock: self.clock_provider.read_clock()?,
-            tray_items: self.tray_provider.read_tray_items()?,
-        })
-    }
-}
+// ---------------------------------------------------------------------------
+// Shared error type (imported as `crate::PlatformError` throughout modules)
+// ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformError {
@@ -99,25 +50,11 @@ impl PlatformError {
     }
 }
 
-fn parse_media_action(action: &str) -> Option<MediaControlAction> {
-    match action {
-        "previous" => Some(MediaControlAction::Previous),
-        "playPause" => Some(MediaControlAction::PlayPause),
-        "next" => Some(MediaControlAction::Next),
-        _ => None,
-    }
-}
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
 
-fn parse_tray_action(action: &str) -> Option<TrayItemAction> {
-    match action {
-        "activate" => Some(TrayItemAction::Activate),
-        "secondaryActivate" => Some(TrayItemAction::SecondaryActivate),
-        "contextMenu" => Some(TrayItemAction::ContextMenu),
-        _ => None,
-    }
-}
-
-fn load_native_config() -> AliceConfig {
+pub(crate) fn load_native_config() -> AliceConfig {
     match config::default_config_path().and_then(|path| AliceConfig::load_or_create_default(&path))
     {
         Ok(config) => config,
@@ -125,406 +62,47 @@ fn load_native_config() -> AliceConfig {
     }
 }
 
-#[repr(C)]
-pub struct AliceTimeZoneFFI {
-    pub label: *mut c_char,
-    pub offset_hours: i32,
-}
+// ---------------------------------------------------------------------------
+// C FFI — panel process socket bridge
+//
+// Called from `on_panel_socket_incoming` in alice_application.cc (panel side)
+// after the C++ code has parsed the show/hide socket message and updated the
+// GTK window geometry. These functions forward the command into the Dart-side
+// `StreamSink<Option<PanelCommand>>` registered by `watch_panel_commands`.
+// ---------------------------------------------------------------------------
 
-impl From<TimeZoneConfig> for AliceTimeZoneFFI {
-    fn from(value: TimeZoneConfig) -> Self {
-        Self {
-            label: string_into_raw(value.label),
-            offset_hours: value.offset_hours,
-        }
-    }
-}
-
-#[repr(C)]
-pub struct AlicePowerCommandsFFI {
-    pub lock: *mut c_char,
-    pub lock_and_suspend: *mut c_char,
-    pub restart: *mut c_char,
-    pub poweroff: *mut c_char,
-}
-
-impl From<PowerCommandConfig> for AlicePowerCommandsFFI {
-    fn from(value: PowerCommandConfig) -> Self {
-        Self {
-            lock: string_into_raw(value.lock),
-            lock_and_suspend: string_into_raw(value.lock_and_suspend),
-            restart: string_into_raw(value.restart),
-            poweroff: string_into_raw(value.poweroff),
-        }
-    }
-}
-
-#[repr(C)]
-pub struct AliceConfigFFI {
-    pub theme_mode: u8,
-    pub accent_color: *mut c_char,
-    pub show_network_label: bool,
-    pub max_visible_tray_items: u32,
-    pub local_time_zone_label: *mut c_char,
-    pub time_zones: *mut AliceTimeZoneFFI,
-    pub time_zone_count: usize,
-    pub power_commands: AlicePowerCommandsFFI,
-}
-
-impl From<AliceConfig> for AliceConfigFFI {
-    fn from(value: AliceConfig) -> Self {
-        let time_zones: Vec<AliceTimeZoneFFI> =
-            value.time_zones.into_iter().map(Into::into).collect();
-        let (time_zones_ptr, time_zone_count) = vec_into_raw(time_zones);
-
-        Self {
-            theme_mode: match value.theme_mode {
-                ThemeMode::System => 0,
-                ThemeMode::Light => 1,
-                ThemeMode::Dark => 2,
-            },
-            accent_color: string_into_raw(value.accent_color),
-            show_network_label: value.show_network_label,
-            max_visible_tray_items: value.max_visible_tray_items,
-            local_time_zone_label: string_into_raw_option(value.local_time_zone_label),
-            time_zones: time_zones_ptr,
-            time_zone_count,
-            power_commands: value.power_commands.into(),
-        }
-    }
-}
-
-#[repr(C)]
-pub struct WorkspaceFFI {
-    pub label: *mut c_char,
-    pub is_focused: bool,
-    pub is_visible: bool,
-}
-
-impl From<WorkspaceSnapshot> for WorkspaceFFI {
-    fn from(value: WorkspaceSnapshot) -> Self {
-        Self {
-            label: string_into_raw(value.label),
-            is_focused: value.is_focused,
-            is_visible: value.is_visible,
-        }
-    }
-}
-
-#[repr(C)]
-pub struct MediaFFI {
-    pub title: *mut c_char,
-    pub artist: *mut c_char,
-    pub album_title: *mut c_char,
-    pub art_url: *mut c_char,
-    pub position_label: *mut c_char,
-    pub length_label: *mut c_char,
-    pub is_playing: bool,
-}
-
-impl From<MediaSnapshot> for MediaFFI {
-    fn from(value: MediaSnapshot) -> Self {
-        Self {
-            title: string_into_raw(value.title),
-            artist: string_into_raw(value.artist),
-            album_title: string_into_raw(value.album_title),
-            art_url: string_into_raw(value.art_url),
-            position_label: string_into_raw(value.position_label),
-            length_label: string_into_raw(value.length_label),
-            is_playing: value.is_playing,
-        }
-    }
-}
-
-#[repr(C)]
-pub struct NetworkFFI {
-    pub kind: u8,
-    pub label: *mut c_char,
-}
-
-impl From<NetworkSnapshot> for NetworkFFI {
-    fn from(value: NetworkSnapshot) -> Self {
-        Self {
-            kind: match value.kind {
-                NetworkKind::Wifi => 0,
-                NetworkKind::Wired => 1,
-                NetworkKind::Disconnected => 2,
-            },
-            label: string_into_raw(value.label),
-        }
-    }
-}
-
-#[repr(C)]
-pub struct ClockFFI {
-    pub time_zone_code: *mut c_char,
-    pub date_label: *mut c_char,
-    pub time_label: *mut c_char,
-}
-
-impl From<ClockSnapshot> for ClockFFI {
-    fn from(value: ClockSnapshot) -> Self {
-        Self {
-            time_zone_code: string_into_raw(value.time_zone_code),
-            date_label: string_into_raw(value.date_label),
-            time_label: string_into_raw(value.time_label),
-        }
-    }
-}
-
-#[repr(C)]
-pub struct TrayItemFFI {
-    pub id: *mut c_char,
-    pub label: *mut c_char,
-    pub icon_name: *mut c_char,
-    pub icon_theme_path: *mut c_char,
-    pub service_name: *mut c_char,
-    pub object_path: *mut c_char,
-}
-
-impl From<crate::state::TrayItemSnapshot> for TrayItemFFI {
-    fn from(value: crate::state::TrayItemSnapshot) -> Self {
-        Self {
-            id: string_into_raw(value.id),
-            label: string_into_raw(value.label),
-            icon_name: string_into_raw(value.icon_name),
-            icon_theme_path: string_into_raw(value.icon_theme_path),
-            service_name: string_into_raw(value.service_name),
-            object_path: string_into_raw(value.object_path),
-        }
-    }
-}
-
-#[repr(C)]
-pub struct AliceSnapshotFFI {
-    pub workspaces: *mut WorkspaceFFI,
-    pub workspace_count: usize,
-    pub media: *mut MediaFFI,
-    pub network: NetworkFFI,
-    pub clock: ClockFFI,
-    pub tray_items: *mut TrayItemFFI,
-    pub tray_item_count: usize,
-    pub memory_usage_percent: f64,
-    pub cpu_usage_cores: f64,
-}
-
-fn string_into_raw(value: String) -> *mut c_char {
-    CString::new(value)
-        .unwrap_or_else(|_| CString::new("").expect("empty CString"))
-        .into_raw()
-}
-
-fn string_into_raw_option(value: Option<String>) -> *mut c_char {
-    value.map(string_into_raw).unwrap_or(ptr::null_mut())
-}
-
-unsafe fn string_from_raw(value: *mut c_char) {
-    if !value.is_null() {
-        let _ = unsafe { CString::from_raw(value) };
-    }
-}
-
-fn vec_into_raw<T>(mut values: Vec<T>) -> (*mut T, usize) {
-    let len = values.len();
-    let ptr = values.as_mut_ptr();
-    std::mem::forget(values);
-    (ptr, len)
-}
-
-unsafe fn vec_from_raw<T>(ptr: *mut T, len: usize) -> Vec<T> {
-    if ptr.is_null() {
-        Vec::new()
-    } else {
-        unsafe { Vec::from_raw_parts(ptr, len, len) }
-    }
-}
-
+/// Notify the Dart panel that it should show the given panel type.
+///
+/// # Safety
+/// `panel_id` must be a valid, null-terminated C string.
 #[unsafe(no_mangle)]
-pub extern "C" fn alice_platform_load_config() -> *mut AliceConfigFFI {
-    Box::into_raw(Box::new(load_native_config().into()))
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn alice_platform_free_config(config: *mut AliceConfigFFI) {
-    if config.is_null() {
+pub unsafe extern "C" fn alice_notify_panel_show(
+    panel_id: *const c_char,
+    include_icon_bytes: bool,
+    anchor_x: f64,
+    anchor_y: f64,
+    width: f64,
+    height: f64,
+) {
+    if panel_id.is_null() {
         return;
     }
-
-    let config = unsafe { Box::from_raw(config) };
-    unsafe { string_from_raw(config.accent_color) };
-    unsafe { string_from_raw(config.local_time_zone_label) };
-    let time_zones = unsafe { vec_from_raw(config.time_zones, config.time_zone_count) };
-    for time_zone in time_zones {
-        unsafe { string_from_raw(time_zone.label) };
-    }
-    unsafe { string_from_raw(config.power_commands.lock) };
-    unsafe { string_from_raw(config.power_commands.lock_and_suspend) };
-    unsafe { string_from_raw(config.power_commands.restart) };
-    unsafe { string_from_raw(config.power_commands.poweroff) };
+    let id = match unsafe { CStr::from_ptr(panel_id) }.to_str() {
+        Ok(s) => s.to_string(),
+        Err(_) => return,
+    };
+    runtime::push_panel_show(id, include_icon_bytes, anchor_x, anchor_y, width, height);
 }
 
+/// Notify the Dart panel that it should hide.
 #[unsafe(no_mangle)]
-pub extern "C" fn alice_platform_read_snapshot() -> *mut AliceSnapshotFFI {
-    let workspace_provider = SwayWorkspaceProvider::new();
-    let media_provider = MprisMediaProvider::new();
-    let stats_provider = ProcStatsProvider::new();
-
-    let workspaces = workspace_provider.read_workspaces().unwrap_or_default();
-    let media = media_provider.read_media().unwrap_or(None);
-    let network = SysNetworkProvider::new()
-        .read_network()
-        .unwrap_or(NetworkSnapshot {
-            kind: NetworkKind::Disconnected,
-            label: "Disconnected".into(),
-        });
-    let clock = LocalClockProvider::new()
-        .read_clock()
-        .unwrap_or(ClockSnapshot {
-            time_zone_code: "UTC".into(),
-            date_label: "-- ---".into(),
-            time_label: "--:--".into(),
-        });
-    let tray_items = StatusNotifierTrayProvider::new()
-        .read_tray_items()
-        .unwrap_or_default();
-    let stats = stats_provider.read_stats().unwrap_or(providers::Stats {
-        memory_usage_percent: 0.0,
-        cpu_usage_cores: 0.0,
-    });
-
-    let (workspaces_ptr, workspace_count) = vec_into_raw(
-        workspaces
-            .into_iter()
-            .map(WorkspaceFFI::from)
-            .collect::<Vec<_>>(),
-    );
-
-    let (tray_items_ptr, tray_item_count) = vec_into_raw(
-        tray_items
-            .into_iter()
-            .map(TrayItemFFI::from)
-            .collect::<Vec<_>>(),
-    );
-
-    Box::into_raw(Box::new(AliceSnapshotFFI {
-        workspaces: workspaces_ptr,
-        workspace_count,
-        media: media
-            .map(MediaFFI::from)
-            .map(Box::new)
-            .map(Box::into_raw)
-            .unwrap_or(ptr::null_mut()),
-        network: network.into(),
-        clock: clock.into(),
-        tray_items: tray_items_ptr,
-        tray_item_count,
-        memory_usage_percent: stats.memory_usage_percent,
-        cpu_usage_cores: stats.cpu_usage_cores,
-    }))
+pub extern "C" fn alice_notify_panel_hide() {
+    runtime::push_panel_hide();
 }
 
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn alice_platform_free_snapshot(snapshot: *mut AliceSnapshotFFI) {
-    if snapshot.is_null() {
-        return;
-    }
-
-    let snapshot = unsafe { Box::from_raw(snapshot) };
-    let workspaces = unsafe { vec_from_raw(snapshot.workspaces, snapshot.workspace_count) };
-    for workspace in workspaces {
-        unsafe { string_from_raw(workspace.label) };
-    }
-
-    if !snapshot.media.is_null() {
-        let media = unsafe { Box::from_raw(snapshot.media) };
-        unsafe { string_from_raw(media.title) };
-        unsafe { string_from_raw(media.artist) };
-        unsafe { string_from_raw(media.album_title) };
-        unsafe { string_from_raw(media.art_url) };
-        unsafe { string_from_raw(media.position_label) };
-        unsafe { string_from_raw(media.length_label) };
-    }
-    unsafe { string_from_raw(snapshot.network.label) };
-    unsafe { string_from_raw(snapshot.clock.time_zone_code) };
-    unsafe { string_from_raw(snapshot.clock.date_label) };
-    unsafe { string_from_raw(snapshot.clock.time_label) };
-    let tray_items = unsafe { vec_from_raw(snapshot.tray_items, snapshot.tray_item_count) };
-    for tray_item in tray_items {
-        unsafe { string_from_raw(tray_item.id) };
-        unsafe { string_from_raw(tray_item.label) };
-        unsafe { string_from_raw(tray_item.icon_name) };
-        unsafe { string_from_raw(tray_item.icon_theme_path) };
-        unsafe { string_from_raw(tray_item.service_name) };
-        unsafe { string_from_raw(tray_item.object_path) };
-    }
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn alice_platform_send_media_action(action: *const c_char) -> bool {
-    if action.is_null() {
-        return false;
-    }
-
-    let action = match unsafe { std::ffi::CStr::from_ptr(action) }.to_str() {
-        Ok(action) => action,
-        Err(_) => return false,
-    };
-    let Some(action) = parse_media_action(action) else {
-        return false;
-    };
-
-    send_media_action(action).is_ok()
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn alice_platform_focus_workspace(label: *const c_char) -> bool {
-    if label.is_null() {
-        return false;
-    }
-
-    let label = match unsafe { CStr::from_ptr(label) }.to_str() {
-        Ok(label) => label,
-        Err(_) => return false,
-    };
-
-    focus_workspace(label).is_ok()
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn alice_platform_send_tray_action(
-    service_name: *const c_char,
-    object_path: *const c_char,
-    action: *const c_char,
-    x: i32,
-    y: i32,
-) -> bool {
-    if service_name.is_null() || object_path.is_null() || action.is_null() {
-        return false;
-    }
-
-    let service_name = match unsafe { CStr::from_ptr(service_name) }.to_str() {
-        Ok(service_name) => service_name,
-        Err(_) => return false,
-    };
-    let object_path = match unsafe { CStr::from_ptr(object_path) }.to_str() {
-        Ok(object_path) => object_path,
-        Err(_) => return false,
-    };
-    let action = match unsafe { CStr::from_ptr(action) }.to_str() {
-        Ok(action) => action,
-        Err(_) => return false,
-    };
-    let Some(action) = parse_tray_action(action) else {
-        return false;
-    };
-
-    send_tray_action(service_name, object_path, action, x, y).is_ok()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn alice_platform_clear_tray_cache() {
-    clear_tray_cache();
-}
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
@@ -546,7 +124,7 @@ mod tests {
     struct StubTrayProvider;
 
     impl WorkspaceProvider for StubWorkspaceProvider {
-        fn read_workspaces(&self) -> Result<Vec<WorkspaceSnapshot>, PlatformError> {
+        fn read_workspaces(&self) -> Result<Vec<WorkspaceSnapshot>, crate::PlatformError> {
             Ok(vec![WorkspaceSnapshot {
                 label: "1".into(),
                 is_focused: true,
@@ -555,7 +133,7 @@ mod tests {
         }
     }
     impl MediaProvider for StubMediaProvider {
-        fn read_media(&self) -> Result<Option<MediaSnapshot>, PlatformError> {
+        fn read_media(&self) -> Result<Option<MediaSnapshot>, crate::PlatformError> {
             Ok(Some(MediaSnapshot {
                 title: "Song".into(),
                 artist: "Artist".into(),
@@ -568,7 +146,7 @@ mod tests {
         }
     }
     impl StatsProvider for StubStatsProvider {
-        fn read_stats(&self) -> Result<Stats, PlatformError> {
+        fn read_stats(&self) -> Result<Stats, crate::PlatformError> {
             Ok(Stats {
                 memory_usage_percent: 42.0,
                 cpu_usage_cores: 1.5,
@@ -576,7 +154,7 @@ mod tests {
         }
     }
     impl NetworkProvider for StubNetworkProvider {
-        fn read_network(&self) -> Result<NetworkSnapshot, PlatformError> {
+        fn read_network(&self) -> Result<NetworkSnapshot, crate::PlatformError> {
             Ok(NetworkSnapshot {
                 kind: NetworkKind::Wifi,
                 label: "testnet".into(),
@@ -584,7 +162,7 @@ mod tests {
         }
     }
     impl ClockProvider for StubClockProvider {
-        fn read_clock(&self) -> Result<ClockSnapshot, PlatformError> {
+        fn read_clock(&self) -> Result<ClockSnapshot, crate::PlatformError> {
             Ok(ClockSnapshot {
                 time_zone_code: "UTC".into(),
                 date_label: "09 Mar".into(),
@@ -593,48 +171,20 @@ mod tests {
         }
     }
     impl TrayProvider for StubTrayProvider {
-        fn read_tray_items(&self) -> Result<Vec<TrayItemSnapshot>, PlatformError> {
+        fn read_tray_items(&self) -> Result<Vec<TrayItemSnapshot>, crate::PlatformError> {
             Ok(vec![TrayItemSnapshot {
                 id: "discord".into(),
                 label: "Discord".into(),
-                icon_name: "discord".into(),
-                icon_theme_path: String::new(),
                 service_name: "org.kde.StatusNotifierItem.discord".into(),
                 object_path: "/StatusNotifierItem".into(),
+                icon_png_bytes: None,
             }])
         }
     }
 
     #[test]
-    fn combines_provider_output_into_snapshot() {
-        let service = AlicePlatformService::new(
-            StubWorkspaceProvider,
-            StubMediaProvider,
-            StubStatsProvider,
-            StubNetworkProvider,
-            StubClockProvider,
-            StubTrayProvider,
-        );
-        let snapshot = service.snapshot().expect("snapshot should succeed");
-        assert_eq!(snapshot.workspaces.len(), 1);
-        assert_eq!(snapshot.media.expect("media expected").title, "Song");
-        assert_eq!(snapshot.memory_usage_percent, 42.0);
-        assert_eq!(snapshot.cpu_usage_cores, 1.5);
-        assert_eq!(snapshot.network.label, "testnet");
-        assert_eq!(snapshot.tray_items.len(), 1);
-    }
-
-    #[test]
-    fn ffi_config_allocates() {
-        let ptr = alice_platform_load_config();
-        assert!(!ptr.is_null());
-        unsafe { alice_platform_free_config(ptr) };
-    }
-
-    #[test]
-    fn ffi_snapshot_allocates() {
-        let ptr = alice_platform_read_snapshot();
-        assert!(!ptr.is_null());
-        unsafe { alice_platform_free_snapshot(ptr) };
+    fn load_native_config_succeeds() {
+        let config = load_native_config();
+        assert_eq!(config.accent_color, "#4C956C");
     }
 }

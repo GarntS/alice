@@ -1,100 +1,122 @@
 # Design Doc
 
-This project will implement a top bar and a few expanding widgets for a wayland desktop.
+`alice` is a Wayland top bar for `wlroots` compositors. The UX layer is written in Flutter; native Linux integration is implemented in Rust; layer-shell window management is handled by a small C++/GTK runner.
 
 ## Configuration
-All configuration for the bar should be accomplished through a single `.yaml` file, stored in `$XDG_CONFIG_HOME/alice/config.yaml`. On run, if a config file does not exist at that path, a default configuration file, with comments representing all of the valid configuration values, should be placed at that path.
+
+All configuration is handled through a single `.yaml` file at `$XDG_CONFIG_HOME/alice/config.yaml`. On first run, if no config file exists, a default file with comments documenting every valid option is written to that path.
+
+Supported options:
+
+| Key | Type | Description |
+|---|---|---|
+| `theme` | `light` / `dark` / `system` | Bar colour scheme |
+| `accent_color` | hex string | Material3 colour seed |
+| `show_network_label` | bool | Show SSID / "Connected" label next to network icon |
+| `max_visible_tray_items` | int | Tray icons shown before overflow |
+| `time_zones` | list | Extra world-clock entries (label + UTC offset) |
+| `power_commands.lock` | string | Shell command for lock action |
+| `power_commands.lock_suspend` | string | Shell command for lock + suspend |
+| `power_commands.restart` | string | Shell command for restart |
+| `power_commands.poweroff` | string | Shell command for power off |
 
 ## Constraints
-- The UX for the application should be written 100% in Flutter.
-- If native code is necessary to provide data to the flutter code for things like memory usage, D-Bus access for MPRIS, Wi-Fi info, etc. That's fine. Native components *DO NOT* need to be written in Dart, and can instead be in Rust if that's easier.
-- The bar should have a light theme, a dark theme, and an accent color, all of which are user-configurable via the `config.yaml`.
-- Because we're implementing a bar for a wayland desktop, it'll need to integrate with the wlr layer-shell protocol. You'll need to write a Flutter plugin with some native code that hooks into the WLR layer shell protocol, providing it space to render the bar and a mechanism to render the panels over other windows. This will be a major lift.
-- Some of the widgets mentioned in the layout below mention "panels", which should expand from the bar and float over other windows without resizing them.
+
+- The UX is written 100% in Flutter.
+- Native Linux access (D-Bus, Sway IPC, `/proc`, network inspection, file watching) is implemented in Rust and exposed to Flutter via `flutter_rust_bridge`.
+- Layer-shell window creation and positioning is handled by a C++/GTK runner.
+- The bar supports a light theme, a dark theme, and a user-configurable accent colour.
+- Only one panel may be open at a time.
 
 ## Layout
-The top-bar should always have the following layout, displayed in 3 groups:
-**Floating on the left side (in LTR order):**
-1. An indicator of what `swaywm` desktops are available on the current monitor. The current workspace for each monitor should be visible and distinct from the other numbers.
 
-**Floating Center:**
-1. A playing media display.
-  - If media is playing (as published on D-Bus's MPRIS), a track title, artist, current media time, and media length.
-    - E.G. - "I Get Off - Halestorm - 0:26/2:10".
-  - If media is playing, on click, this should expand a panel that has all of the above information, and play/pause, previous track, and next track buttons, laid out how it would be in a media player.
-  - If media is not playing (via MPRIS), nothing.
+The bar is anchored to the top of the output at 44 px tall, split into three layout groups.
 
-**Floating Right (in LTR order):**
-1. A memory usage indicator.
-  - This should show a memory icon, and a percentage representing the amount of system memory currently in-use.
-  - When memory usage is close to 100%, this should change to be a bright and distracting color, like yellow or red.
-2. A CPU usage indicator.
-  - This should show a processor icon, and a number representing the number of cores of processing power currently in-use, as a sum of the percentage usages of each core. e.g. - 4 cores, all 60% usage, 2.4.
-  - When CPU usage is high (over 60%), this should change to be a bright and distracting color, like yellow or red.
-3. A status indicator showing the status of the network connection.
-  - If connected to WiFi, it should show a wireless icon and the SSID of the current network.
-  - If disconnected from WiFi, or if the device has no WiFi, but if the device has a wired network connection, show a plug icon and a label that says "Connected".
-  - If no network devices are connected, show a disconnected icon and a label that says "Disconnected".
-  - It should be user-configurable via the config file whether the labels and network names are shown.
-4. A clock, showing a timezone short code (EST, AEST, GMT, etc.), a day and month, and the 24-hour time.
-  - On click, it should expand a panel to display a vertical list of different times in any number of additional time zones, as configured by the user in the configuration file.
-5. A `libappindicator`-compatible tray that shows icons for each running application that has published an application indicator.
-  - Once a configurable number of application indicators are being shown, it should hide all but N-1 icons, and show a carat that can be used to expand a panel that shows all the remaining application indicators, in much the same style as Windows's taskbar does.
-6. A power icon, which, when clicked, displays a power menu. The power menu should have 4 options: lock, lock + suspend, restart, and poweroff.
+**Left:**
+1. Workspace indicator — shows all Sway workspaces on the current output. The focused workspace is highlighted in the accent colour; visible-but-unfocused workspaces use a secondary colour; hidden workspaces are rendered in a muted style. Clicking a workspace chip focuses it via Sway IPC.
 
-## Agreed Decisions
-- Target compositor scope is `wlroots` compositors generally, with `sway` used as the first validation environment.
-- The UX layer will be written in Flutter, while native Linux integrations will be implemented in Rust.
-- Workspace state will use `sway` IPC for the first implementation, but the UI-facing integration should be abstracted so additional compositor backends can be added later.
-- Tray support will target `StatusNotifierItem` behavior over D-Bus.
-- Configuration will use a hand-authored default `config.yaml` template with comments, plus typed parsing and validation in code.
+**Centre:**
+1. Media now-playing display — shown only when an MPRIS player is active. Displays a play/pause icon and a formatted label (`Title - Artist - 0:26/2:10`). Clicking opens the media panel.
+
+**Right (left to right):**
+1. Memory usage — icon and percentage of system RAM in use. Colours shift to yellow above 75 % and red above 90 %.
+2. CPU usage — icon and aggregate CPU load expressed as cores (e.g. `2.4` for four cores each at 60 %). Same warning/alert colour thresholds as memory.
+3. Network status — icon and optional label. Shows Wi-Fi SSID when on wireless, "Connected" on wired, or "Disconnected" with a broken-link icon when offline. Label visibility is configurable.
+4. Clock — timezone code, day-and-month date, and 24-hour time. Clicking opens the world-clock panel.
+5. Tray — `StatusNotifierItem`-compatible icons, limited to a configurable count. When items overflow, a badge showing the count opens an overflow panel.
+6. Power button — opens the power panel.
+
+## Panels
+
+Panels are floating GTK surfaces managed by the C++ runner via layer-shell. Only one panel can be open at a time; opening a new one closes any currently open panel.
+
+| Panel | Content |
+|---|---|
+| Media | Album art, title, artist, album, position/length scrubber, previous/play-pause/next controls |
+| World clock | Highlighted local time plus a row per configured extra timezone |
+| Tray overflow | Scrollable list of tray items beyond the visible count |
+| Power | Lock, Lock + Suspend, Restart, Power Off |
+
+## Architecture
+
+### Runtime model
+
+A single binary is started twice by the runner: once with `--alice-window=bar` for the main bar surface, and once with `--alice-window=panel` for the floating panel surface. Both processes share a Rust library that is statically linked into the GTK runner.
+
+### Data flow
+
+The Rust runtime runs a Tokio async event loop with the following providers:
+
+| Provider | Source | Update trigger |
+|---|---|---|
+| Workspaces | Sway IPC subscription | IPC workspace event |
+| Media | D-Bus MPRIS | MPRIS property change |
+| Memory | `/proc/meminfo` | 1 s timer |
+| CPU | `/proc/stat` | 1 s timer |
+| Network | `/sys/class/net` | `notify` file watcher |
+| Clock | `chrono` | 30 s timer |
+| Tray | D-Bus SNI watcher | SNI registration / icon change |
+
+All providers write into a shared `BarSnapshot` struct. A 50 ms debounce is applied before each snapshot is sent to Flutter over a `flutter_rust_bridge` stream, collapsing bursts of concurrent updates into a single widget rebuild.
+
+### Platform bridge
+
+`AlicePlatform` in Dart wraps two transport layers:
+
+- **`flutter_rust_bridge` stream/function calls** — `watchBarSnapshots`, `loadConfig`, `sendMediaAction`, `focusWorkspace`, `sendTrayAction`, `executePowerAction`
+- **`MethodChannel`** — `showPanel` / `hidePanel` for instructing the C++ runner to create or destroy the floating panel surface
+
+### Tray integration
+
+The Rust `tray` module hosts a `StatusNotifierWatcher` D-Bus service that accepts registrations from both the `org.kde.StatusNotifierItem` and `org.freedesktop.StatusNotifierItem` interfaces. For each registered item it fetches a 16×16 PNG icon and forwards it to Flutter as raw bytes. Tray item activation, secondary activation, and context-menu calls are routed back to the registrant via D-Bus.
+
+## Agreed decisions
+
+- Target compositor scope is `wlroots` compositors, with Sway as the first validation environment.
+- The UX layer is Flutter; native Linux integrations are Rust.
+- Workspace state uses Sway IPC, behind a thin abstraction so other compositor backends can be added later.
+- Tray support targets `StatusNotifierItem` over D-Bus.
+- Configuration is a hand-authored YAML template with comments, parsed into typed Rust structs via `serde`.
 - Only one panel may be open at a time.
-- Power actions will delegate to configurable shell commands with sane defaults.
-- Initial delivery is for local development and validation only; packaging is out of scope for the first implementation.
+- Power actions delegate to configurable shell commands with `systemctl` defaults.
 
-## Implementation Plan
-1. Define the platform boundary.
-   - Flutter owns rendering, layout, theme application, panel state, and widget composition.
-   - Rust owns `wlr-layer-shell` integration, D-Bus access, `sway` IPC, system stats, network inspection, and StatusNotifier hosting.
-   - Native functionality should be exposed to Flutter through a small, explicit plugin/channel API.
-2. Scaffold the project structure.
-   - Create the Flutter app shell for the bar UI.
-   - Create Linux native/plugin crates for layer-shell integration, panel window creation and positioning, and native data providers.
-   - Define a shared event model for pushing native state updates into Flutter.
-3. Implement configuration first.
-   - Load `~/.config/alice/config.yaml` using XDG conventions.
-   - On first run, write a hand-authored commented config template if the file does not exist.
-   - Parse configuration into typed structures with validation and fallback behavior for invalid values.
-4. Build the core bar shell.
-   - Create the top bar as a layer-shell surface anchored to the top of the output.
-   - Implement the three layout groups: left, center, and right.
-   - Add configurable light theme, dark theme, and accent color support.
-   - Ensure the bar is monitor-aware and behaves correctly on `wlroots` compositors.
-5. Implement widget data sources.
-   - Left: workspace indicator backed by `sway` IPC.
-   - Center: MPRIS now-playing state and click-to-open media panel.
-   - Right: memory usage, CPU usage, network status, clock with configured extra time zones, StatusNotifier tray, and power menu trigger.
-6. Implement single-panel behavior.
-   - Create a shared panel controller so opening one panel closes any other open panel.
-   - Back each panel with a native floating surface positioned relative to the bar so it renders over other windows without resizing them.
-   - Implement the media controls panel, timezone list panel, tray overflow panel, and power menu panel.
-7. Implement StatusNotifier support.
-   - Host the necessary StatusNotifier watcher and item integration over D-Bus from Rust.
-   - Forward icon, tooltip, and action events into Flutter for rendering and interaction.
-   - Add overflow behavior based on a configurable visible-item threshold.
-8. Add resilience and polish.
-   - Validate and clamp unsupported or invalid config values.
-   - Provide sensible fallback behavior when services are unavailable, such as no MPRIS clients, no wireless device, or no tray items.
-   - Ensure power actions use configurable commands with documented defaults.
-9. Validate in a real session.
-   - Test on `sway` first.
-   - Verify anchoring, z-order, focus behavior, multi-monitor handling, D-Bus updates, tray activation, and first-run config generation.
+## Implementation status
 
-## Milestones
-1. Configuration, bar shell, and theming.
-2. Layer-shell integration for the bar and floating panels.
-3. Workspace, clock, CPU, and memory widgets.
-4. MPRIS integration and the media panel.
-5. Network status widget.
-6. StatusNotifier tray and overflow panel.
-7. Power menu, validation, and polish.
+All major milestones are complete.
+
+| Component | Status |
+|---|---|
+| Configuration (load, first-run generation, typed structs) | Done |
+| Bar shell and three-column layout | Done |
+| Layer-shell integration (bar + floating panels) | Done |
+| Theming (light, dark, system, accent colour) | Done |
+| Workspace indicator (Sway IPC) | Done |
+| Clock widget and world-clock panel | Done |
+| Memory and CPU widgets | Done |
+| Network status widget | Done |
+| MPRIS media widget and media panel | Done |
+| StatusNotifier tray and overflow panel | Done |
+| Power menu panel | Done |
+| Single-panel-at-a-time panel controller | Done |
+| flutter_rust_bridge codegen wired into CMake build | Done |
+| Nix flake devShell and package | Done |

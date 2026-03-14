@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../data/alice_config.dart';
-import '../../data/bar_snapshot.dart';
-import '../../state/panel_controller.dart';
+import '../../alice_config.dart';
+import '../../rust_gen/state.dart';
+import '../../panel_controller.dart';
 
 Size alicePanelSize(
   AlicePanel panel, {
@@ -12,7 +12,7 @@ Size alicePanelSize(
   required BarSnapshot snapshot,
 }) {
   return switch (panel) {
-    AlicePanel.media => const Size(360, 234),
+    AlicePanel.media => const Size(360, 268),
     AlicePanel.clock => Size(320, config.timeZones.isEmpty ? 128 : 220),
     AlicePanel.trayOverflow => Size(
       320,

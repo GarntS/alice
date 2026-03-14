@@ -1,0 +1,5 @@
+rust_input: "crate::api"
+rust_root: "native/alice_platform"
+dart_output: "lib/rust_gen"
+rust_output: "native/alice_platform/src/frb_generated.rs"
+c_output: "linux/runner/frb_generated.h"

@@ -92,6 +92,45 @@ pub fn send_media_action(action: MediaControlAction) -> Result<(), PlatformError
     })
 }
 
+pub fn seek_to_position(position_micros: i64) -> Result<(), PlatformError> {
+    let connection = Connection::session().map_err(|error| {
+        PlatformError::new(format!("failed to connect to session bus: {error}"))
+    })?;
+    let player_names = list_player_names(&connection)?;
+    if player_names.is_empty() {
+        return Err(PlatformError::new("no MPRIS players are available"));
+    }
+
+    let target = choose_control_target(&connection, &player_names)?;
+    let proxy = Proxy::new(
+        &connection,
+        target.as_str(),
+        MPRIS_PATH,
+        MPRIS_PLAYER_INTERFACE,
+    )
+    .map_err(|error| PlatformError::new(format!("failed to create MPRIS proxy: {error}")))?;
+
+    // SetPosition requires the current track ID as a guard against seeking on
+    // the wrong track.  Read it from Metadata; fall back to the well-known
+    // NoTrack path if the player omits it.
+    let metadata: HashMap<String, OwnedValue> = proxy
+        .get_property("Metadata")
+        .map_err(|error| PlatformError::new(format!("failed to read Metadata: {error}")))?;
+    let track_id: zbus::zvariant::OwnedObjectPath = metadata
+        .get("mpris:trackid")
+        .and_then(|v| v.clone().try_into().ok())
+        .unwrap_or_else(|| {
+            zbus::zvariant::OwnedObjectPath::try_from(
+                "/org/mpris/MediaPlayer2/TrackList/NoTrack",
+            )
+            .unwrap()
+        });
+
+    proxy
+        .call::<_, _, ()>("SetPosition", &(track_id, position_micros))
+        .map_err(|error| PlatformError::new(format!("failed to send MPRIS SetPosition: {error}")))
+}
+
 fn choose_control_target(
     connection: &Connection,
     player_names: &[String],
@@ -167,6 +206,8 @@ fn read_player_snapshot(
         art_url,
         position_label: format_duration(position_micros),
         length_label: format_duration(length_micros),
+        position_micros,
+        length_micros,
         is_playing: playback_status == "Playing",
     }))
 }

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../data/alice_config.dart';
-import '../data/bar_snapshot.dart';
-import '../state/panel_controller.dart';
-import 'top_bar/widgets/clock_module.dart';
-import 'top_bar/widgets/cpu_module.dart';
-import 'top_bar/widgets/media_module.dart';
-import 'top_bar/widgets/memory_module.dart';
-import 'top_bar/widgets/network_module.dart';
-import 'top_bar/widgets/power_module.dart';
-import 'top_bar/widgets/tray_module.dart';
-import 'top_bar/widgets/workspace_module.dart';
+import '../alice_config.dart';
+import '../rust_gen/state.dart';
+import '../panel_controller.dart';
+import 'bar_widgets/clock_module.dart';
+import 'bar_widgets/cpu_module.dart';
+import 'bar_widgets/media_module.dart';
+import 'bar_widgets/memory_module.dart';
+import 'bar_widgets/network_module.dart';
+import 'bar_widgets/power_module.dart';
+import 'bar_widgets/tray_module.dart';
+import 'bar_widgets/workspace_module.dart';
 
 class TopBar extends StatelessWidget {
   const TopBar({

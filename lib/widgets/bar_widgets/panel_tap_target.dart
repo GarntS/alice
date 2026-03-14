@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../state/panel_controller.dart';
+import '../../panel_controller.dart';
 
 class TopBarPanelTapTarget extends StatefulWidget {
   const TopBarPanelTapTarget({

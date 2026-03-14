@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 
 enum AlicePanel { media, clock, trayOverflow, power }
 
+AlicePanel? alicePanelFromId(String? panelId) {
+  return switch (panelId) {
+    'media' => AlicePanel.media,
+    'clock' => AlicePanel.clock,
+    'trayOverflow' => AlicePanel.trayOverflow,
+    'power' => AlicePanel.power,
+    _ => null,
+  };
+}
+
 enum PanelAlignment { center, right }
 
 class PanelAnchor {

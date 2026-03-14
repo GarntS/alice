@@ -25,7 +25,6 @@
 , pango
 , stdenv
 , wayland
-, xorg
 , zlib
 }:
 let
@@ -45,15 +44,6 @@ let
     stdenv.cc.cc.lib
     stdenv.cc.libc
     wayland
-    xorg.libX11
-    xorg.libXcomposite
-    xorg.libXcursor
-    xorg.libXdamage
-    xorg.libXext
-    xorg.libXfixes
-    xorg.libXi
-    xorg.libXrandr
-    xorg.libXrender
     zlib
   ];
 in

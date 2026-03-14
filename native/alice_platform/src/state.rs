@@ -16,7 +16,7 @@ pub struct WorkspaceSnapshot {
     pub is_visible: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MediaSnapshot {
     pub title: String,
     pub artist: String,
@@ -24,6 +24,8 @@ pub struct MediaSnapshot {
     pub art_url: String,
     pub position_label: String,
     pub length_label: String,
+    pub position_micros: i64,
+    pub length_micros: i64,
     pub is_playing: bool,
 }
 
@@ -51,8 +53,7 @@ pub struct ClockSnapshot {
 pub struct TrayItemSnapshot {
     pub id: String,
     pub label: String,
-    pub icon_name: String,
-    pub icon_theme_path: String,
     pub service_name: String,
     pub object_path: String,
+    pub icon_png_bytes: Option<Vec<u8>>,
 }

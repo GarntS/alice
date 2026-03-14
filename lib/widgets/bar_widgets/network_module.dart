@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/bar_snapshot.dart';
+import '../../rust_gen/state.dart';
 import 'pill.dart';
 
 class TopBarNetworkModule extends StatelessWidget {
