@@ -1,0 +1,40 @@
+# Maintainer: <aur-handle>
+pkgname=alicebar
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Flutter-based Wayland top bar for wlroots compositors"
+arch=('x86_64')
+url="https://github.com/garnt/alice"
+license=('GPL3')
+depends=(
+  'gtk3' 'gtk-layer-shell' 'wayland'
+  'atk' 'gdk-pixbuf2' 'harfbuzz' 'libepoxy'
+  'libxkbcommon' 'pango' 'cairo' 'dbus'
+)
+makedepends=(
+  'flutter' 'clang' 'cargo' 'cmake' 'ninja' 'pkg-config'
+  'wayland-protocols'
+)
+source=("$pkgname-$pkgver.tar.gz::https://github.com/garnt/alice/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "alice-$pkgver"
+  export PUB_CACHE="$srcdir/pub-cache"
+  flutter pub get
+  cd native && cargo fetch
+}
+
+build() {
+  cd "alice-$pkgver"
+  export CC=clang CXX=clang++
+  export PUB_CACHE="$srcdir/pub-cache"
+  flutter build linux --release
+}
+
+package() {
+  cd "alice-$pkgver"
+  install -d "$pkgdir/usr/lib/alicebar"
+  cp -r build/linux/x64/release/bundle/. "$pkgdir/usr/lib/alicebar/"
+  install -Dm755 packaging/alicebar.sh "$pkgdir/usr/bin/alicebar"
+}

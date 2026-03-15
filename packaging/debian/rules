@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+export DH_VERBOSE = 1
+# Flutter must be on PATH before running dpkg-buildpackage.
+FLUTTER ?= flutter
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	$(FLUTTER) pub get
+	cd native && cargo fetch
+
+override_dh_auto_build:
+	export CC=clang CXX=clang++ && \
+	$(FLUTTER) build linux --release
+
+override_dh_auto_install:
+	install -d $(DESTDIR)/usr/lib/alicebar
+	cp -r build/linux/x64/release/bundle/. $(DESTDIR)/usr/lib/alicebar/
+	install -Dm755 packaging/alicebar.sh $(DESTDIR)/usr/bin/alicebar
+
+override_dh_auto_test:

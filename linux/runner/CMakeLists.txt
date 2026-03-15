@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 project(runner LANGUAGES CXX)
 
 find_program(CARGO_EXECUTABLE cargo REQUIRED)
-find_program(FRB_CODEGEN_EXECUTABLE flutter_rust_bridge_codegen REQUIRED)
+find_program(FRB_CODEGEN_EXECUTABLE flutter_rust_bridge_codegen)
 
 set(FRB_CODEGEN_INPUTS
   "${CMAKE_SOURCE_DIR}/../native/alice_platform/src/api.rs"
@@ -23,17 +23,22 @@ set(FRB_GENERATED_RUST
   "${CMAKE_SOURCE_DIR}/../linux/runner/frb_generated.h"
 )
 
-add_custom_command(
-  OUTPUT ${FRB_GENERATED_DART} ${FRB_GENERATED_RUST}
-  COMMAND ${FRB_CODEGEN_EXECUTABLE} generate
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/.."
-  DEPENDS ${FRB_CODEGEN_INPUTS}
-  COMMENT "Running flutter_rust_bridge codegen"
-  VERBATIM
-)
-add_custom_target(frb_codegen ALL
-  DEPENDS ${FRB_GENERATED_DART} ${FRB_GENERATED_RUST}
-)
+if(FRB_CODEGEN_EXECUTABLE AND NOT EXISTS "${CMAKE_SOURCE_DIR}/../lib/rust_gen/frb_generated.dart")
+  add_custom_command(
+    OUTPUT ${FRB_GENERATED_DART} ${FRB_GENERATED_RUST}
+    COMMAND ${FRB_CODEGEN_EXECUTABLE} generate
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/.."
+    DEPENDS ${FRB_CODEGEN_INPUTS}
+    COMMENT "Running flutter_rust_bridge codegen"
+    VERBATIM
+  )
+  add_custom_target(frb_codegen ALL
+    DEPENDS ${FRB_GENERATED_DART} ${FRB_GENERATED_RUST}
+  )
+else()
+  message(STATUS "FRB codegen: using pre-generated files")
+  add_custom_target(frb_codegen ALL)
+endif()
 
 set(ALICE_NATIVE_DIR "${CMAKE_SOURCE_DIR}/../native")
 set(ALICE_TARGET_DIR "${ALICE_NATIVE_DIR}/target/$<IF:$<CONFIG:Debug>,debug,release>")
