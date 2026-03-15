@@ -15,8 +15,12 @@
     in
     {
       packages = forAllSystems (pkgs: {
-        alice = pkgs.callPackage ./nix/package.nix { };
-        default = pkgs.callPackage ./nix/package.nix { };
+        alicebar = pkgs.callPackage ./nix/package.nix {
+          buildFlutterApplication = pkgs.flutter.passthru.buildFlutterApplication;
+        };
+        default = pkgs.callPackage ./nix/package.nix {
+          buildFlutterApplication = pkgs.flutter.passthru.buildFlutterApplication;
+        };
       });
 
       devShells = forAllSystems (pkgs:

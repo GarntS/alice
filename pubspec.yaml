@@ -1,4 +1,4 @@
-name: alice
+name: alicebar
 description: "A Flutter-first Wayland bar for wlroots compositors."
 publish_to: 'none'
 version: 1.0.0+1

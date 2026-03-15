@@ -22,6 +22,7 @@ const WATCHER_INTERFACE_FREEDESKTOP: &str = "org.freedesktop.StatusNotifierWatch
 const ITEM_INTERFACE_KDE: &str = "org.kde.StatusNotifierItem";
 const ITEM_INTERFACE_FREEDESKTOP: &str = "org.freedesktop.StatusNotifierItem";
 const DEFAULT_ITEM_PATH: &str = "/StatusNotifierItem";
+const AYATANA_SNI_PATH_PREFIX: &str = "/org/ayatana/NotificationItem/";
 
 const TRAY_ICON_SIZE_PX: u32 = 16;
 
@@ -488,11 +489,12 @@ fn read_item_snapshot(
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| service_name.clone());
     let status = read_item_text_property(&proxy, "Status");
-    let _icon_name = select_icon_name(
+    let icon_name = select_icon_name(
         read_item_text_property(&proxy, "IconName"),
         read_item_text_property(&proxy, "AttentionIconName"),
         status.as_deref(),
     );
+    let icon_theme_path = read_item_text_property(&proxy, "IconThemePath");
     let process_name = connection_process_name(connection, &service_name);
 
     let label = title
@@ -505,14 +507,15 @@ fn read_item_snapshot(
         })
         .unwrap_or_else(|| simplify_status_notifier_label(&service_name));
 
-    // Try to load the icon as PNG bytes from the D-Bus pixmap.
-    // GTK icon theme fallback is intentionally omitted (requires GTK context).
     let icon_png_bytes =
         read_sni_icon_png(connection, &item_ref.service_name, &item_ref.object_path)
             .or_else(|| {
-                // Fallback: try the icon name as a well-known name via pixmap
-                // (some items only expose icon_name, not pixmap — they will have no bytes)
-                None
+                let name = if !icon_name.is_empty() {
+                    icon_name.as_str()
+                } else {
+                    ayatana_icon_name_from_path(&item_ref.object_path)?
+                };
+                resolve_icon_name_to_png(name, icon_theme_path.as_deref())
             });
 
     Ok(Some(TrayItemSnapshot {
@@ -620,6 +623,102 @@ fn argb_pixmap_to_png(width: u32, height: u32, argb_data: &[u8]) -> Option<Vec<u
         )
         .ok()?;
 
+    Some(buf)
+}
+
+// ---------------------------------------------------------------------------
+// Ayatana / libappindicator path → icon name
+// ---------------------------------------------------------------------------
+
+fn ayatana_icon_name_from_path(object_path: &str) -> Option<&str> {
+    let name = object_path.strip_prefix(AYATANA_SNI_PATH_PREFIX)?;
+    // Guard against sub-paths like /org/ayatana/NotificationItem/steam/Menu
+    if name.is_empty() || name.contains('/') {
+        return None;
+    }
+    Some(name)
+}
+
+// ---------------------------------------------------------------------------
+// XDG icon theme filesystem lookup (no GTK required)
+// ---------------------------------------------------------------------------
+
+fn resolve_icon_name_to_png(icon_name: &str, icon_theme_path: Option<&str>) -> Option<Vec<u8>> {
+    // 1. IconThemePath set by the item itself (e.g. Steam bundles its own icons).
+    //    Items may store icons flat in this directory without hicolor subdirectories.
+    if let Some(theme_path) = icon_theme_path {
+        const SIZES: &[u32] = &[256, 128, 64, 48, 32, 22, 16];
+        // Flat: {IconThemePath}/{icon_name}.png
+        let flat = std::path::Path::new(theme_path).join(format!("{icon_name}.png"));
+        if let Some(bytes) = load_and_scale_png(&flat) {
+            return Some(bytes);
+        }
+        // hicolor subdirs inside IconThemePath
+        for &size in SIZES {
+            let path = std::path::Path::new(theme_path)
+                .join(format!("hicolor/{size}x{size}/apps/{icon_name}.png"));
+            if let Some(bytes) = load_and_scale_png(&path) {
+                return Some(bytes);
+            }
+        }
+    }
+
+    // 2. System XDG icon theme (hicolor).
+    const SIZES: &[u32] = &[256, 128, 64, 48, 32, 22, 16];
+    for base in &xdg_icon_base_dirs() {
+        for &size in SIZES {
+            let path = base.join(format!("hicolor/{size}x{size}/apps/{icon_name}.png"));
+            if let Some(bytes) = load_and_scale_png(&path) {
+                return Some(bytes);
+            }
+        }
+    }
+
+    // 3. /usr/share/pixmaps fallback.
+    for dir in ["/usr/share/pixmaps", "/usr/local/share/pixmaps"] {
+        let path = std::path::Path::new(dir).join(format!("{icon_name}.png"));
+        if let Some(bytes) = load_and_scale_png(&path) {
+            return Some(bytes);
+        }
+    }
+
+    None
+}
+
+fn xdg_icon_base_dirs() -> Vec<std::path::PathBuf> {
+    let mut dirs = Vec::new();
+    if let Ok(home) = std::env::var("HOME") {
+        dirs.push(std::path::PathBuf::from(home).join(".local/share/icons"));
+    }
+    let data_dirs = std::env::var("XDG_DATA_DIRS")
+        .unwrap_or_else(|_| "/usr/local/share:/usr/share".to_string());
+    for dir in data_dirs.split(':') {
+        if !dir.is_empty() {
+            dirs.push(std::path::PathBuf::from(dir).join("icons"));
+        }
+    }
+    dirs
+}
+
+fn load_and_scale_png(path: &std::path::Path) -> Option<Vec<u8>> {
+    let raw = fs::read(path).ok()?;
+    let img = image::load_from_memory_with_format(&raw, image::ImageFormat::Png).ok()?;
+    let scaled = if img.width() == TRAY_ICON_SIZE_PX && img.height() == TRAY_ICON_SIZE_PX {
+        img
+    } else {
+        img.resize(
+            TRAY_ICON_SIZE_PX,
+            TRAY_ICON_SIZE_PX,
+            image::imageops::FilterType::Lanczos3,
+        )
+    };
+    let mut buf = Vec::new();
+    scaled
+        .write_to(
+            &mut std::io::Cursor::new(&mut buf),
+            image::ImageFormat::Png,
+        )
+        .ok()?;
     Some(buf)
 }
 

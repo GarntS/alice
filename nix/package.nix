@@ -1,16 +1,16 @@
 { lib
-, clangStdenv
+, buildFlutterApplication
 , rustPlatform
-, flutter
-, dart
+, clang
 , cargo
 , rustc
+, cargo-expand
 , cmake
 , ninja
 , pkg-config
 , wayland-scanner
-, makeWrapper
-, git
+, flutter_rust_bridge_codegen
+
 , atk
 , at-spi2-atk
 , cairo
@@ -47,73 +47,54 @@ let
     zlib
   ];
 in
-clangStdenv.mkDerivation {
-  pname = "alice";
+buildFlutterApplication {
+  pname = "alicebar";
   version = "1.0.0";
 
   src = lib.cleanSource ../.;
+  pubspecLock = lib.importJSON ./pubspec.lock.json;
+
+  # Cargo integration
   cargoRoot = "native";
   cargoDeps = rustPlatform.importCargoLock {
     lockFile = ../native/Cargo.lock;
   };
 
   nativeBuildInputs = [
+    clang
     cargo
     rustc
+    cargo-expand
     rustPlatform.cargoSetupHook
     cmake
     ninja
     pkg-config
-    flutter
-    dart
     wayland-scanner
-    makeWrapper
-    git
+    flutter_rust_bridge_codegen
   ];
 
   buildInputs = runtimeLibraries;
 
-  strictDeps = true;
+  dontUseCmakeConfigure = true;
 
-  preBuild = ''
-    export HOME="$TMPDIR/home"
-    export XDG_CACHE_HOME="$TMPDIR/cache"
-    export PUB_CACHE="$TMPDIR/pub-cache"
-    export CARGO_HOME="$TMPDIR/cargo-home"
-    export RUSTUP_HOME="$TMPDIR/rustup-home"
-    export FLUTTER_SUPPRESS_ANALYTICS=true
-    export CC=${clangStdenv.cc}/bin/clang
-    export CXX=${clangStdenv.cc}/bin/clang++
+  preConfigure = ''
+    export CC=${clang}/bin/clang
+    export CXX=${clang}/bin/clang++
     export CMAKE_C_COMPILER="$CC"
     export CMAKE_CXX_COMPILER="$CXX"
-
-    mkdir -p "$HOME" "$XDG_CACHE_HOME" "$PUB_CACHE" "$CARGO_HOME" "$RUSTUP_HOME"
   '';
 
-  buildPhase = ''
-    runHook preBuild
-    flutter pub get --offline
-    flutter build linux --release --no-pub
-    runHook postBuild
-  '';
-
-  installPhase = ''
-    runHook preInstall
-
-    mkdir -p "$out/libexec/alice" "$out/bin"
-    cp -r build/linux/x64/release/bundle/* "$out/libexec/alice/"
-    chmod +x "$out/libexec/alice/alice"
-
-    makeWrapper "$out/libexec/alice/alice" "$out/bin/alice" \
+  postInstall = ''
+    wrapProgram "$out/app/alicebar/alicebar" \
       --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath runtimeLibraries}"
-
-    runHook postInstall
   '';
 
   meta = with lib; {
     description = "Flutter-based Wayland top bar for wlroots compositors";
-    license = licenses.unfree;
+    homepage = "https://github.com/garnts/alicebar";
+    license = licenses.gpl3;
+    maintainers = with maintainers; [ ];
     platforms = platforms.linux;
-    mainProgram = "alice";
+    mainProgram = "alicebar";
   };
 }
