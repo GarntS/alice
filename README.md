@@ -1,6 +1,18 @@
 # alice
 
-`alice` is a Flutter-first Wayland bar for `wlroots` compositors, with native Linux integration implemented in Rust.
+`alice` is a wayland bar for `wlroots` compositors, with a collection of 
+expanding sub-panels associated with some widgets. Native Linux integration for
+data-collection and system interaction with the filesystem, devices, and D-Bus 
+is all implemented in Rust for safety and portability. `alice` is configurable 
+for theming and data sources, but its design is deliberately opinionated 
+according to my tastes and is not highly configurable in a similar manner to
+other wayland bar projects.
+
+### Etymology
+The project name "alice" is named after a *fantastic* cocktail bar in 
+Cheongdam-dong, Seoul, South Korea called "Alice Cheongdam". I needed a name
+for a bar, and the name "alice" is an homage. If you're ever in Seoul, you
+should visit.
 
 ## Project Design
 
@@ -20,9 +32,12 @@ It exposes some functions over C FFI, which the `runner` binary links against.
 It's a rather small library, but the goal was to move as much logic out of the
 C++ binary as was possible. This is located in `native/alice_layer_shell`.
 - The entire data state for the bar is stored in a snapshot object,
-`BarSnapshot`, which is periodically-updated by messages sent from the
-Rust-based native code to the Flutter code. When Flutter widgets re-render,
-they pull data from the snapshot.
+`BarSnapshot`, which is updated by messages sent from the Rust-based native
+code to the Flutter code. These messages are either sent periodically, for data
+that doesn't have clear events, like memory usage or the system time, or when
+relevant messages come in for event-based data like D-Bus messages. This design 
+allows all the Flutter widgets to be a pure function of the data snapshot,
+which significantly reduces the level of complexity in the widgets themselves.
 
 #### TL;DR of how windows surfaces are created:
 - Rust `alice_layer_shell` provides the placement geometry and capability
@@ -46,6 +61,10 @@ theme:
   # Accent color used throughout the bar and panels.
   # Format: #RRGGBB
   accent: "#4C956C"
+
+  # Gap in pixels between the bottom of the bar and the top of panel windows.
+  # Default: 8
+  panel_top_gap_px: 8
 
 network:
   # Whether to show the SSID or status label next to the network icon.
@@ -96,8 +115,62 @@ carefully designed and refactored multiple times until it was in a state that
 I would have actually liked had I built it myself. I've read and re-read every
 file in this codebase.
 
-## Build dependencies
+## Acquiring + Running `alice`
+Install `alice` using one of the methods below (the package will be called
+`alicebar`), then run the `alicebar` binary.
 
+### Pre-build Packages
+Pre-built packages are provided in [Github Releases](https://github.com/GarntS/alice/releases/latest) for:
+- Debian 13 (trixie)
+- Debian Unstable (sid)
+- Ubuntu 24.04 LTS
+- Ubuntu 25.10
+- Fedora 42
+- Fedora 43
+- Fedora Rawhide
+- Arch Linux
+
+At present, `alice` isn't in any package managers.
+
+### Nix Flake
+If you're on `nix`, this repo is also set up as a Nix flake. It can be installed
+by adding this repo as an input to your system's `flake.nix`, then passing it to
+your configuration via `specialArgs`:
+```nix
+inputs = {
+  nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+  alice-git.url = "github:garnts/alice";
+};
+
+outputs = inputs@{ self, nixpkgs, alice-git, ... }: {
+  nixosConfigurations.your-system = nixpkgs.lib.nixosSystem {
+    system = "your-system-string";
+    specialArgs = {
+     	alice-git = alice-git;
+      };
+      modules = [
+        ./configuration.nix
+      ];
+    };
+  };
+}
+```
+
+Then, add the package to your `configuration.nix`:
+```nix
+{ config, lib, pkgs, alice-git, ... }:
+{
+  environment.systemPackages = [
+    # replace "x86_64-linux" with your system string if not on x86_64
+    alice-git.packages.x86_64-linux.default
+  ];
+}
+```
+
+## Building `alice`
+
+### Build Dependencies
+t
 | Dependency | Notes |
 |---|---|
 | Flutter SDK ≥ 3.x | Includes Dart SDK |
@@ -112,7 +185,7 @@ file in this codebase.
 | gtk-layer-shell dev headers | `libgtk-layer-shell-dev` / `gtk-layer-shell-devel` |
 | Standard Wayland and X11 dev libs | libwayland, libxkbcommon, libX11, libepoxy, etc. |
 
-## Building without Nix
+### Building without Nix
 
 Install the dependencies above for your distribution, then:
 
@@ -134,7 +207,7 @@ flutter clean
 flutter build linux --release
 ```
 
-## Building with Nix
+### Building with Nix
 
 The repo provides a Nix flake with a devShell that includes the full toolchain — Flutter, Dart, Rust, Clang, CMake, Ninja, pkg-config, wayland-scanner, `flutter_rust_bridge_codegen`, and all required libraries.
 

@@ -20,6 +20,7 @@ pub struct AliceConfig {
     pub local_time_zone_label: Option<String>,
     pub time_zones: Vec<TimeZoneConfig>,
     pub power_commands: PowerCommandConfig,
+    pub panel_top_gap_px: u32,
 }
 
 impl Default for AliceConfig {
@@ -46,6 +47,7 @@ impl Default for AliceConfig {
                 restart: "systemctl reboot".into(),
                 poweroff: "systemctl poweroff".into(),
             },
+            panel_top_gap_px: 8,
         }
     }
 }
@@ -186,6 +188,7 @@ impl RawConfig {
                     defaults.power_commands.poweroff,
                 ),
             },
+            panel_top_gap_px: self.theme.panel_top_gap_px.unwrap_or(8),
         }
     }
 }
@@ -194,6 +197,7 @@ impl RawConfig {
 struct RawThemeConfig {
     mode: Option<ThemeMode>,
     accent: Option<String>,
+    panel_top_gap_px: Option<u32>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -219,6 +223,7 @@ struct RawPowerConfig {
     restart: Option<String>,
     poweroff: Option<String>,
 }
+
 
 #[derive(Debug, Deserialize)]
 struct RawTimeZoneConfig {

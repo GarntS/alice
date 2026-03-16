@@ -23,6 +23,7 @@ pub fn set_panel_command_sink(sink: StreamSink<Option<PanelCommand>>) {
 
 pub fn push_panel_show(
     panel_id: String,
+    view_id: i64,
     include_icon_bytes: bool,
     anchor_x: f64,
     anchor_y: f64,
@@ -34,6 +35,7 @@ pub fn push_panel_show(
             if let Some(sink) = guard.as_ref() {
                 let _ = sink.add(Some(PanelCommand {
                     panel_id,
+                    view_id,
                     include_icon_bytes,
                     anchor_x,
                     anchor_y,

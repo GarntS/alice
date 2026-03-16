@@ -93,6 +93,7 @@ class AlicePlatform {
     required double width,
     required double height,
     required bool includeTrayIconBytes,
+    required int panelTopGapPx,
   }) {
     return _methodChannel.invokeMethod<void>('showPanel', <String, Object?>{
       'panelId': panelId,
@@ -102,6 +103,7 @@ class AlicePlatform {
       'width': width,
       'height': height,
       'includeTrayIconBytes': includeTrayIconBytes,
+      'panelTopGapPx': panelTopGapPx,
     });
   }
 
@@ -164,6 +166,7 @@ class AlicePlatform {
         restart: r.powerCommands.restart,
         poweroff: r.powerCommands.poweroff,
       ),
+      panelTopGapPx: r.panelTopGapPx,
     );
   }
 

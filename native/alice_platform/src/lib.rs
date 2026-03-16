@@ -63,11 +63,11 @@ pub(crate) fn load_native_config() -> AliceConfig {
 }
 
 // ---------------------------------------------------------------------------
-// C FFI — panel process socket bridge
+// C FFI — panel command bridge
 //
-// Called from `on_panel_socket_incoming` in alice_application.cc (panel side)
-// after the C++ code has parsed the show/hide socket message and updated the
-// GTK window geometry. These functions forward the command into the Dart-side
+// Called from the showPanel/hidePanel MethodChannel handler in
+// alice_application.cc after the C++ code has created/updated the panel GTK
+// window. These functions forward the command into the Dart-side
 // `StreamSink<Option<PanelCommand>>` registered by `watch_panel_commands`.
 // ---------------------------------------------------------------------------
 
@@ -78,6 +78,7 @@ pub(crate) fn load_native_config() -> AliceConfig {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn alice_notify_panel_show(
     panel_id: *const c_char,
+    view_id: i64,
     include_icon_bytes: bool,
     anchor_x: f64,
     anchor_y: f64,
@@ -91,7 +92,7 @@ pub unsafe extern "C" fn alice_notify_panel_show(
         Ok(s) => s.to_string(),
         Err(_) => return,
     };
-    runtime::push_panel_show(id, include_icon_bytes, anchor_x, anchor_y, width, height);
+    runtime::push_panel_show(id, view_id, include_icon_bytes, anchor_x, anchor_y, width, height);
 }
 
 /// Notify the Dart panel that it should hide.
@@ -141,6 +142,8 @@ mod tests {
                 art_url: "".into(),
                 position_label: "0:10".into(),
                 length_label: "1:00".into(),
+                position_micros: 10_000_000,
+                length_micros: 60_000_000,
                 is_playing: true,
             }))
         }

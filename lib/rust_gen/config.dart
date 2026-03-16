@@ -14,6 +14,7 @@ class AliceConfig {
   final String? localTimeZoneLabel;
   final List<TimeZoneConfig> timeZones;
   final PowerCommandConfig powerCommands;
+  final int panelTopGapPx;
 
   const AliceConfig({
     required this.themeMode,
@@ -23,6 +24,7 @@ class AliceConfig {
     this.localTimeZoneLabel,
     required this.timeZones,
     required this.powerCommands,
+    required this.panelTopGapPx,
   });
 
   @override
@@ -33,7 +35,8 @@ class AliceConfig {
       maxVisibleTrayItems.hashCode ^
       localTimeZoneLabel.hashCode ^
       timeZones.hashCode ^
-      powerCommands.hashCode;
+      powerCommands.hashCode ^
+      panelTopGapPx.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -46,7 +49,8 @@ class AliceConfig {
           maxVisibleTrayItems == other.maxVisibleTrayItems &&
           localTimeZoneLabel == other.localTimeZoneLabel &&
           timeZones == other.timeZones &&
-          powerCommands == other.powerCommands;
+          powerCommands == other.powerCommands &&
+          panelTopGapPx == other.panelTopGapPx;
 }
 
 class PowerCommandConfig {

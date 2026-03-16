@@ -2,6 +2,7 @@
 #define ALICE_PLATFORM_BRIDGE_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,11 +11,12 @@ extern "C" {
 /**
  * alice_notify_panel_show:
  *
- * Called by the panel-process socket listener after updating GTK window
- * geometry. Pushes a PanelCommand into the Dart StreamSink registered by
- * watch_panel_commands().
+ * Called from the showPanel MethodChannel handler after creating/updating the
+ * panel GTK window. Pushes a PanelCommand (including view_id) into the Dart
+ * StreamSink registered by watch_panel_commands().
  */
 void alice_notify_panel_show(const char* panel_id,
+                              int64_t view_id,
                               bool include_icon_bytes,
                               double anchor_x,
                               double anchor_y,

@@ -9,6 +9,7 @@ class AliceConfig {
     required this.localTimeZoneLabel,
     required this.timeZones,
     required this.powerCommands,
+    required this.panelTopGapPx,
   });
 
   final ThemeMode themeMode;
@@ -18,6 +19,7 @@ class AliceConfig {
   final String? localTimeZoneLabel;
   final List<TimeZoneConfig> timeZones;
   final PowerCommandConfig powerCommands;
+  final int panelTopGapPx;
 
   factory AliceConfig.fallback() {
     return const AliceConfig(
@@ -36,6 +38,7 @@ class AliceConfig {
         restart: 'systemctl reboot',
         poweroff: 'systemctl poweroff',
       ),
+      panelTopGapPx: 8,
     );
   }
 }

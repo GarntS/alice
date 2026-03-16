@@ -11,6 +11,10 @@ theme:
   # Format: #RRGGBB
   accent: "#4C956C"
 
+  # Gap in pixels between the bottom of the bar and the top of panel windows.
+  # Default: 8
+  panel_top_gap_px: 8
+
 network:
   # Whether to show the SSID or status label next to the network icon.
   show_label: true

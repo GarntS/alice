@@ -975,7 +975,7 @@ mod tests {
 
     #[test]
     fn prefers_attention_icon_when_item_needs_attention() {
-        let _icon_name = select_icon_name(
+        let icon_name = select_icon_name(
             Some("normal-icon".into()),
             Some("attention-icon".into()),
             Some("NeedsAttention"),

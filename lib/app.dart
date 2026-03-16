@@ -11,27 +11,11 @@ import 'widgets/panels/panel_host.dart';
 import 'widgets/panels/panel_spec.dart';
 import 'widgets/top_bar.dart';
 
-enum AliceSurfaceMode { bar, panel }
+// frb-generated bindings — used directly for watchPanelCommands.
+import 'rust_gen/api.dart' as frb;
 
 class AliceApp extends StatefulWidget {
-  const AliceApp({super.key, required this.surfaceMode});
-
-  factory AliceApp.fromArguments(List<String> args) {
-    String? windowKind;
-    for (final arg in args) {
-      if (arg.startsWith('--alice-window=')) {
-        windowKind = arg.substring('--alice-window='.length);
-      }
-    }
-
-    if (windowKind == 'panel') {
-      return const AliceApp(surfaceMode: AliceSurfaceMode.panel);
-    }
-
-    return const AliceApp(surfaceMode: AliceSurfaceMode.bar);
-  }
-
-  final AliceSurfaceMode surfaceMode;
+  const AliceApp({super.key});
 
   @override
   State<AliceApp> createState() => _AliceAppState();
@@ -41,10 +25,9 @@ class _AliceAppState extends State<AliceApp> {
   late final AlicePlatform _platform = AlicePlatform();
   late final PanelController _panelController = PanelController();
   late final StreamSubscription<BarSnapshot> _snapshotSubscription;
-  late final StreamSubscription<AlicePanel?> _panelTypeSubscription;
+  late final StreamSubscription<frb.PanelCommand?> _panelCommandSubscription;
 
   AliceConfig _config = AliceConfig.fallback();
-  AlicePanel? _activePanel;
   BarSnapshot _snapshot = const BarSnapshot(
     workspaces: [],
     media: null,
@@ -62,42 +45,53 @@ class _AliceAppState extends State<AliceApp> {
     trayItems: [],
   );
 
+  // viewId (int) → panelId (String) — populated when C++ calls alice_notify_panel_show
+  final Map<int, String> _viewPanelMap = {};
+  int _viewCount = 0;
+
   @override
   void initState() {
     super.initState();
     _panelController.addListener(_syncPanelState);
     _loadConfig();
-    _panelTypeSubscription = _platform.watchPanelType().listen(
-      (panel) {
-        if (mounted) setState(() => _activePanel = panel);
+
+    _panelCommandSubscription = frb.watchPanelCommands().listen(
+      (cmd) {
+        if (cmd != null && mounted) {
+          setState(() => _viewPanelMap[cmd.viewId] = cmd.panelId);
+        }
       },
       onError: (Object e, StackTrace st) =>
-          debugPrint('Failed to receive panel type: $e'),
+          debugPrint('Failed to receive panel command: $e'),
     );
+
     _snapshotSubscription = _platform.watchBarSnapshots().listen(
       (snapshot) {
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _snapshot = snapshot;
-        });
+        if (!mounted) return;
+        setState(() => _snapshot = snapshot);
       },
       onError: (Object error, StackTrace stackTrace) {
         debugPrint('Failed to receive native snapshots: $error');
       },
     );
+
+    // Detect when C++ adds new FlViews (panel windows)
+    _viewCount =
+        WidgetsBinding.instance.platformDispatcher.views.length;
+    WidgetsBinding.instance.platformDispatcher.onMetricsChanged = () {
+      final count =
+          WidgetsBinding.instance.platformDispatcher.views.length;
+      if (count != _viewCount) {
+        if (mounted) setState(() => _viewCount = count);
+      }
+    };
   }
 
   Future<void> _loadConfig() async {
     try {
       final config = await _platform.loadConfig();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _config = config;
-      });
+      if (!mounted) return;
+      setState(() => _config = config);
     } catch (error) {
       debugPrint('Failed to load native config, using fallback: $error');
     }
@@ -112,9 +106,8 @@ class _AliceAppState extends State<AliceApp> {
       }
 
       final anchor = _panelController.anchor;
-      if (anchor == null) {
-        return;
-      }
+      if (anchor == null) return;
+
       final panelSize = alicePanelSize(
         openPanel,
         config: _config,
@@ -132,6 +125,7 @@ class _AliceAppState extends State<AliceApp> {
         width: panelSize.width,
         height: panelSize.height,
         includeTrayIconBytes: openPanel == AlicePanel.trayOverflow,
+        panelTopGapPx: _config.panelTopGapPx,
       );
     } catch (error) {
       debugPrint('Failed to sync panel state: $error');
@@ -139,18 +133,13 @@ class _AliceAppState extends State<AliceApp> {
   }
 
   Future<void> _closePanel() async {
-    if (widget.surfaceMode == AliceSurfaceMode.panel) {
-      await _platform.hidePanel();
-      return;
-    }
-
     _panelController.close();
   }
 
   Future<void> _handlePowerAction(String action) async {
     try {
       await _platform.executePowerAction(action);
-      await _closePanel();
+      _panelController.close();
     } catch (error) {
       debugPrint('Failed to execute power action: $error');
     }
@@ -199,15 +188,15 @@ class _AliceAppState extends State<AliceApp> {
 
   @override
   void dispose() {
-    _panelTypeSubscription.cancel();
+    _panelCommandSubscription.cancel();
     _snapshotSubscription.cancel();
     _panelController.removeListener(_syncPanelState);
     _panelController.dispose();
+    WidgetsBinding.instance.platformDispatcher.onMetricsChanged = null;
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildBar() {
     return AnimatedBuilder(
       animation: _panelController,
       builder: (context, _) {
@@ -219,37 +208,61 @@ class _AliceAppState extends State<AliceApp> {
           darkTheme: buildAliceTheme(_config, Brightness.dark),
           home: Scaffold(
             backgroundColor: Colors.transparent,
-            body: widget.surfaceMode == AliceSurfaceMode.bar
-                ? Align(
-                    alignment: Alignment.topCenter,
-                    child: TopBar(
-                      config: _config,
-                      snapshot: _snapshot,
-                      panelController: _panelController,
-                      onWorkspaceTap: _handleWorkspaceFocus,
-                      onTrayItemTap: _handleTrayActivate,
-                      onBackgroundTap: () {
-                        _closePanel();
-                      },
-                    ),
-                  )
-                : Align(
-                    alignment: Alignment.topRight,
-                    child: _activePanel == null
-                        ? const SizedBox.shrink()
-                        : AlicePanelCard(
-                            panel: _activePanel!,
-                            config: _config,
-                            snapshot: _snapshot,
-                            onPowerAction: _handlePowerAction,
-                            onMediaAction: _handleMediaAction,
-                            onSeekMedia: _handleMediaSeek,
-                            onTrayAction: _handleTrayActivate,
-                          ),
-                  ),
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: TopBar(
+                config: _config,
+                snapshot: _snapshot,
+                panelController: _panelController,
+                onWorkspaceTap: _handleWorkspaceFocus,
+                onTrayItemTap: _handleTrayActivate,
+                onBackgroundTap: _closePanel,
+              ),
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPanel(String? panelId) {
+    final panel = panelId == null ? null : alicePanelFromId(panelId);
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      themeMode: _config.themeMode,
+      theme: buildAliceTheme(_config, Brightness.light),
+      darkTheme: buildAliceTheme(_config, Brightness.dark),
+      home: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Align(
+          alignment: Alignment.topRight,
+          child: panel == null
+              ? const SizedBox.shrink()
+              : AlicePanelCard(
+                  panel: panel,
+                  config: _config,
+                  snapshot: _snapshot,
+                  onPowerAction: _handlePowerAction,
+                  onMediaAction: _handleMediaAction,
+                  onSeekMedia: _handleMediaSeek,
+                  onTrayAction: _handleTrayActivate,
+                ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final views =
+        WidgetsBinding.instance.platformDispatcher.views.toList();
+    return ViewCollection(
+      views: views.map((v) {
+        final child = v.viewId == 0
+            ? _buildBar()
+            : _buildPanel(_viewPanelMap[v.viewId]);
+        return View(view: v, child: child);
+      }).toList(),
     );
   }
 }

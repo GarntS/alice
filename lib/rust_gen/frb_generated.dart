@@ -391,8 +391,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AliceConfig dco_decode_alice_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return AliceConfig(
       themeMode: dco_decode_theme_mode(arr[0]),
       accentColor: dco_decode_String(arr[1]),
@@ -401,6 +401,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       localTimeZoneLabel: dco_decode_opt_String(arr[4]),
       timeZones: dco_decode_list_time_zone_config(arr[5]),
       powerCommands: dco_decode_power_command_config(arr[6]),
+      panelTopGapPx: dco_decode_u_32(arr[7]),
     );
   }
 
@@ -559,15 +560,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PanelCommand dco_decode_panel_command(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return PanelCommand(
       panelId: dco_decode_String(arr[0]),
-      includeIconBytes: dco_decode_bool(arr[1]),
-      anchorX: dco_decode_f_64(arr[2]),
-      anchorY: dco_decode_f_64(arr[3]),
-      width: dco_decode_f_64(arr[4]),
-      height: dco_decode_f_64(arr[5]),
+      viewId: dco_decode_i_64(arr[1]),
+      includeIconBytes: dco_decode_bool(arr[2]),
+      anchorX: dco_decode_f_64(arr[3]),
+      anchorY: dco_decode_f_64(arr[4]),
+      width: dco_decode_f_64(arr[5]),
+      height: dco_decode_f_64(arr[6]),
     );
   }
 
@@ -690,6 +692,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_localTimeZoneLabel = sse_decode_opt_String(deserializer);
     var var_timeZones = sse_decode_list_time_zone_config(deserializer);
     var var_powerCommands = sse_decode_power_command_config(deserializer);
+    var var_panelTopGapPx = sse_decode_u_32(deserializer);
     return AliceConfig(
       themeMode: var_themeMode,
       accentColor: var_accentColor,
@@ -698,6 +701,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       localTimeZoneLabel: var_localTimeZoneLabel,
       timeZones: var_timeZones,
       powerCommands: var_powerCommands,
+      panelTopGapPx: var_panelTopGapPx,
     );
   }
 
@@ -916,6 +920,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PanelCommand sse_decode_panel_command(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_panelId = sse_decode_String(deserializer);
+    var var_viewId = sse_decode_i_64(deserializer);
     var var_includeIconBytes = sse_decode_bool(deserializer);
     var var_anchorX = sse_decode_f_64(deserializer);
     var var_anchorY = sse_decode_f_64(deserializer);
@@ -923,6 +928,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_height = sse_decode_f_64(deserializer);
     return PanelCommand(
       panelId: var_panelId,
+      viewId: var_viewId,
       includeIconBytes: var_includeIconBytes,
       anchorX: var_anchorX,
       anchorY: var_anchorY,
@@ -1071,6 +1077,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.localTimeZoneLabel, serializer);
     sse_encode_list_time_zone_config(self.timeZones, serializer);
     sse_encode_power_command_config(self.powerCommands, serializer);
+    sse_encode_u_32(self.panelTopGapPx, serializer);
   }
 
   @protected
@@ -1264,6 +1271,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_panel_command(PanelCommand self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.panelId, serializer);
+    sse_encode_i_64(self.viewId, serializer);
     sse_encode_bool(self.includeIconBytes, serializer);
     sse_encode_f_64(self.anchorX, serializer);
     sse_encode_f_64(self.anchorY, serializer);

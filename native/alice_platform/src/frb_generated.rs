@@ -389,6 +389,7 @@ impl SseDecode for crate::config::AliceConfig {
         let mut var_localTimeZoneLabel = <Option<String>>::sse_decode(deserializer);
         let mut var_timeZones = <Vec<crate::config::TimeZoneConfig>>::sse_decode(deserializer);
         let mut var_powerCommands = <crate::config::PowerCommandConfig>::sse_decode(deserializer);
+        let mut var_panelTopGapPx = <u32>::sse_decode(deserializer);
         return crate::config::AliceConfig {
             theme_mode: var_themeMode,
             accent_color: var_accentColor,
@@ -397,6 +398,7 @@ impl SseDecode for crate::config::AliceConfig {
             local_time_zone_label: var_localTimeZoneLabel,
             time_zones: var_timeZones,
             power_commands: var_powerCommands,
+            panel_top_gap_px: var_panelTopGapPx,
         };
     }
 }
@@ -612,6 +614,7 @@ impl SseDecode for crate::api::PanelCommand {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_panelId = <String>::sse_decode(deserializer);
+        let mut var_viewId = <i64>::sse_decode(deserializer);
         let mut var_includeIconBytes = <bool>::sse_decode(deserializer);
         let mut var_anchorX = <f64>::sse_decode(deserializer);
         let mut var_anchorY = <f64>::sse_decode(deserializer);
@@ -619,6 +622,7 @@ impl SseDecode for crate::api::PanelCommand {
         let mut var_height = <f64>::sse_decode(deserializer);
         return crate::api::PanelCommand {
             panel_id: var_panelId,
+            view_id: var_viewId,
             include_icon_bytes: var_includeIconBytes,
             anchor_x: var_anchorX,
             anchor_y: var_anchorY,
@@ -766,6 +770,7 @@ impl flutter_rust_bridge::IntoDart for crate::config::AliceConfig {
             self.local_time_zone_label.into_into_dart().into_dart(),
             self.time_zones.into_into_dart().into_dart(),
             self.power_commands.into_into_dart().into_dart(),
+            self.panel_top_gap_px.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -881,6 +886,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::PanelCommand {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.panel_id.into_into_dart().into_dart(),
+            self.view_id.into_into_dart().into_dart(),
             self.include_icon_bytes.into_into_dart().into_dart(),
             self.anchor_x.into_into_dart().into_dart(),
             self.anchor_y.into_into_dart().into_dart(),
@@ -1043,6 +1049,7 @@ impl SseEncode for crate::config::AliceConfig {
         <Option<String>>::sse_encode(self.local_time_zone_label, serializer);
         <Vec<crate::config::TimeZoneConfig>>::sse_encode(self.time_zones, serializer);
         <crate::config::PowerCommandConfig>::sse_encode(self.power_commands, serializer);
+        <u32>::sse_encode(self.panel_top_gap_px, serializer);
     }
 }
 
@@ -1220,6 +1227,7 @@ impl SseEncode for crate::api::PanelCommand {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.panel_id, serializer);
+        <i64>::sse_encode(self.view_id, serializer);
         <bool>::sse_encode(self.include_icon_bytes, serializer);
         <f64>::sse_encode(self.anchor_x, serializer);
         <f64>::sse_encode(self.anchor_y, serializer);

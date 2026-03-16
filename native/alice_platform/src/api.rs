@@ -9,10 +9,11 @@ pub use crate::state::{
     WorkspaceSnapshot,
 };
 
-/// A command sent from the bar process to the panel process over the Unix socket,
-/// forwarded to Dart via `watch_panel_commands`.
+/// A command forwarded to Dart via `watch_panel_commands` whenever a panel
+/// should be shown. `view_id` identifies the Flutter view to render into.
 pub struct PanelCommand {
     pub panel_id: String,
+    pub view_id: i64,
     pub include_icon_bytes: bool,
     pub anchor_x: f64,
     pub anchor_y: f64,
@@ -35,10 +36,11 @@ pub fn watch_bar_snapshots(
     Ok(())
 }
 
-/// Register the Dart-side sink for panel show/hide commands (panel process only).
+/// Register the Dart-side sink for panel show/hide commands.
 ///
-/// The panel process's C++ socket listener calls `alice_notify_panel_show` /
-/// `alice_notify_panel_hide` (see `lib.rs`), which push to this sink.
+/// The C++ showPanel/hidePanel MethodChannel handler calls
+/// `alice_notify_panel_show` / `alice_notify_panel_hide` (see `lib.rs`),
+/// which push to this sink.
 pub fn watch_panel_commands(
     sink: crate::frb_generated::StreamSink<Option<PanelCommand>>,
 ) -> anyhow::Result<()> {

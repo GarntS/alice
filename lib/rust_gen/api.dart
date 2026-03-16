@@ -15,10 +15,11 @@ import 'state.dart';
 Stream<BarSnapshot> watchBarSnapshots() =>
     RustLib.instance.api.crateApiWatchBarSnapshots();
 
-/// Register the Dart-side sink for panel show/hide commands (panel process only).
+/// Register the Dart-side sink for panel show/hide commands.
 ///
-/// The panel process's C++ socket listener calls `alice_notify_panel_show` /
-/// `alice_notify_panel_hide` (see `lib.rs`), which push to this sink.
+/// The C++ showPanel/hidePanel MethodChannel handler calls
+/// `alice_notify_panel_show` / `alice_notify_panel_hide` (see `lib.rs`),
+/// which push to this sink.
 Stream<PanelCommand?> watchPanelCommands() =>
     RustLib.instance.api.crateApiWatchPanelCommands();
 
@@ -58,10 +59,11 @@ Future<bool> sendTrayAction({
 Future<bool> executePowerAction({required String action}) =>
     RustLib.instance.api.crateApiExecutePowerAction(action: action);
 
-/// A command sent from the bar process to the panel process over the Unix socket,
-/// forwarded to Dart via `watch_panel_commands`.
+/// A command forwarded to Dart via `watch_panel_commands` whenever a panel
+/// should be shown. `view_id` identifies the Flutter view to render into.
 class PanelCommand {
   final String panelId;
+  final PlatformInt64 viewId;
   final bool includeIconBytes;
   final double anchorX;
   final double anchorY;
@@ -70,6 +72,7 @@ class PanelCommand {
 
   const PanelCommand({
     required this.panelId,
+    required this.viewId,
     required this.includeIconBytes,
     required this.anchorX,
     required this.anchorY,
@@ -80,6 +83,7 @@ class PanelCommand {
   @override
   int get hashCode =>
       panelId.hashCode ^
+      viewId.hashCode ^
       includeIconBytes.hashCode ^
       anchorX.hashCode ^
       anchorY.hashCode ^
@@ -92,6 +96,7 @@ class PanelCommand {
       other is PanelCommand &&
           runtimeType == other.runtimeType &&
           panelId == other.panelId &&
+          viewId == other.viewId &&
           includeIconBytes == other.includeIconBytes &&
           anchorX == other.anchorX &&
           anchorY == other.anchorY &&

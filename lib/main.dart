@@ -12,5 +12,5 @@ Future<void> main(List<String> args) async {
   await RustLib.init(
     externalLibrary: ExternalLibrary.process(iKnowHowToUseIt: true),
   );
-  runApp(AliceApp.fromArguments(args));
+  runWidget(AliceApp());
 }
