@@ -13,14 +13,14 @@ Size alicePanelSize(
 }) {
   return switch (panel) {
     AlicePanel.media => const Size(360, 268),
-    AlicePanel.clock => Size(320, config.timeZones.isEmpty ? 128 : 220),
+    AlicePanel.clock => Size(320, config.timeZones.isEmpty ? 460 : 560),
     AlicePanel.trayOverflow => Size(
       320,
       (92 + (_trayOverflowCount(config, snapshot) * 52))
           .clamp(120, 320)
           .toDouble(),
     ),
-    AlicePanel.power => const Size(280, 280),
+    AlicePanel.power => const Size(280, 292),
   };
 }
 
