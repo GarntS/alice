@@ -32,9 +32,18 @@ linux/flutter/generated_plugin_registrant.h
 target/
 native/target/
 
+# flutter_rust_bridge generated files
+lib/rust_gen/
+native/alice_platform/src/frb_generated.rs
+linux/runner/frb_generated.h
+
 
 # LLM-related Nonsense
 .claude/
+
+# Packaging build artifacts
+.flutter-sdk/
+.cargo-install/
 
 # Optional local IDE config
 # .vscode/

@@ -1,0 +1,166 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - image: debian:trixie
+            label: debian13
+          - image: debian:sid
+            label: debiansid
+          - image: ubuntu:24.04
+            label: ubuntu2404
+          - image: ubuntu:25.10
+            label: ubuntu2510
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build .deb
+        run: ./packaging/build-deb.sh
+
+      - name: Rename and upload .deb
+        run: |
+          VERSION="${{ github.ref_name }}"
+          BARE="${VERSION#v}"
+          DEB=$(ls ../*.deb | head -1)
+          DEST="alicebar-${BARE}-${{ matrix.label }}-x86_64.deb"
+          cp "$DEB" "$DEST"
+          UPLOAD_URL=$(curl -sf \
+            -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${VERSION}" | \
+            grep '"upload_url"' | \
+            sed 's/.*"upload_url":[ ]*"\([^{]*\).*/\1/')
+          curl -sf \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$DEST" \
+            "${UPLOAD_URL}?name=${DEST}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-fedora:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        version: ["42", "43", "rawhide"]
+    container:
+      image: fedora:${{ matrix.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y rpm-build clang cmake ninja-build pkg-config curl tar \
+            git which \
+            wayland-devel wayland-protocols-devel \
+            gtk3-devel gtk-layer-shell-devel \
+            atk-devel gdk-pixbuf2-devel harfbuzz-devel \
+            libepoxy-devel libxkbcommon-devel pango-devel cairo-devel \
+            cargo rust dbus-devel
+
+      - name: Create source tarball
+        run: |
+          VERSION="${{ github.ref_name }}"
+          BARE="${VERSION#v}"
+          tar -czf "/tmp/alicebar-${BARE}.tar.gz" \
+            --transform "s|^\./|alicebar-${BARE}/|" \
+            --exclude='./.git' \
+            -C . .
+          mv "/tmp/alicebar-${BARE}.tar.gz" .
+          echo "BARE=${BARE}" >> "$GITHUB_ENV"
+
+      - name: Build .rpm
+        run: |
+          mkdir -p rpms srpms
+          rpmbuild -ba packaging/fedora/alicebar.spec \
+            --define "_sourcedir $PWD" \
+            --define "_rpmdir $PWD/rpms" \
+            --define "_srcrpmdir $PWD/srpms"
+
+      - name: Upload .rpm to release
+        run: |
+          VERSION="${{ github.ref_name }}"
+          RPM=$(find rpms -name '*.rpm' ! -name '*debug*' | head -1)
+          BARE="${VERSION#v}"
+          DEST="alicebar-${BARE}-fedora${{ matrix.version }}-x86_64.rpm"
+          UPLOAD_URL=$(curl -sf \
+            -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${VERSION}" | \
+            grep '"upload_url"' | \
+            sed 's/.*"upload_url":[ ]*"\([^{]*\).*/\1/')
+          curl -sf \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$RPM" \
+            "${UPLOAD_URL}?name=${DEST}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-arch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    container:
+      image: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install base build tools
+        run: pacman -Syu --noconfirm base-devel clang cmake ninja pkg-config git which
+
+      - name: Install Flutter SDK
+        run: |
+          FLUTTER_VERSION="3.41.4"
+          curl -Lo /tmp/flutter.tar.xz \
+            "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+          mkdir -p /opt/flutter
+          tar -xf /tmp/flutter.tar.xz --strip-components=1 -C /opt/flutter
+          echo "/opt/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Install remaining makedepends
+        run: |
+          pacman -S --noconfirm wayland wayland-protocols gtk3 gtk-layer-shell rustup
+
+      - name: Build package as non-root user
+        run: |
+          VERSION="${{ github.ref_name }}"
+          BARE="${VERSION#v}"
+          useradd -m builder
+          cp -r . /build
+          mkdir -p /srcdest
+          tar -czf "/srcdest/alicebar-${BARE}.tar.gz" \
+            --transform "s|^\./|alice-${BARE}/|" \
+            -C /build .
+          chown -R builder:builder /build /opt/flutter /srcdest
+          su builder -c "export HOME=/home/builder && cd /build/packaging/arch && PATH=/opt/flutter/bin:\$PATH SRCDEST=/srcdest makepkg --noconfirm --skippgpcheck --nodeps"
+
+      - name: Upload .pkg.tar.zst to release
+        run: |
+          VERSION="${{ github.ref_name }}"
+          PKG=$(find /build -name '*.pkg.tar.zst' ! -name '*-debug-*' | head -1)
+          BARE="${VERSION#v}"
+          DEST="alicebar-${BARE}-arch-x86_64.pkg.tar.zst"
+          UPLOAD_URL=$(curl -sf \
+            -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${VERSION}" | \
+            grep '"upload_url"' | \
+            sed 's/.*"upload_url":[ ]*"\([^{]*\).*/\1/')
+          curl -sf \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$PKG" \
+            "${UPLOAD_URL}?name=${DEST}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

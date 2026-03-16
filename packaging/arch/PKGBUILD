@@ -4,7 +4,7 @@ pkgver=1.0.0
 pkgrel=1
 pkgdesc="Flutter-based Wayland top bar for wlroots compositors"
 arch=('x86_64')
-url="https://github.com/garnt/alice"
+url="https://github.com/GarntS/alice"
 license=('GPL3')
 depends=(
   'gtk3' 'gtk-layer-shell' 'wayland'
@@ -12,14 +12,19 @@ depends=(
   'libxkbcommon' 'pango' 'cairo' 'dbus'
 )
 makedepends=(
-  'flutter' 'clang' 'cargo' 'cmake' 'ninja' 'pkg-config'
-  'wayland-protocols'
+  'flutter' 'clang' 'rustup' 'cmake' 'ninja' 'pkg-config'
+  'wayland-protocols' 'git'
 )
-source=("$pkgname-$pkgver.tar.gz::https://github.com/garnt/alice/archive/v$pkgver.tar.gz")
+source=("$pkgname-$pkgver.tar.gz::https://github.com/GarntS/alice/archive/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 
 prepare() {
   cd "alice-$pkgver"
+  export RUSTUP_HOME="$srcdir/rustup"
+  export CARGO_HOME="$srcdir/cargo"
+  rustup toolchain install stable
+  export PATH="$CARGO_HOME/bin:$PATH"
+  cargo install flutter_rust_bridge_codegen --version "=2.11.1"
   export PUB_CACHE="$srcdir/pub-cache"
   flutter pub get
   cd native && cargo fetch
@@ -27,6 +32,9 @@ prepare() {
 
 build() {
   cd "alice-$pkgver"
+  export RUSTUP_HOME="$srcdir/rustup"
+  export CARGO_HOME="$srcdir/cargo"
+  export PATH="$CARGO_HOME/bin:$PATH"
   export CC=clang CXX=clang++
   export PUB_CACHE="$srcdir/pub-cache"
   flutter build linux --release

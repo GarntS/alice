@@ -1,17 +1,21 @@
 #!/usr/bin/make -f
 export DH_VERBOSE = 1
-# Flutter must be on PATH before running dpkg-buildpackage.
 FLUTTER ?= flutter
+CARGO_INSTALL_DIR := $(CURDIR)/.cargo-install
 
 %:
 	dh $@
 
 override_dh_auto_configure:
-	$(FLUTTER) pub get
+	export CARGO_HOME=$(CARGO_INSTALL_DIR) && \
+	cargo install flutter_rust_bridge_codegen --version "=2.11.1"
 	cd native && cargo fetch
+	$(FLUTTER) pub get
 
 override_dh_auto_build:
-	export CC=clang CXX=clang++ && \
+	export CARGO_HOME=$(CARGO_INSTALL_DIR) && \
+	export PATH="$(CARGO_INSTALL_DIR)/bin:$$PATH" && \
+	export CC=clang && export CXX=clang++ && \
 	$(FLUTTER) build linux --release
 
 override_dh_auto_install:

@@ -1,3 +1,8 @@
+# clang doesn't accept GCC-specific -specs= flags injected by Fedora's
+# hardening and annobin macros; disable them for this clang-only build.
+%undefine _hardened_build
+%undefine _annotated_build
+
 Name:       alicebar
 Version:    1.0.0
 Release:    1%{?dist}
@@ -7,10 +12,10 @@ URL:        https://github.com/garnt/alice
 Source0:    %{name}-%{version}.tar.gz
 
 # Pin this to a specific stable Flutter release:
-%global flutter_version 3.27.4
+%global flutter_version 3.41.4
 
-BuildRequires: clang, cmake, ninja-build, pkg-config, curl, tar
-BuildRequires: wayland-devel, wayland-protocols-devel, wayland-scanner
+BuildRequires: clang, cmake, ninja-build, pkg-config, curl, tar, git, which
+BuildRequires: wayland-devel, wayland-protocols-devel
 BuildRequires: gtk3-devel, gtk-layer-shell-devel
 BuildRequires: atk-devel, gdk-pixbuf2-devel, harfbuzz-devel
 BuildRequires: libepoxy-devel, libxkbcommon-devel, pango-devel, cairo-devel
@@ -32,12 +37,23 @@ if [ ! -d "$FLUTTER_SDK" ]; then
   tar -xf /tmp/flutter.tar.xz --strip-components=1 -C "$FLUTTER_SDK"
 fi
 export PATH="$FLUTTER_SDK/bin:$PATH"
+# Allow git to operate on directories owned by a different uid (common in rpmbuild containers)
+git config --global --add safe.directory '*'
+# Install latest stable Rust via rustup — distro rustc may be too old for crates
+export RUSTUP_HOME=%{_builddir}/rustup
+export CARGO_HOME=%{_builddir}/cargo
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+  sh -s -- -y --no-modify-path --default-toolchain stable
+export PATH="%{_builddir}/cargo/bin:$PATH"
+cargo install flutter_rust_bridge_codegen --version "=2.11.1"
 flutter pub get
 cd native && cargo fetch && cd ..
 
 %build
 export FLUTTER_SDK=%{_builddir}/flutter-sdk-%{flutter_version}
-export PATH="$FLUTTER_SDK/bin:$PATH"
+export RUSTUP_HOME=%{_builddir}/rustup
+export CARGO_HOME=%{_builddir}/cargo
+export PATH="$FLUTTER_SDK/bin:%{_builddir}/cargo/bin:$PATH"
 export CC=clang CXX=clang++
 flutter build linux --release
 
