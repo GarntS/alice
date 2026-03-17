@@ -143,6 +143,7 @@ class AlicePlatform {
       network: snapshot.network,
       clock: snapshot.clock,
       trayItems: stableItems,
+      notifications: snapshot.notifications,
     );
   }
 

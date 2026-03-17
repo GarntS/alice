@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 284410262;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 827720240;
 
 // Section: executor
 
@@ -45,6 +45,75 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
+fn wire__crate__api__dismiss_all_notifications_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "dismiss_all_notifications",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::dismiss_all_notifications()?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__dismiss_notification_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "dismiss_notification",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::dismiss_notification(api_id)?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__execute_power_action_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -183,6 +252,43 @@ fn wire__crate__api__init_app_impl(
         },
     )
 }
+fn wire__crate__api__invoke_notification_action_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "invoke_notification_action",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <u32>::sse_decode(&mut deserializer);
+            let api_action_key = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok =
+                            crate::api::invoke_notification_action(api_id, api_action_key)?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__load_config_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -210,6 +316,41 @@ fn wire__crate__api__load_config_impl(
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || {
                         let output_ok = crate::api::load_config()?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__mark_notification_read_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "mark_notification_read",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_id = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::mark_notification_read(api_id)?;
                         Ok(output_ok)
                     })(),
                 )
@@ -459,6 +600,7 @@ impl SseDecode for crate::config::AliceConfig {
         let mut var_powerCommands = <crate::config::PowerCommandConfig>::sse_decode(deserializer);
         let mut var_panelTopGapPx = <u32>::sse_decode(deserializer);
         let mut var_calendar = <Option<crate::config::CalendarConfig>>::sse_decode(deserializer);
+        let mut var_notifications = <crate::config::NotificationConfig>::sse_decode(deserializer);
         return crate::config::AliceConfig {
             theme_mode: var_themeMode,
             accent_color: var_accentColor,
@@ -469,6 +611,7 @@ impl SseDecode for crate::config::AliceConfig {
             power_commands: var_powerCommands,
             panel_top_gap_px: var_panelTopGapPx,
             calendar: var_calendar,
+            notifications: var_notifications,
         };
     }
 }
@@ -483,6 +626,8 @@ impl SseDecode for crate::state::BarSnapshot {
         let mut var_network = <crate::state::NetworkSnapshot>::sse_decode(deserializer);
         let mut var_clock = <crate::state::ClockSnapshot>::sse_decode(deserializer);
         let mut var_trayItems = <Vec<crate::state::TrayItemSnapshot>>::sse_decode(deserializer);
+        let mut var_notifications =
+            <Vec<crate::state::NotificationSnapshot>>::sse_decode(deserializer);
         return crate::state::BarSnapshot {
             workspaces: var_workspaces,
             media: var_media,
@@ -491,6 +636,7 @@ impl SseDecode for crate::state::BarSnapshot {
             network: var_network,
             clock: var_clock,
             tray_items: var_trayItems,
+            notifications: var_notifications,
         };
     }
 }
@@ -507,11 +653,11 @@ impl SseDecode for crate::config::CalendarConfig {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_googleClientId = <String>::sse_decode(deserializer);
         let mut var_googleClientSecret = <String>::sse_decode(deserializer);
+        let mut var_pollIntervalSecs = <u32>::sse_decode(deserializer);
         return crate::config::CalendarConfig {
             google_client_id: var_googleClientId,
             google_client_secret: var_googleClientSecret,
-            // poll_interval_secs is a Rust-only field; use default when decoding from Flutter.
-            poll_interval_secs: 10,
+            poll_interval_secs: var_pollIntervalSecs,
         };
     }
 }
@@ -598,6 +744,34 @@ impl SseDecode for Vec<crate::state::CalendarEvent> {
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
             ans_.push(<crate::state::CalendarEvent>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::state::NotificationActionSnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::state::NotificationActionSnapshot>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::state::NotificationSnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::state::NotificationSnapshot>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
@@ -698,6 +872,72 @@ impl SseDecode for crate::state::NetworkSnapshot {
         return crate::state::NetworkSnapshot {
             kind: var_kind,
             label: var_label,
+        };
+    }
+}
+
+impl SseDecode for crate::state::NotificationActionSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_key = <String>::sse_decode(deserializer);
+        let mut var_label = <String>::sse_decode(deserializer);
+        return crate::state::NotificationActionSnapshot {
+            key: var_key,
+            label: var_label,
+        };
+    }
+}
+
+impl SseDecode for crate::config::NotificationConfig {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_defaultTimeoutMs = <u32>::sse_decode(deserializer);
+        return crate::config::NotificationConfig {
+            default_timeout_ms: var_defaultTimeoutMs,
+        };
+    }
+}
+
+impl SseDecode for crate::state::NotificationSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <u32>::sse_decode(deserializer);
+        let mut var_appName = <String>::sse_decode(deserializer);
+        let mut var_appIcon = <String>::sse_decode(deserializer);
+        let mut var_summary = <String>::sse_decode(deserializer);
+        let mut var_body = <String>::sse_decode(deserializer);
+        let mut var_urgency = <crate::state::NotificationUrgency>::sse_decode(deserializer);
+        let mut var_actions =
+            <Vec<crate::state::NotificationActionSnapshot>>::sse_decode(deserializer);
+        let mut var_category = <Option<String>>::sse_decode(deserializer);
+        let mut var_isRead = <bool>::sse_decode(deserializer);
+        let mut var_imageData = <Option<Vec<u8>>>::sse_decode(deserializer);
+        let mut var_imagePath = <Option<String>>::sse_decode(deserializer);
+        return crate::state::NotificationSnapshot {
+            id: var_id,
+            app_name: var_appName,
+            app_icon: var_appIcon,
+            summary: var_summary,
+            body: var_body,
+            urgency: var_urgency,
+            actions: var_actions,
+            category: var_category,
+            is_read: var_isRead,
+            image_data: var_imageData,
+            image_path: var_imagePath,
+        };
+    }
+}
+
+impl SseDecode for crate::state::NotificationUrgency {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::state::NotificationUrgency::Low,
+            1 => crate::state::NotificationUrgency::Normal,
+            2 => crate::state::NotificationUrgency::Critical,
+            _ => unreachable!("Invalid variant for NotificationUrgency: {}", inner),
         };
     }
 }
@@ -880,16 +1120,20 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__execute_power_action_impl(port, ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__fetch_calendar_events_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__focus_workspace_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__load_config_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__seek_media_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__send_media_action_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__send_tray_action_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__watch_bar_snapshots_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__watch_panel_commands_impl(port, ptr, rust_vec_len, data_len),
+        1 => wire__crate__api__dismiss_all_notifications_impl(port, ptr, rust_vec_len, data_len),
+        2 => wire__crate__api__dismiss_notification_impl(port, ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__execute_power_action_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__fetch_calendar_events_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__focus_workspace_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__invoke_notification_action_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__load_config_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__mark_notification_read_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__seek_media_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__send_media_action_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__send_tray_action_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__watch_bar_snapshots_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__watch_panel_commands_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -921,6 +1165,7 @@ impl flutter_rust_bridge::IntoDart for crate::config::AliceConfig {
             self.power_commands.into_into_dart().into_dart(),
             self.panel_top_gap_px.into_into_dart().into_dart(),
             self.calendar.into_into_dart().into_dart(),
+            self.notifications.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -942,6 +1187,7 @@ impl flutter_rust_bridge::IntoDart for crate::state::BarSnapshot {
             self.network.into_into_dart().into_dart(),
             self.clock.into_into_dart().into_dart(),
             self.tray_items.into_into_dart().into_dart(),
+            self.notifications.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -958,6 +1204,7 @@ impl flutter_rust_bridge::IntoDart for crate::config::CalendarConfig {
         [
             self.google_client_id.into_into_dart().into_dart(),
             self.google_client_secret.into_into_dart().into_dart(),
+            self.poll_interval_secs.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -1093,6 +1340,96 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::NetworkSnapshot>
     for crate::state::NetworkSnapshot
 {
     fn into_into_dart(self) -> crate::state::NetworkSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::NotificationActionSnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.key.into_into_dart().into_dart(),
+            self.label.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::NotificationActionSnapshot
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::NotificationActionSnapshot>
+    for crate::state::NotificationActionSnapshot
+{
+    fn into_into_dart(self) -> crate::state::NotificationActionSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::config::NotificationConfig {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.default_timeout_ms.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::config::NotificationConfig
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::config::NotificationConfig>
+    for crate::config::NotificationConfig
+{
+    fn into_into_dart(self) -> crate::config::NotificationConfig {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::NotificationSnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.app_name.into_into_dart().into_dart(),
+            self.app_icon.into_into_dart().into_dart(),
+            self.summary.into_into_dart().into_dart(),
+            self.body.into_into_dart().into_dart(),
+            self.urgency.into_into_dart().into_dart(),
+            self.actions.into_into_dart().into_dart(),
+            self.category.into_into_dart().into_dart(),
+            self.is_read.into_into_dart().into_dart(),
+            self.image_data.into_into_dart().into_dart(),
+            self.image_path.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::NotificationSnapshot
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::NotificationSnapshot>
+    for crate::state::NotificationSnapshot
+{
+    fn into_into_dart(self) -> crate::state::NotificationSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::NotificationUrgency {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Low => 0.into_dart(),
+            Self::Normal => 1.into_dart(),
+            Self::Critical => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::NotificationUrgency
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::NotificationUrgency>
+    for crate::state::NotificationUrgency
+{
+    fn into_into_dart(self) -> crate::state::NotificationUrgency {
         self
     }
 }
@@ -1266,6 +1603,7 @@ impl SseEncode for crate::config::AliceConfig {
         <crate::config::PowerCommandConfig>::sse_encode(self.power_commands, serializer);
         <u32>::sse_encode(self.panel_top_gap_px, serializer);
         <Option<crate::config::CalendarConfig>>::sse_encode(self.calendar, serializer);
+        <crate::config::NotificationConfig>::sse_encode(self.notifications, serializer);
     }
 }
 
@@ -1279,6 +1617,7 @@ impl SseEncode for crate::state::BarSnapshot {
         <crate::state::NetworkSnapshot>::sse_encode(self.network, serializer);
         <crate::state::ClockSnapshot>::sse_encode(self.clock, serializer);
         <Vec<crate::state::TrayItemSnapshot>>::sse_encode(self.tray_items, serializer);
+        <Vec<crate::state::NotificationSnapshot>>::sse_encode(self.notifications, serializer);
     }
 }
 
@@ -1294,6 +1633,7 @@ impl SseEncode for crate::config::CalendarConfig {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.google_client_id, serializer);
         <String>::sse_encode(self.google_client_secret, serializer);
+        <u32>::sse_encode(self.poll_interval_secs, serializer);
     }
 }
 
@@ -1357,6 +1697,26 @@ impl SseEncode for Vec<crate::state::CalendarEvent> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::state::CalendarEvent>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::state::NotificationActionSnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::state::NotificationActionSnapshot>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::state::NotificationSnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::state::NotificationSnapshot>::sse_encode(item, serializer);
         }
     }
 }
@@ -1438,6 +1798,55 @@ impl SseEncode for crate::state::NetworkSnapshot {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::state::NetworkKind>::sse_encode(self.kind, serializer);
         <String>::sse_encode(self.label, serializer);
+    }
+}
+
+impl SseEncode for crate::state::NotificationActionSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.key, serializer);
+        <String>::sse_encode(self.label, serializer);
+    }
+}
+
+impl SseEncode for crate::config::NotificationConfig {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u32>::sse_encode(self.default_timeout_ms, serializer);
+    }
+}
+
+impl SseEncode for crate::state::NotificationSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u32>::sse_encode(self.id, serializer);
+        <String>::sse_encode(self.app_name, serializer);
+        <String>::sse_encode(self.app_icon, serializer);
+        <String>::sse_encode(self.summary, serializer);
+        <String>::sse_encode(self.body, serializer);
+        <crate::state::NotificationUrgency>::sse_encode(self.urgency, serializer);
+        <Vec<crate::state::NotificationActionSnapshot>>::sse_encode(self.actions, serializer);
+        <Option<String>>::sse_encode(self.category, serializer);
+        <bool>::sse_encode(self.is_read, serializer);
+        <Option<Vec<u8>>>::sse_encode(self.image_data, serializer);
+        <Option<String>>::sse_encode(self.image_path, serializer);
+    }
+}
+
+impl SseEncode for crate::state::NotificationUrgency {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::state::NotificationUrgency::Low => 0,
+                crate::state::NotificationUrgency::Normal => 1,
+                crate::state::NotificationUrgency::Critical => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 

@@ -78,6 +78,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<CalendarEvent> dco_decode_list_calendar_event(dynamic raw);
 
   @protected
+  List<NotificationActionSnapshot> dco_decode_list_notification_action_snapshot(
+    dynamic raw,
+  );
+
+  @protected
+  List<NotificationSnapshot> dco_decode_list_notification_snapshot(dynamic raw);
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
@@ -97,6 +105,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NetworkSnapshot dco_decode_network_snapshot(dynamic raw);
+
+  @protected
+  NotificationActionSnapshot dco_decode_notification_action_snapshot(
+    dynamic raw,
+  );
+
+  @protected
+  NotificationConfig dco_decode_notification_config(dynamic raw);
+
+  @protected
+  NotificationSnapshot dco_decode_notification_snapshot(dynamic raw);
+
+  @protected
+  NotificationUrgency dco_decode_notification_urgency(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
@@ -210,6 +232,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<NotificationActionSnapshot> sse_decode_list_notification_action_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<NotificationSnapshot> sse_decode_list_notification_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
@@ -235,6 +267,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NetworkSnapshot sse_decode_network_snapshot(SseDeserializer deserializer);
+
+  @protected
+  NotificationActionSnapshot sse_decode_notification_action_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  NotificationConfig sse_decode_notification_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  NotificationSnapshot sse_decode_notification_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  NotificationUrgency sse_decode_notification_urgency(
+    SseDeserializer deserializer,
+  );
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -368,6 +420,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_notification_action_snapshot(
+    List<NotificationActionSnapshot> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_notification_snapshot(
+    List<NotificationSnapshot> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
     SseSerializer serializer,
@@ -400,6 +464,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_network_snapshot(
     NetworkSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_notification_action_snapshot(
+    NotificationActionSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_notification_config(
+    NotificationConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_notification_snapshot(
+    NotificationSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_notification_urgency(
+    NotificationUrgency self,
     SseSerializer serializer,
   );
 

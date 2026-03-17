@@ -43,6 +43,7 @@ class _AliceAppState extends State<AliceApp> {
       timeLabel: '--:--',
     ),
     trayItems: [],
+    notifications: [],
   );
 
   // viewId (int) → panelId (String) — populated when C++ calls alice_notify_panel_show

@@ -3,10 +3,11 @@
 //! Run `flutter_rust_bridge_codegen generate` after modifying this file to
 //! regenerate `frb_generated.rs` and the Dart bindings in `lib/rust_gen/`.
 
-pub use crate::config::{AliceConfig, CalendarConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig};
+pub use crate::config::{AliceConfig, CalendarConfig, NotificationConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig};
 pub use crate::state::{
     BarSnapshot, CalendarEvent, CalendarFetchResult, ClockSnapshot, MediaSnapshot, NetworkKind,
-    NetworkSnapshot, TrayItemSnapshot, WorkspaceSnapshot,
+    NetworkSnapshot, NotificationActionSnapshot, NotificationSnapshot, NotificationUrgency,
+    TrayItemSnapshot, WorkspaceSnapshot,
 };
 
 /// Called once at process startup via FRB's `executeRustInitializers`.
@@ -124,6 +125,36 @@ pub fn execute_power_action(action: String) -> anyhow::Result<bool> {
         .arg(&command)
         .spawn()
         .is_ok())
+}
+
+/// Remove a single notification by ID and trigger a snapshot update.
+///
+/// Emits the `NotificationClosed` D-Bus signal with reason 2 (dismissed by user).
+pub fn dismiss_notification(id: u32) -> anyhow::Result<()> {
+    crate::notifications::dismiss_notification_by_id(id);
+    Ok(())
+}
+
+/// Remove all notifications and trigger a snapshot update.
+pub fn dismiss_all_notifications() -> anyhow::Result<()> {
+    crate::notifications::dismiss_all_notifications_impl();
+    Ok(())
+}
+
+/// Mark a notification as read and trigger a snapshot update.
+///
+/// Use this when the notification panel opens so the unread badge count updates.
+pub fn mark_notification_read(id: u32) -> anyhow::Result<()> {
+    crate::notifications::mark_notification_read_impl(id);
+    Ok(())
+}
+
+/// Emit the `ActionInvoked` D-Bus signal for a notification action button.
+///
+/// This notifies the originating application that the user clicked an action.
+pub fn invoke_notification_action(id: u32, action_key: String) -> anyhow::Result<()> {
+    crate::notifications::invoke_action_impl(id, action_key);
+    Ok(())
 }
 
 /// Fetch Google Calendar events for the given date (`"YYYY-MM-DD"`).

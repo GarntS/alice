@@ -59,6 +59,33 @@ Future<bool> sendTrayAction({
 Future<bool> executePowerAction({required String action}) =>
     RustLib.instance.api.crateApiExecutePowerAction(action: action);
 
+/// Remove a single notification by ID and trigger a snapshot update.
+///
+/// Emits the `NotificationClosed` D-Bus signal with reason 2 (dismissed by user).
+Future<void> dismissNotification({required int id}) =>
+    RustLib.instance.api.crateApiDismissNotification(id: id);
+
+/// Remove all notifications and trigger a snapshot update.
+Future<void> dismissAllNotifications() =>
+    RustLib.instance.api.crateApiDismissAllNotifications();
+
+/// Mark a notification as read and trigger a snapshot update.
+///
+/// Use this when the notification panel opens so the unread badge count updates.
+Future<void> markNotificationRead({required int id}) =>
+    RustLib.instance.api.crateApiMarkNotificationRead(id: id);
+
+/// Emit the `ActionInvoked` D-Bus signal for a notification action button.
+///
+/// This notifies the originating application that the user clicked an action.
+Future<void> invokeNotificationAction({
+  required int id,
+  required String actionKey,
+}) => RustLib.instance.api.crateApiInvokeNotificationAction(
+  id: id,
+  actionKey: actionKey,
+);
+
 /// Fetch Google Calendar events for the given date (`"YYYY-MM-DD"`).
 ///
 /// Returns immediately. On first call without a stored token this initiates

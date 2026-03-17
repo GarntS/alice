@@ -52,3 +52,8 @@ power:
 #   google_client_secret: "YOUR_CLIENT_SECRET"
 #   # How often (in seconds) to poll for calendar event changes. Default: 30
 #   # poll_interval_secs: 30
+
+# notifications:
+#   # Duration in milliseconds before a notification auto-dismisses.
+#   # Use 0 to never auto-dismiss. Default: 5000
+#   default_timeout_ms: 5000

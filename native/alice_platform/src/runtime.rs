@@ -9,6 +9,16 @@ use crate::api::PanelCommand;
 use crate::state::BarSnapshot;
 
 // ---------------------------------------------------------------------------
+// Shared tokio handle (used by sync API helpers to spawn async tasks)
+// ---------------------------------------------------------------------------
+
+static TOKIO_HANDLE: OnceLock<tokio::runtime::Handle> = OnceLock::new();
+
+pub(crate) fn tokio_handle() -> Option<tokio::runtime::Handle> {
+    TOKIO_HANDLE.get().cloned()
+}
+
+// ---------------------------------------------------------------------------
 // Panel command sink (panel process only)
 // ---------------------------------------------------------------------------
 
@@ -74,6 +84,10 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
         }
     };
 
+    let _ = TOKIO_HANDLE.set(rt.handle().clone());
+
+    let config = crate::load_native_config();
+
     rt.block_on(async {
         let (tx, mut rx) = mpsc::channel::<Trigger>(32);
 
@@ -124,6 +138,17 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
             }
         });
 
+        // --- Freedesktop notifications server (async zbus service) ---
+        let tx_notif = tx.clone();
+        let notif_timeout_ms = config.notifications.default_timeout_ms;
+        tokio::spawn(async move {
+            if let Err(error) =
+                crate::notifications::run_notification_server(tx_notif, notif_timeout_ms).await
+            {
+                eprintln!("alice: notification server error: {error}");
+            }
+        });
+
         // Initial snapshot immediately
         let _ = tx.send(Trigger::Event).await;
 
@@ -148,7 +173,10 @@ fn build_snapshot() -> BarSnapshot {
         ClockProvider, MediaProvider, NetworkProvider, StatsProvider, TrayProvider,
         WorkspaceProvider,
     };
-    use crate::state::{ClockSnapshot, NetworkKind, NetworkSnapshot};
+    use crate::state::{
+        ClockSnapshot, NetworkKind, NetworkSnapshot, NotificationActionSnapshot,
+        NotificationSnapshot, NotificationUrgency,
+    };
     use crate::stats::ProcStatsProvider;
     use crate::sway::SwayWorkspaceProvider;
     use crate::tray::StatusNotifierTrayProvider;
@@ -180,6 +208,34 @@ fn build_snapshot() -> BarSnapshot {
             cpu_usage_cores: 0.0,
         });
 
+    let notifications = crate::notifications::get_notifications()
+        .into_iter()
+        .map(|n| NotificationSnapshot {
+            id: n.id,
+            app_name: n.app_name,
+            app_icon: n.app_icon,
+            summary: n.summary,
+            body: n.body,
+            urgency: match n.urgency {
+                crate::notifications::Urgency::Low => NotificationUrgency::Low,
+                crate::notifications::Urgency::Normal => NotificationUrgency::Normal,
+                crate::notifications::Urgency::Critical => NotificationUrgency::Critical,
+            },
+            actions: n
+                .actions
+                .into_iter()
+                .map(|a| NotificationActionSnapshot {
+                    key: a.key,
+                    label: a.label,
+                })
+                .collect(),
+            category: n.category,
+            is_read: n.is_read,
+            image_data: n.image_data,
+            image_path: n.image_path,
+        })
+        .collect();
+
     BarSnapshot {
         workspaces,
         media,
@@ -188,6 +244,7 @@ fn build_snapshot() -> BarSnapshot {
         network,
         clock,
         tray_items,
+        notifications,
     }
 }
 

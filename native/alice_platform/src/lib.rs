@@ -15,6 +15,7 @@ pub mod clock;
 pub mod config;
 pub mod mpris;
 pub mod network;
+pub mod notifications;
 pub mod providers;
 pub mod runtime;
 pub mod state;

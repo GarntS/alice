@@ -14,6 +14,7 @@ class BarSnapshot {
   final NetworkSnapshot network;
   final ClockSnapshot clock;
   final List<TrayItemSnapshot> trayItems;
+  final List<NotificationSnapshot> notifications;
 
   const BarSnapshot({
     required this.workspaces,
@@ -23,6 +24,7 @@ class BarSnapshot {
     required this.network,
     required this.clock,
     required this.trayItems,
+    required this.notifications,
   });
 
   @override
@@ -33,7 +35,8 @@ class BarSnapshot {
       cpuUsageCores.hashCode ^
       network.hashCode ^
       clock.hashCode ^
-      trayItems.hashCode;
+      trayItems.hashCode ^
+      notifications.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -46,7 +49,8 @@ class BarSnapshot {
           cpuUsageCores == other.cpuUsageCores &&
           network == other.network &&
           clock == other.clock &&
-          trayItems == other.trayItems;
+          trayItems == other.trayItems &&
+          notifications == other.notifications;
 }
 
 class CalendarEvent {
@@ -229,6 +233,93 @@ class NetworkSnapshot {
           kind == other.kind &&
           label == other.label;
 }
+
+class NotificationActionSnapshot {
+  final String key;
+  final String label;
+
+  const NotificationActionSnapshot({required this.key, required this.label});
+
+  @override
+  int get hashCode => key.hashCode ^ label.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NotificationActionSnapshot &&
+          runtimeType == other.runtimeType &&
+          key == other.key &&
+          label == other.label;
+}
+
+class NotificationSnapshot {
+  final int id;
+  final String appName;
+
+  /// Icon name or file path. Flutter uses priority: image_data > image_path > app_icon.
+  final String appIcon;
+  final String summary;
+  final String body;
+  final NotificationUrgency urgency;
+  final List<NotificationActionSnapshot> actions;
+
+  /// Freedesktop notification category (e.g. `"email"`, `"im.received"`).
+  final String? category;
+  final bool isRead;
+
+  /// PNG-encoded image bytes from the `image-data` hint, if present.
+  final Uint8List? imageData;
+
+  /// File path or `file://` URI from the `image-path` hint, if present.
+  final String? imagePath;
+
+  const NotificationSnapshot({
+    required this.id,
+    required this.appName,
+    required this.appIcon,
+    required this.summary,
+    required this.body,
+    required this.urgency,
+    required this.actions,
+    this.category,
+    required this.isRead,
+    this.imageData,
+    this.imagePath,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      appName.hashCode ^
+      appIcon.hashCode ^
+      summary.hashCode ^
+      body.hashCode ^
+      urgency.hashCode ^
+      actions.hashCode ^
+      category.hashCode ^
+      isRead.hashCode ^
+      imageData.hashCode ^
+      imagePath.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NotificationSnapshot &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          appName == other.appName &&
+          appIcon == other.appIcon &&
+          summary == other.summary &&
+          body == other.body &&
+          urgency == other.urgency &&
+          actions == other.actions &&
+          category == other.category &&
+          isRead == other.isRead &&
+          imageData == other.imageData &&
+          imagePath == other.imagePath;
+}
+
+enum NotificationUrgency { low, normal, critical }
 
 class TrayItemSnapshot {
   final String id;

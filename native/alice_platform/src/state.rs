@@ -7,6 +7,7 @@ pub struct BarSnapshot {
     pub network: NetworkSnapshot,
     pub clock: ClockSnapshot,
     pub tray_items: Vec<TrayItemSnapshot>,
+    pub notifications: Vec<NotificationSnapshot>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,6 +57,38 @@ pub struct TrayItemSnapshot {
     pub service_name: String,
     pub object_path: String,
     pub icon_png_bytes: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NotificationUrgency {
+    Low,
+    Normal,
+    Critical,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NotificationActionSnapshot {
+    pub key: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct NotificationSnapshot {
+    pub id: u32,
+    pub app_name: String,
+    /// Icon name or file path. Flutter uses priority: image_data > image_path > app_icon.
+    pub app_icon: String,
+    pub summary: String,
+    pub body: String,
+    pub urgency: NotificationUrgency,
+    pub actions: Vec<NotificationActionSnapshot>,
+    /// Freedesktop notification category (e.g. `"email"`, `"im.received"`).
+    pub category: Option<String>,
+    pub is_read: bool,
+    /// PNG-encoded image bytes from the `image-data` hint, if present.
+    pub image_data: Option<Vec<u8>>,
+    /// File path or `file://` URI from the `image-path` hint, if present.
+    pub image_path: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

@@ -37,7 +37,6 @@ lib/rust_gen/
 native/alice_platform/src/frb_generated.rs
 linux/runner/frb_generated.h
 
-
 # LLM-related Nonsense
 .claude/
 

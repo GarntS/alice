@@ -22,6 +22,13 @@ pub struct AliceConfig {
     pub power_commands: PowerCommandConfig,
     pub panel_top_gap_px: u32,
     pub calendar: Option<CalendarConfig>,
+    pub notifications: NotificationConfig,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NotificationConfig {
+    /// How long (ms) before a notification auto-dismisses. 0 = never expire.
+    pub default_timeout_ms: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,6 +65,9 @@ impl Default for AliceConfig {
             },
             panel_top_gap_px: 8,
             calendar: None,
+            notifications: NotificationConfig {
+                default_timeout_ms: 5000,
+            },
         }
     }
 }
@@ -160,6 +170,13 @@ struct RawConfig {
     power: RawPowerConfig,
     #[serde(default)]
     calendar: Option<RawCalendarConfig>,
+    #[serde(default)]
+    notifications: RawNotificationConfig,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct RawNotificationConfig {
+    default_timeout_ms: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -214,6 +231,12 @@ impl RawConfig {
                 google_client_secret: c.google_client_secret,
                 poll_interval_secs: c.poll_interval_secs.unwrap_or(30).max(1),
             }),
+            notifications: NotificationConfig {
+                default_timeout_ms: self
+                    .notifications
+                    .default_timeout_ms
+                    .unwrap_or(defaults.notifications.default_timeout_ms),
+            },
         }
     }
 }

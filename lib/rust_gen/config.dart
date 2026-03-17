@@ -16,6 +16,7 @@ class AliceConfig {
   final PowerCommandConfig powerCommands;
   final int panelTopGapPx;
   final CalendarConfig? calendar;
+  final NotificationConfig notifications;
 
   const AliceConfig({
     required this.themeMode,
@@ -27,6 +28,7 @@ class AliceConfig {
     required this.powerCommands,
     required this.panelTopGapPx,
     this.calendar,
+    required this.notifications,
   });
 
   @override
@@ -39,7 +41,8 @@ class AliceConfig {
       timeZones.hashCode ^
       powerCommands.hashCode ^
       panelTopGapPx.hashCode ^
-      calendar.hashCode;
+      calendar.hashCode ^
+      notifications.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -54,20 +57,28 @@ class AliceConfig {
           timeZones == other.timeZones &&
           powerCommands == other.powerCommands &&
           panelTopGapPx == other.panelTopGapPx &&
-          calendar == other.calendar;
+          calendar == other.calendar &&
+          notifications == other.notifications;
 }
 
 class CalendarConfig {
   final String googleClientId;
   final String googleClientSecret;
 
+  /// How often (in seconds) to poll for calendar changes via incremental sync.
+  final int pollIntervalSecs;
+
   const CalendarConfig({
     required this.googleClientId,
     required this.googleClientSecret,
+    required this.pollIntervalSecs,
   });
 
   @override
-  int get hashCode => googleClientId.hashCode ^ googleClientSecret.hashCode;
+  int get hashCode =>
+      googleClientId.hashCode ^
+      googleClientSecret.hashCode ^
+      pollIntervalSecs.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -75,7 +86,25 @@ class CalendarConfig {
       other is CalendarConfig &&
           runtimeType == other.runtimeType &&
           googleClientId == other.googleClientId &&
-          googleClientSecret == other.googleClientSecret;
+          googleClientSecret == other.googleClientSecret &&
+          pollIntervalSecs == other.pollIntervalSecs;
+}
+
+class NotificationConfig {
+  /// How long (ms) before a notification auto-dismisses. 0 = never expire.
+  final int defaultTimeoutMs;
+
+  const NotificationConfig({required this.defaultTimeoutMs});
+
+  @override
+  int get hashCode => defaultTimeoutMs.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NotificationConfig &&
+          runtimeType == other.runtimeType &&
+          defaultTimeoutMs == other.defaultTimeoutMs;
 }
 
 class PowerCommandConfig {

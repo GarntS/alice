@@ -68,7 +68,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 284410262;
+  int get rustContentHash => 827720240;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -79,6 +79,10 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<void> crateApiDismissAllNotifications();
+
+  Future<void> crateApiDismissNotification({required int id});
+
   Future<bool> crateApiExecutePowerAction({required String action});
 
   Future<CalendarFetchResult> crateApiFetchCalendarEvents({
@@ -89,7 +93,14 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiInitApp();
 
+  Future<void> crateApiInvokeNotificationAction({
+    required int id,
+    required String actionKey,
+  });
+
   Future<AliceConfig> crateApiLoadConfig();
+
+  Future<void> crateApiMarkNotificationRead({required int id});
 
   Future<bool> crateApiSeekMedia({required PlatformInt64 positionMicros});
 
@@ -117,6 +128,61 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<void> crateApiDismissAllNotifications() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiDismissAllNotificationsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDismissAllNotificationsConstMeta =>
+      const TaskConstMeta(debugName: "dismiss_all_notifications", argNames: []);
+
+  @override
+  Future<void> crateApiDismissNotification({required int id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiDismissNotificationConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDismissNotificationConstMeta =>
+      const TaskConstMeta(debugName: "dismiss_notification", argNames: ["id"]);
+
+  @override
   Future<bool> crateApiExecutePowerAction({required String action}) {
     return handler.executeNormal(
       NormalTask(
@@ -126,7 +192,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 1,
+            funcId: 3,
             port: port_,
           );
         },
@@ -158,7 +224,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 4,
             port: port_,
           );
         },
@@ -189,7 +255,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 5,
             port: port_,
           );
         },
@@ -216,7 +282,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 6,
             port: port_,
           );
         },
@@ -235,6 +301,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
   @override
+  Future<void> crateApiInvokeNotificationAction({
+    required int id,
+    required String actionKey,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(id, serializer);
+          sse_encode_String(actionKey, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiInvokeNotificationActionConstMeta,
+        argValues: [id, actionKey],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiInvokeNotificationActionConstMeta =>
+      const TaskConstMeta(
+        debugName: "invoke_notification_action",
+        argNames: ["id", "actionKey"],
+      );
+
+  @override
   Future<AliceConfig> crateApiLoadConfig() {
     return handler.executeNormal(
       NormalTask(
@@ -243,7 +344,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 8,
             port: port_,
           );
         },
@@ -262,6 +363,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "load_config", argNames: []);
 
   @override
+  Future<void> crateApiMarkNotificationRead({required int id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiMarkNotificationReadConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiMarkNotificationReadConstMeta =>
+      const TaskConstMeta(
+        debugName: "mark_notification_read",
+        argNames: ["id"],
+      );
+
+  @override
   Future<bool> crateApiSeekMedia({required PlatformInt64 positionMicros}) {
     return handler.executeNormal(
       NormalTask(
@@ -271,7 +403,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 10,
             port: port_,
           );
         },
@@ -301,7 +433,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 11,
             port: port_,
           );
         },
@@ -339,7 +471,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 12,
             port: port_,
           );
         },
@@ -371,7 +503,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 9,
+              funcId: 13,
               port: port_,
             );
           },
@@ -406,7 +538,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 10,
+              funcId: 14,
               port: port_,
             );
           },
@@ -459,8 +591,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AliceConfig dco_decode_alice_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 9)
-      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return AliceConfig(
       themeMode: dco_decode_theme_mode(arr[0]),
       accentColor: dco_decode_String(arr[1]),
@@ -471,6 +603,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       powerCommands: dco_decode_power_command_config(arr[6]),
       panelTopGapPx: dco_decode_u_32(arr[7]),
       calendar: dco_decode_opt_box_autoadd_calendar_config(arr[8]),
+      notifications: dco_decode_notification_config(arr[9]),
     );
   }
 
@@ -478,8 +611,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BarSnapshot dco_decode_bar_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return BarSnapshot(
       workspaces: dco_decode_list_workspace_snapshot(arr[0]),
       media: dco_decode_opt_box_autoadd_media_snapshot(arr[1]),
@@ -488,6 +621,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       network: dco_decode_network_snapshot(arr[4]),
       clock: dco_decode_clock_snapshot(arr[5]),
       trayItems: dco_decode_list_tray_item_snapshot(arr[6]),
+      notifications: dco_decode_list_notification_snapshot(arr[7]),
     );
   }
 
@@ -519,11 +653,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   CalendarConfig dco_decode_calendar_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return CalendarConfig(
       googleClientId: dco_decode_String(arr[0]),
       googleClientSecret: dco_decode_String(arr[1]),
+      pollIntervalSecs: dco_decode_u_32(arr[2]),
     );
   }
 
@@ -597,6 +732,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<NotificationActionSnapshot> dco_decode_list_notification_action_snapshot(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_notification_action_snapshot)
+        .toList();
+  }
+
+  @protected
+  List<NotificationSnapshot> dco_decode_list_notification_snapshot(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_notification_snapshot)
+        .toList();
+  }
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
@@ -655,6 +810,56 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       kind: dco_decode_network_kind(arr[0]),
       label: dco_decode_String(arr[1]),
     );
+  }
+
+  @protected
+  NotificationActionSnapshot dco_decode_notification_action_snapshot(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return NotificationActionSnapshot(
+      key: dco_decode_String(arr[0]),
+      label: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  NotificationConfig dco_decode_notification_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return NotificationConfig(defaultTimeoutMs: dco_decode_u_32(arr[0]));
+  }
+
+  @protected
+  NotificationSnapshot dco_decode_notification_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return NotificationSnapshot(
+      id: dco_decode_u_32(arr[0]),
+      appName: dco_decode_String(arr[1]),
+      appIcon: dco_decode_String(arr[2]),
+      summary: dco_decode_String(arr[3]),
+      body: dco_decode_String(arr[4]),
+      urgency: dco_decode_notification_urgency(arr[5]),
+      actions: dco_decode_list_notification_action_snapshot(arr[6]),
+      category: dco_decode_opt_String(arr[7]),
+      isRead: dco_decode_bool(arr[8]),
+      imageData: dco_decode_opt_list_prim_u_8_strict(arr[9]),
+      imagePath: dco_decode_opt_String(arr[10]),
+    );
+  }
+
+  @protected
+  NotificationUrgency dco_decode_notification_urgency(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return NotificationUrgency.values[raw as int];
   }
 
   @protected
@@ -825,6 +1030,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_powerCommands = sse_decode_power_command_config(deserializer);
     var var_panelTopGapPx = sse_decode_u_32(deserializer);
     var var_calendar = sse_decode_opt_box_autoadd_calendar_config(deserializer);
+    var var_notifications = sse_decode_notification_config(deserializer);
     return AliceConfig(
       themeMode: var_themeMode,
       accentColor: var_accentColor,
@@ -835,6 +1041,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       powerCommands: var_powerCommands,
       panelTopGapPx: var_panelTopGapPx,
       calendar: var_calendar,
+      notifications: var_notifications,
     );
   }
 
@@ -848,6 +1055,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_network = sse_decode_network_snapshot(deserializer);
     var var_clock = sse_decode_clock_snapshot(deserializer);
     var var_trayItems = sse_decode_list_tray_item_snapshot(deserializer);
+    var var_notifications = sse_decode_list_notification_snapshot(deserializer);
     return BarSnapshot(
       workspaces: var_workspaces,
       media: var_media,
@@ -856,6 +1064,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       network: var_network,
       clock: var_clock,
       trayItems: var_trayItems,
+      notifications: var_notifications,
     );
   }
 
@@ -894,9 +1103,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_googleClientId = sse_decode_String(deserializer);
     var var_googleClientSecret = sse_decode_String(deserializer);
+    var var_pollIntervalSecs = sse_decode_u_32(deserializer);
     return CalendarConfig(
       googleClientId: var_googleClientId,
       googleClientSecret: var_googleClientSecret,
+      pollIntervalSecs: var_pollIntervalSecs,
     );
   }
 
@@ -981,6 +1192,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <CalendarEvent>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_calendar_event(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<NotificationActionSnapshot> sse_decode_list_notification_action_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <NotificationActionSnapshot>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_notification_action_snapshot(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<NotificationSnapshot> sse_decode_list_notification_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <NotificationSnapshot>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_notification_snapshot(deserializer));
     }
     return ans_;
   }
@@ -1072,6 +1311,67 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_kind = sse_decode_network_kind(deserializer);
     var var_label = sse_decode_String(deserializer);
     return NetworkSnapshot(kind: var_kind, label: var_label);
+  }
+
+  @protected
+  NotificationActionSnapshot sse_decode_notification_action_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_key = sse_decode_String(deserializer);
+    var var_label = sse_decode_String(deserializer);
+    return NotificationActionSnapshot(key: var_key, label: var_label);
+  }
+
+  @protected
+  NotificationConfig sse_decode_notification_config(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_defaultTimeoutMs = sse_decode_u_32(deserializer);
+    return NotificationConfig(defaultTimeoutMs: var_defaultTimeoutMs);
+  }
+
+  @protected
+  NotificationSnapshot sse_decode_notification_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_u_32(deserializer);
+    var var_appName = sse_decode_String(deserializer);
+    var var_appIcon = sse_decode_String(deserializer);
+    var var_summary = sse_decode_String(deserializer);
+    var var_body = sse_decode_String(deserializer);
+    var var_urgency = sse_decode_notification_urgency(deserializer);
+    var var_actions = sse_decode_list_notification_action_snapshot(
+      deserializer,
+    );
+    var var_category = sse_decode_opt_String(deserializer);
+    var var_isRead = sse_decode_bool(deserializer);
+    var var_imageData = sse_decode_opt_list_prim_u_8_strict(deserializer);
+    var var_imagePath = sse_decode_opt_String(deserializer);
+    return NotificationSnapshot(
+      id: var_id,
+      appName: var_appName,
+      appIcon: var_appIcon,
+      summary: var_summary,
+      body: var_body,
+      urgency: var_urgency,
+      actions: var_actions,
+      category: var_category,
+      isRead: var_isRead,
+      imageData: var_imageData,
+      imagePath: var_imagePath,
+    );
+  }
+
+  @protected
+  NotificationUrgency sse_decode_notification_urgency(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return NotificationUrgency.values[inner];
   }
 
   @protected
@@ -1298,6 +1598,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_power_command_config(self.powerCommands, serializer);
     sse_encode_u_32(self.panelTopGapPx, serializer);
     sse_encode_opt_box_autoadd_calendar_config(self.calendar, serializer);
+    sse_encode_notification_config(self.notifications, serializer);
   }
 
   @protected
@@ -1310,6 +1611,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_network_snapshot(self.network, serializer);
     sse_encode_clock_snapshot(self.clock, serializer);
     sse_encode_list_tray_item_snapshot(self.trayItems, serializer);
+    sse_encode_list_notification_snapshot(self.notifications, serializer);
   }
 
   @protected
@@ -1353,6 +1655,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.googleClientId, serializer);
     sse_encode_String(self.googleClientSecret, serializer);
+    sse_encode_u_32(self.pollIntervalSecs, serializer);
   }
 
   @protected
@@ -1415,6 +1718,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_calendar_event(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_notification_action_snapshot(
+    List<NotificationActionSnapshot> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_notification_action_snapshot(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_notification_snapshot(
+    List<NotificationSnapshot> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_notification_snapshot(item, serializer);
     }
   }
 
@@ -1492,6 +1819,53 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_network_kind(self.kind, serializer);
     sse_encode_String(self.label, serializer);
+  }
+
+  @protected
+  void sse_encode_notification_action_snapshot(
+    NotificationActionSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.key, serializer);
+    sse_encode_String(self.label, serializer);
+  }
+
+  @protected
+  void sse_encode_notification_config(
+    NotificationConfig self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self.defaultTimeoutMs, serializer);
+  }
+
+  @protected
+  void sse_encode_notification_snapshot(
+    NotificationSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self.id, serializer);
+    sse_encode_String(self.appName, serializer);
+    sse_encode_String(self.appIcon, serializer);
+    sse_encode_String(self.summary, serializer);
+    sse_encode_String(self.body, serializer);
+    sse_encode_notification_urgency(self.urgency, serializer);
+    sse_encode_list_notification_action_snapshot(self.actions, serializer);
+    sse_encode_opt_String(self.category, serializer);
+    sse_encode_bool(self.isRead, serializer);
+    sse_encode_opt_list_prim_u_8_strict(self.imageData, serializer);
+    sse_encode_opt_String(self.imagePath, serializer);
+  }
+
+  @protected
+  void sse_encode_notification_urgency(
+    NotificationUrgency self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
