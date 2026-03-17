@@ -57,8 +57,11 @@ class _AliceAppState extends State<AliceApp> {
 
     _panelCommandSubscription = frb.watchPanelCommands().listen(
       (cmd) {
-        if (cmd != null && mounted) {
+        if (!mounted) return;
+        if (cmd != null) {
           setState(() => _viewPanelMap[cmd.viewId] = cmd.panelId);
+        } else {
+          _panelController.close();
         }
       },
       onError: (Object e, StackTrace st) =>

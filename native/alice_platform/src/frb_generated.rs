@@ -510,6 +510,8 @@ impl SseDecode for crate::config::CalendarConfig {
         return crate::config::CalendarConfig {
             google_client_id: var_googleClientId,
             google_client_secret: var_googleClientSecret,
+            // poll_interval_secs is a Rust-only field; use default when decoding from Flutter.
+            poll_interval_secs: 10,
         };
     }
 }

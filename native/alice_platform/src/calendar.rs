@@ -8,7 +8,7 @@
 //! - Subsequent calls while polling return the same URL.
 //! - Once authorised, calls proceed to the Calendar API.
 
-use std::{path::PathBuf, sync::Mutex, sync::OnceLock, time::Duration};
+use std::{collections::HashMap, path::PathBuf, sync::Mutex, sync::OnceLock, time::Duration};
 
 // ---------------------------------------------------------------------------
 // Shared tokio runtime + stored authenticator
@@ -41,6 +41,28 @@ use crate::{
     config::CalendarConfig,
     state::{CalendarEvent, CalendarFetchResult},
 };
+
+// ---------------------------------------------------------------------------
+// Event cache
+//
+// Holds a 60-day window of events so that date taps within the window are
+// served instantly. `cal_meta` maps calendar IDs to (name, color) so that
+// incremental-sync responses can populate new events with the right metadata.
+// ---------------------------------------------------------------------------
+
+struct EventCache {
+    window_start: chrono::NaiveDate,
+    window_end: chrono::NaiveDate,
+    /// All events in the window, tagged with their calendar date.
+    entries: Vec<(chrono::NaiveDate, CalendarEvent)>,
+    /// Per-calendar sync token for incremental updates.
+    sync_tokens: HashMap<String, String>,
+    /// Calendar display metadata: id → (name, background_color).
+    cal_meta: HashMap<String, (String, String)>,
+}
+
+static EVENT_CACHE: Mutex<Option<EventCache>> = Mutex::new(None);
+static POLL_ABORT: Mutex<Option<tokio::task::AbortHandle>> = Mutex::new(None);
 
 // ---------------------------------------------------------------------------
 // Global auth state
@@ -103,7 +125,29 @@ pub fn fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult 
     };
 
     match snap {
-        Snap::Authorized => do_fetch_events(date, config),
+        Snap::Authorized => {
+            let date_naive = match chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d") {
+                Ok(d) => d,
+                Err(_) => return err_result(format!("invalid date: {date}")),
+            };
+
+            // Cache hit: return immediately without any network call.
+            {
+                let cache = EVENT_CACHE.lock().unwrap();
+                if let Some(ref c) = *cache {
+                    if date_naive >= c.window_start && date_naive < c.window_end {
+                        return CalendarFetchResult {
+                            status: "ready".into(),
+                            events: filter_for_date(&c.entries, date_naive),
+                            ..Default::default()
+                        };
+                    }
+                }
+            }
+
+            // Cache miss — fetch a 60-day window and populate the cache.
+            do_fetch_events(date, config)
+        }
 
         Snap::Pending(url) => CalendarFetchResult {
             status: "polling".into(),
@@ -318,13 +362,34 @@ impl google_calendar3::common::GetToken for CalendarReadonlyAuth {
 }
 
 // ---------------------------------------------------------------------------
-// Fetch events from the Calendar API (happy path)
+// Build a hub from a cloned auth instance
+// ---------------------------------------------------------------------------
+
+fn build_hub(
+    auth: CalendarAuth,
+) -> google_calendar3::CalendarHub<
+    hyper_rustls::HttpsConnector<hyper_util::client::legacy::connect::HttpConnector>,
+> {
+    let https = hyper_rustls::HttpsConnectorBuilder::new()
+        .with_webpki_roots()
+        .https_or_http()
+        .enable_http2()
+        .build();
+    let client =
+        hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new())
+            .build(https);
+    google_calendar3::CalendarHub::new(client, CalendarReadonlyAuth(auth))
+}
+
+// ---------------------------------------------------------------------------
+// Fetch events from the Calendar API — 60-day window
 // ---------------------------------------------------------------------------
 
 fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
     let tp = token_path();
-    // Pre-compute secret outside the async block; only used in the restart path.
     let secret = make_app_secret(config);
+    let interval_secs = config.poll_interval_secs as u64;
+    let date_owned = date.to_owned();
 
     calendar_runtime().block_on(async move {
         // Reuse the stored Authenticator from the initial flow if available.
@@ -355,27 +420,21 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
             }
         };
 
-        let https = hyper_rustls::HttpsConnectorBuilder::new()
-            .with_webpki_roots()
-            .https_or_http()
-            .enable_http2()
-            .build();
+        let hub = build_hub(auth);
 
-        let client =
-            hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new())
-                .build(https);
-
-        let hub = google_calendar3::CalendarHub::new(client, CalendarReadonlyAuth(auth));
-
-        let date_naive = match chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d") {
+        let date_naive = match chrono::NaiveDate::parse_from_str(&date_owned, "%Y-%m-%d") {
             Ok(d) => d,
-            Err(_) => return err_result(format!("invalid date: {date}")),
+            Err(_) => return err_result(format!("invalid date: {date_owned}")),
         };
 
+        let window_start = date_naive - chrono::Duration::days(30);
+        let window_end = date_naive + chrono::Duration::days(31); // exclusive
+
         use chrono::TimeZone as _;
-        let time_min = chrono::Utc.from_utc_datetime(&date_naive.and_hms_opt(0, 0, 0).unwrap());
-        let next = date_naive.succ_opt().unwrap_or(date_naive);
-        let time_max = chrono::Utc.from_utc_datetime(&next.and_hms_opt(0, 0, 0).unwrap());
+        let time_min =
+            chrono::Utc.from_utc_datetime(&window_start.and_hms_opt(0, 0, 0).unwrap());
+        let time_max =
+            chrono::Utc.from_utc_datetime(&window_end.and_hms_opt(0, 0, 0).unwrap());
 
         // Fetch calendar list for names + colours.
         let cal_list = match hub.calendar_list().list().doit().await {
@@ -383,7 +442,9 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
             Err(e) => return err_result(format!("calendar list failed: {e}")),
         };
 
-        let mut all_events: Vec<CalendarEvent> = Vec::new();
+        let mut entries: Vec<(chrono::NaiveDate, CalendarEvent)> = Vec::new();
+        let mut sync_tokens: HashMap<String, String> = HashMap::new();
+        let mut cal_meta: HashMap<String, (String, String)> = HashMap::new();
 
         for cal in cal_list.items.unwrap_or_default() {
             let cal_id = match &cal.id {
@@ -392,6 +453,8 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
             };
             let cal_name = cal.summary.clone().unwrap_or_default();
             let cal_color = cal.background_color.clone().unwrap_or_default();
+
+            cal_meta.insert(cal_id.clone(), (cal_name.clone(), cal_color.clone()));
 
             let event_list = match hub
                 .events()
@@ -406,36 +469,175 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
                 Err(_) => continue, // skip calendars we cannot read
             };
 
+            if let Some(tok) = event_list.next_sync_token.clone() {
+                sync_tokens.insert(cal_id.clone(), tok);
+            }
+
             for event in event_list.items.unwrap_or_default() {
                 let id = event.id.clone().unwrap_or_default();
                 let title = event.summary.clone().unwrap_or_else(|| "(No title)".into());
                 let (is_all_day, start_label, end_label) = extract_time_labels(&event);
 
-                all_events.push(CalendarEvent {
-                    id,
-                    title,
-                    is_all_day,
-                    start_label,
-                    end_label,
-                    calendar_name: cal_name.clone(),
-                    calendar_color: cal_color.clone(),
-                });
+                if let Some(event_date) = extract_event_date(&event) {
+                    entries.push((
+                        event_date,
+                        CalendarEvent {
+                            id,
+                            title,
+                            is_all_day,
+                            start_label,
+                            end_label,
+                            calendar_name: cal_name.clone(),
+                            calendar_color: cal_color.clone(),
+                        },
+                    ));
+                }
             }
         }
 
-        // All-day first, then timed events sorted by start label.
-        all_events.sort_by(|a, b| match (a.is_all_day, b.is_all_day) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.start_label.cmp(&b.start_label),
+        // Populate the cache.
+        *EVENT_CACHE.lock().unwrap() = Some(EventCache {
+            window_start,
+            window_end,
+            entries: entries.clone(),
+            sync_tokens,
+            cal_meta,
         });
+
+        // Cancel any previous poll task and start a fresh one.
+        if let Some(handle) = POLL_ABORT.lock().unwrap().take() {
+            handle.abort();
+        }
+        let join_handle = tokio::task::spawn(run_poll_loop(interval_secs));
+        *POLL_ABORT.lock().unwrap() = Some(join_handle.abort_handle());
 
         CalendarFetchResult {
             status: "ready".into(),
-            events: all_events,
+            events: filter_for_date(&entries, date_naive),
             ..Default::default()
         }
     })
+}
+
+// ---------------------------------------------------------------------------
+// Incremental sync background task
+// ---------------------------------------------------------------------------
+
+async fn run_poll_loop(interval_secs: u64) {
+    let mut interval = tokio::time::interval(Duration::from_secs(interval_secs));
+    loop {
+        interval.tick().await;
+        if let Err(e) = do_poll_incremental().await {
+            eprintln!("[alice/calendar] incremental poll error: {e}");
+        }
+    }
+}
+
+async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Clone auth — return early if not yet available.
+    let auth = match CALENDAR_AUTH.lock().unwrap().clone() {
+        Some(a) => a,
+        None => return Ok(()),
+    };
+
+    // Snapshot sync tokens — return early if there is no cache yet.
+    let sync_tokens: HashMap<String, String> = {
+        let cache = EVENT_CACHE.lock().unwrap();
+        match &*cache {
+            Some(c) if !c.sync_tokens.is_empty() => c.sync_tokens.clone(),
+            _ => return Ok(()),
+        }
+    };
+
+    let hub = build_hub(auth);
+
+    for (cal_id, sync_token) in sync_tokens {
+        let result = hub
+            .events()
+            .list(&cal_id)
+            .sync_token(&sync_token)
+            .single_events(true)
+            .doit()
+            .await;
+
+        match result {
+            Err(e) => {
+                let e_str = e.to_string();
+                // 410 Gone means the sync token has expired; clear the cache
+                // so that the next fetch_events call triggers a full re-fetch.
+                if e_str.contains("410") || e_str.contains("Gone") {
+                    eprintln!(
+                        "[alice/calendar] sync token expired for {cal_id}; clearing cache"
+                    );
+                    *EVENT_CACHE.lock().unwrap() = None;
+                    return Ok(());
+                }
+                eprintln!("[alice/calendar] incremental sync error for {cal_id}: {e}");
+            }
+            Ok((_, event_list)) => {
+                let new_sync_token = event_list.next_sync_token.clone();
+
+                let mut cache_lock = EVENT_CACHE.lock().unwrap();
+                if let Some(ref mut cache) = *cache_lock {
+                    for event in event_list.items.unwrap_or_default() {
+                        let event_id = event.id.clone().unwrap_or_default();
+
+                        // Remove any existing cache entry for this event.
+                        cache.entries.retain(|(_, e)| e.id != event_id);
+
+                        let is_cancelled = event
+                            .status
+                            .as_deref()
+                            .map(|s| s == "cancelled")
+                            .unwrap_or(false);
+
+                        if !is_cancelled {
+                            if let Some(event_date) = extract_event_date(&event) {
+                                let title = event
+                                    .summary
+                                    .clone()
+                                    .unwrap_or_else(|| "(No title)".into());
+                                let (is_all_day, start_label, end_label) =
+                                    extract_time_labels(&event);
+                                let (cal_name, cal_color) = cache
+                                    .cal_meta
+                                    .get(&cal_id)
+                                    .cloned()
+                                    .unwrap_or_default();
+                                cache.entries.push((
+                                    event_date,
+                                    CalendarEvent {
+                                        id: event_id,
+                                        title,
+                                        is_all_day,
+                                        start_label,
+                                        end_label,
+                                        calendar_name: cal_name,
+                                        calendar_color: cal_color,
+                                    },
+                                ));
+                            }
+                        }
+                    }
+
+                    if let Some(tok) = new_sync_token {
+                        cache.sync_tokens.insert(cal_id, tok);
+                    }
+
+                    // Re-sort: all-day first, then by start_label.
+                    cache.entries.sort_by(|(_, a), (_, b)| {
+                        match (a.is_all_day, b.is_all_day) {
+                            (true, false) => std::cmp::Ordering::Less,
+                            (false, true) => std::cmp::Ordering::Greater,
+                            _ => a.start_label.cmp(&b.start_label),
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -462,6 +664,37 @@ fn err_result(msg: String) -> CalendarFetchResult {
         error_message: Some(msg),
         ..Default::default()
     }
+}
+
+/// Extract the calendar date for an event (all-day or timed).
+fn extract_event_date(event: &google_calendar3::api::Event) -> Option<chrono::NaiveDate> {
+    let start = event.start.as_ref()?;
+    // All-day events have `date` set and `date_time` absent.
+    if let Some(date) = start.date {
+        return Some(date);
+    }
+    // Timed events.
+    start.date_time.as_ref().map(|dt| dt.date_naive())
+}
+
+/// Return a sorted copy of the events in `entries` that fall on `date`.
+fn filter_for_date(
+    entries: &[(chrono::NaiveDate, CalendarEvent)],
+    date: chrono::NaiveDate,
+) -> Vec<CalendarEvent> {
+    let mut events: Vec<CalendarEvent> = entries
+        .iter()
+        .filter(|(d, _)| *d == date)
+        .map(|(_, e)| e.clone())
+        .collect();
+
+    events.sort_by(|a, b| match (a.is_all_day, b.is_all_day) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => a.start_label.cmp(&b.start_label),
+    });
+
+    events
 }
 
 fn extract_time_labels(event: &google_calendar3::api::Event) -> (bool, String, String) {

@@ -28,6 +28,8 @@ pub struct AliceConfig {
 pub struct CalendarConfig {
     pub google_client_id: String,
     pub google_client_secret: String,
+    /// How often (in seconds) to poll for calendar changes via incremental sync.
+    pub poll_interval_secs: u32,
 }
 
 impl Default for AliceConfig {
@@ -164,6 +166,8 @@ struct RawConfig {
 struct RawCalendarConfig {
     google_client_id: String,
     google_client_secret: String,
+    #[serde(default)]
+    poll_interval_secs: Option<u32>,
 }
 
 impl RawConfig {
@@ -208,6 +212,7 @@ impl RawConfig {
             calendar: self.calendar.map(|c| CalendarConfig {
                 google_client_id: c.google_client_id,
                 google_client_secret: c.google_client_secret,
+                poll_interval_secs: c.poll_interval_secs.unwrap_or(10).max(1),
             }),
         }
     }

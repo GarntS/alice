@@ -50,3 +50,5 @@ power:
 #   # On first run, Alice will display a URL and code for device-flow auth.
 #   google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
 #   google_client_secret: "YOUR_CLIENT_SECRET"
+#   # How often (in seconds) to poll for calendar event changes. Default: 10
+#   # poll_interval_secs: 10
