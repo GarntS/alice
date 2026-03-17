@@ -212,7 +212,7 @@ impl RawConfig {
             calendar: self.calendar.map(|c| CalendarConfig {
                 google_client_id: c.google_client_id,
                 google_client_secret: c.google_client_secret,
-                poll_interval_secs: c.poll_interval_secs.unwrap_or(10).max(1),
+                poll_interval_secs: c.poll_interval_secs.unwrap_or(30).max(1),
             }),
         }
     }

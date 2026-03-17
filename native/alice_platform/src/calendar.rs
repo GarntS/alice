@@ -45,7 +45,7 @@ use crate::{
 // ---------------------------------------------------------------------------
 // Event cache
 //
-// Holds a 60-day window of events so that date taps within the window are
+// Holds a ~6-month window of events (3 months either side) so that date taps within the window are
 // served instantly. `cal_meta` maps calendar IDs to (name, color) so that
 // incremental-sync responses can populate new events with the right metadata.
 // ---------------------------------------------------------------------------
@@ -427,8 +427,8 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
             Err(_) => return err_result(format!("invalid date: {date_owned}")),
         };
 
-        let window_start = date_naive - chrono::Duration::days(30);
-        let window_end = date_naive + chrono::Duration::days(31); // exclusive
+        let window_start = date_naive - chrono::Months::new(3);
+        let window_end = date_naive + chrono::Months::new(3) + chrono::Duration::days(1); // exclusive
 
         use chrono::TimeZone as _;
         let time_min =

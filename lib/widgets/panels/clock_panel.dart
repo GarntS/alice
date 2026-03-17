@@ -13,12 +13,32 @@ Color _onAccent(Color accent) =>
     ? Colors.black
     : Colors.white;
 
+Color _parseHexColor(String hex, [Color fallback = Colors.transparent]) {
+  if (hex.length == 7 && hex.startsWith('#')) {
+    final value = int.tryParse(hex.substring(1), radix: 16);
+    if (value != null) return Color(value | 0xFF000000);
+  }
+  return fallback;
+}
+
+String _pad(int n) => n.toString().padLeft(2, '0');
+
 const _monthNames = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
-const _weekdayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const _weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 // ---------------------------------------------------------------------------
 // ClockPanel — stateful so it tracks the selected calendar date + events
@@ -39,6 +59,10 @@ class _ClockPanelState extends State<ClockPanel> {
   CalendarFetchResult? _fetchResult;
   bool _loading = false;
   Timer? _pollTimer;
+
+  Map<String, List<Color>> _indicators = {};
+  int _calYear = DateTime.now().year;
+  int _calMonth = DateTime.now().month;
 
   @override
   void initState() {
@@ -65,6 +89,9 @@ class _ClockPanelState extends State<ClockPanel> {
       _loading = false;
     });
     _updatePollTimer(result, date);
+    if (result.status == 'ready') {
+      _refreshIndicators(_calYear, _calMonth);
+    }
   }
 
   void _updatePollTimer(CalendarFetchResult result, DateTime date) {
@@ -81,6 +108,40 @@ class _ClockPanelState extends State<ClockPanel> {
   void _onDateSelected(DateTime date) {
     setState(() => _selectedDate = date);
     _fetchEvents(date);
+  }
+
+  Future<void> _refreshIndicators(int year, int month) async {
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+
+    final futures = List.generate(daysInMonth, (i) {
+      final dateStr = '$year-${_pad(month)}-${_pad(i + 1)}';
+      return fetchCalendarEvents(date: dateStr);
+    });
+    final results = await Future.wait(futures);
+    if (!mounted) return;
+
+    final newIndicators = <String, List<Color>>{};
+    for (var i = 0; i < daysInMonth; i++) {
+      final result = results[i];
+      if (result.status != 'ready' || result.events.isEmpty) continue;
+      final colors = _extractUniqueColors(result.events);
+      if (colors.isNotEmpty) {
+        newIndicators['$year-${_pad(month)}-${_pad(i + 1)}'] = colors;
+      }
+    }
+    setState(() => _indicators = newIndicators);
+  }
+
+  List<Color> _extractUniqueColors(List<CalendarEvent> events) {
+    final seen = <String>{};
+    final hexes = <String>[];
+    for (final e in events) {
+      if (e.calendarColor.isNotEmpty && seen.add(e.calendarColor)) {
+        hexes.add(e.calendarColor);
+      }
+    }
+    hexes.sort();
+    return hexes.take(3).map((h) => _parseHexColor(h)).toList();
   }
 
   @override
@@ -117,6 +178,12 @@ class _ClockPanelState extends State<ClockPanel> {
           AliceCalendar(
             selectedDate: _selectedDate,
             onDateSelected: _onDateSelected,
+            indicators: _indicators,
+            onMonthChanged: (y, m) {
+              _calYear = y;
+              _calMonth = m;
+              _refreshIndicators(y, m);
+            },
           ),
           const SizedBox(height: 16),
           _EventsSection(result: _fetchResult, loading: _loading),
@@ -126,8 +193,20 @@ class _ClockPanelState extends State<ClockPanel> {
   }
 
   String _shortMonthName(int month) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return months[month - 1];
   }
 }
@@ -182,10 +261,14 @@ class AliceCalendar extends StatefulWidget {
     super.key,
     required this.selectedDate,
     required this.onDateSelected,
+    this.indicators = const {},
+    this.onMonthChanged,
   });
 
   final DateTime selectedDate;
   final ValueChanged<DateTime> onDateSelected;
+  final Map<String, List<Color>> indicators;
+  final void Function(int year, int month)? onMonthChanged;
 
   @override
   State<AliceCalendar> createState() => _AliceCalendarState();
@@ -203,13 +286,25 @@ class _AliceCalendarState extends State<AliceCalendar> {
     );
   }
 
-  void _prevMonth() => setState(() {
-    _displayedMonth = DateTime(_displayedMonth.year, _displayedMonth.month - 1);
-  });
+  void _prevMonth() {
+    setState(() {
+      _displayedMonth = DateTime(
+        _displayedMonth.year,
+        _displayedMonth.month - 1,
+      );
+    });
+    widget.onMonthChanged?.call(_displayedMonth.year, _displayedMonth.month);
+  }
 
-  void _nextMonth() => setState(() {
-    _displayedMonth = DateTime(_displayedMonth.year, _displayedMonth.month + 1);
-  });
+  void _nextMonth() {
+    setState(() {
+      _displayedMonth = DateTime(
+        _displayedMonth.year,
+        _displayedMonth.month + 1,
+      );
+    });
+    widget.onMonthChanged?.call(_displayedMonth.year, _displayedMonth.month);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +313,7 @@ class _AliceCalendarState extends State<AliceCalendar> {
     final month = _displayedMonth.month;
 
     final firstDay = DateTime(year, month, 1);
-    final leadingBlanks = (firstDay.weekday - 1) % 7;
+    final leadingBlanks = firstDay.weekday % 7;
     final daysInMonth = DateTime(year, month + 1, 0).day;
 
     final cells = <DateTime>[];
@@ -235,6 +330,11 @@ class _AliceCalendarState extends State<AliceCalendar> {
 
     final rows = List.generate(6, (r) => cells.sublist(r * 7, r * 7 + 7));
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.4);
+    final today = DateTime.now();
+    final selectedIsToday =
+        widget.selectedDate.year == today.year &&
+        widget.selectedDate.month == today.month &&
+        widget.selectedDate.day == today.day;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -311,7 +411,16 @@ class _AliceCalendarState extends State<AliceCalendar> {
                               date.year == widget.selectedDate.year &&
                               date.month == widget.selectedDate.month &&
                               date.day == widget.selectedDate.day,
+                          isToday:
+                              !selectedIsToday &&
+                              date.year == today.year &&
+                              date.month == today.month &&
+                              date.day == today.day,
                           onTap: widget.onDateSelected,
+                          dotColors:
+                              widget
+                                  .indicators['${date.year}-${_pad(date.month)}-${_pad(date.day)}'] ??
+                              const [],
                         ),
                       )
                       .toList(),
@@ -329,13 +438,17 @@ class _DayCell extends StatelessWidget {
     required this.date,
     required this.isCurrentMonth,
     required this.isSelected,
+    required this.isToday,
     required this.onTap,
+    this.dotColors = const [],
   });
 
   final DateTime date;
   final bool isCurrentMonth;
   final bool isSelected;
+  final bool isToday;
   final ValueChanged<DateTime> onTap;
+  final List<Color> dotColors;
 
   @override
   Widget build(BuildContext context) {
@@ -352,25 +465,58 @@ class _DayCell extends StatelessWidget {
       child: InkWell(
         onTap: () => onTap(date),
         borderRadius: BorderRadius.circular(999),
-        child: AspectRatio(
-          aspectRatio: 1.0,
-          child: Center(
-            child: Container(
-              width: 30,
-              height: 30,
-              decoration: isSelected
-                  ? BoxDecoration(shape: BoxShape.circle, color: primary)
-                  : null,
-              child: Center(
-                child: Text(
+        child: Center(
+          child: Container(
+            width: 30,
+            height: dotColors.isEmpty ? 30 : 38,
+            decoration: isSelected
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: primary,
+                  )
+                : isToday
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: primary.withValues(alpha: 0.12),
+                  )
+                : null,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
                   '${date.day}',
                   style: theme.textTheme.bodySmall?.copyWith(color: textColor),
                 ),
-              ),
+                if (dotColors.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  _buildDots(dotColors, isCurrentMonth),
+                ],
+              ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDots(List<Color> colors, bool currentMonth) {
+    if (colors.isEmpty) return const SizedBox.shrink();
+    final opacity = currentMonth ? 1.0 : 0.3;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < colors.length; i++) ...[
+          if (i > 0) const SizedBox(width: 2),
+          Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: colors[i].withValues(alpha: opacity),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -395,7 +541,8 @@ class _EventsSection extends StatelessWidget {
     }
 
     final r = result;
-    if (r == null || r.status == 'not_configured') return const SizedBox.shrink();
+    if (r == null || r.status == 'not_configured')
+      return const SizedBox.shrink();
 
     if (r.status == 'needs_auth' || r.status == 'polling') {
       return _AuthPrompt(url: r.authUrl ?? '', code: r.authCode ?? '');
@@ -443,7 +590,10 @@ class _AuthPrompt extends StatelessWidget {
               onPressed: () => Clipboard.setData(ClipboardData(text: url)),
               style: FilledButton.styleFrom(
                 shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 visualDensity: VisualDensity.compact,
               ),
               child: const Row(
@@ -459,10 +609,15 @@ class _AuthPrompt extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Text('Code: ', style: theme.textTheme.bodySmall?.copyWith(color: muted)),
+                  Text(
+                    'Code: ',
+                    style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                  ),
                   Text(
                     code,
-                    style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(width: 4),
                   IconButton(
@@ -471,7 +626,8 @@ class _AuthPrompt extends StatelessWidget {
                     constraints: const BoxConstraints(),
                     visualDensity: VisualDensity.compact,
                     tooltip: 'Copy code',
-                    onPressed: () => Clipboard.setData(ClipboardData(text: code)),
+                    onPressed: () =>
+                        Clipboard.setData(ClipboardData(text: code)),
                   ),
                 ],
               ),
@@ -525,19 +681,23 @@ class _EventsList extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ...allDay.map((e) => Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: _EventTile(event: e),
-        )),
+        ...allDay.map(
+          (e) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: _EventTile(event: e),
+          ),
+        ),
         if (showDivider)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 4),
             child: Divider(),
           ),
-        ...timed.map((e) => Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: _EventTile(event: e),
-        )),
+        ...timed.map(
+          (e) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: _EventTile(event: e),
+          ),
+        ),
       ],
     );
   }
@@ -552,7 +712,10 @@ class _EventTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.55);
-    final dotColor = _parseColor(event.calendarColor, theme.colorScheme.primary);
+    final dotColor = _parseHexColor(
+      event.calendarColor,
+      theme.colorScheme.primary,
+    );
 
     final timeLabel = event.isAllDay
         ? 'All Day'
@@ -584,13 +747,5 @@ class _EventTile extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Color _parseColor(String hex, Color fallback) {
-    if (hex.length == 7 && hex.startsWith('#')) {
-      final value = int.tryParse(hex.substring(1), radix: 16);
-      if (value != null) return Color(value | 0xFF000000);
-    }
-    return fallback;
   }
 }
