@@ -21,6 +21,13 @@ pub struct AliceConfig {
     pub time_zones: Vec<TimeZoneConfig>,
     pub power_commands: PowerCommandConfig,
     pub panel_top_gap_px: u32,
+    pub calendar: Option<CalendarConfig>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CalendarConfig {
+    pub google_client_id: String,
+    pub google_client_secret: String,
 }
 
 impl Default for AliceConfig {
@@ -48,6 +55,7 @@ impl Default for AliceConfig {
                 poweroff: "systemctl poweroff".into(),
             },
             panel_top_gap_px: 8,
+            calendar: None,
         }
     }
 }
@@ -148,6 +156,14 @@ struct RawConfig {
     clock: RawClockConfig,
     #[serde(default)]
     power: RawPowerConfig,
+    #[serde(default)]
+    calendar: Option<RawCalendarConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawCalendarConfig {
+    google_client_id: String,
+    google_client_secret: String,
 }
 
 impl RawConfig {
@@ -189,6 +205,10 @@ impl RawConfig {
                 ),
             },
             panel_top_gap_px: self.theme.panel_top_gap_px.unwrap_or(8),
+            calendar: self.calendar.map(|c| CalendarConfig {
+                google_client_id: c.google_client_id,
+                google_client_secret: c.google_client_secret,
+            }),
         }
     }
 }

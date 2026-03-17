@@ -59,6 +59,17 @@ Future<bool> sendTrayAction({
 Future<bool> executePowerAction({required String action}) =>
     RustLib.instance.api.crateApiExecutePowerAction(action: action);
 
+/// Fetch Google Calendar events for the given date (`"YYYY-MM-DD"`).
+///
+/// Returns immediately. On first call without a stored token this initiates
+/// a device-flow: `status == "needs_auth"` with `auth_url` / `auth_code`.
+/// Subsequent calls while the user is completing auth return `status ==
+/// "polling"`. Once authorised, `status == "ready"` with the events list.
+/// If calendar is not configured in the user's config, returns
+/// `status == "not_configured"` and the events section stays hidden.
+Future<CalendarFetchResult> fetchCalendarEvents({required String date}) =>
+    RustLib.instance.api.crateApiFetchCalendarEvents(date: date);
+
 /// A command forwarded to Dart via `watch_panel_commands` whenever a panel
 /// should be shown. `view_id` identifies the Flutter view to render into.
 class PanelCommand {

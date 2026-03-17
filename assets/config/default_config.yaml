@@ -43,3 +43,10 @@ power:
   lock_and_suspend: "loginctl lock-session && systemctl suspend"
   restart: "systemctl reboot"
   poweroff: "systemctl poweroff"
+
+# calendar:
+#   # Create a Google Cloud project, enable the Calendar API, and create
+#   # OAuth 2.0 credentials (TVs and Limited Input Devices type). Paste them here.
+#   # On first run, Alice will display a URL and code for device-flow auth.
+#   google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
+#   google_client_secret: "YOUR_CLIENT_SECRET"

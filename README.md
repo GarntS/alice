@@ -96,6 +96,41 @@ power:
   poweroff: "systemctl poweroff"
 ```
 
+### Google Calendar
+
+The clock panel can display your Google Calendar events for any selected day. This is opt-in and requires a Google Cloud OAuth 2.0 credential.
+
+**1. Create a Google Cloud credential**
+
+- Go to the [Google Cloud Console](https://console.cloud.google.com/) and create a project (or select an existing one).
+- Enable the **Google Calendar API** for the project: *APIs & Services → Enable APIs & Services → search "Google Calendar API" → Enable*.
+- Create an OAuth 2.0 credential: *APIs & Services → Credentials → Create Credentials → OAuth client ID*.
+  - Application type: **TVs and Limited Input Devices** — this is the correct type for the device authorization grant (RFC 8628) that Alice uses. "Desktop app" and "Web application" types use a different OAuth flow and will produce an `invalid_client: Invalid client type` error.
+  - Copy the **Client ID** and **Client Secret**.
+
+**2. Add the credential to `config.yaml`**
+
+Add the following section to `$XDG_CONFIG_HOME/alice/config.yaml`:
+
+```yaml
+calendar:
+  google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
+  google_client_secret: "YOUR_CLIENT_SECRET"
+```
+
+**3. Authorise on first run**
+
+The first time you open the clock panel after adding credentials, an authorisation card will appear in place of the events list. It shows:
+
+- A URL — open it in any browser (it's the standard `accounts.google.com/device` flow).
+- A short code — enter it when prompted.
+
+After you approve access in the browser, close and reopen the clock panel. Events for the selected day will appear. The token is cached at `$XDG_CONFIG_HOME/alice/calendar_token.json` and refreshed automatically, so you only need to do this once.
+
+**Permissions**
+
+Alice requests the `calendar.readonly` scope — read-only access to your calendar events. No data leaves your machine except for the OAuth token exchange with Google's servers.
+
 ### A Quick Note on LLMs
 The extreme majority of this project was built using a combination of 
 locally-hosted and frontier lab coding agents as a project to build something

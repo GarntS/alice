@@ -3,11 +3,22 @@
 //! Run `flutter_rust_bridge_codegen generate` after modifying this file to
 //! regenerate `frb_generated.rs` and the Dart bindings in `lib/rust_gen/`.
 
-pub use crate::config::{AliceConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig};
+pub use crate::config::{AliceConfig, CalendarConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig};
 pub use crate::state::{
-    BarSnapshot, ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot, TrayItemSnapshot,
-    WorkspaceSnapshot,
+    BarSnapshot, CalendarEvent, CalendarFetchResult, ClockSnapshot, MediaSnapshot, NetworkKind,
+    NetworkSnapshot, TrayItemSnapshot, WorkspaceSnapshot,
 };
+
+/// Called once at process startup via FRB's `executeRustInitializers`.
+/// Installs ring as the default rustls CryptoProvider so that any
+/// subsequent TLS calls (e.g. hyper-rustls in the calendar module) do
+/// not panic in `get_default_or_install_from_crate_features`.
+#[flutter_rust_bridge::frb(init)]
+pub fn init_app() {
+    // Ignore Err — means another component already installed a provider,
+    // which is fine.
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
 
 /// A command forwarded to Dart via `watch_panel_commands` whenever a panel
 /// should be shown. `view_id` identifies the Flutter view to render into.
@@ -113,4 +124,23 @@ pub fn execute_power_action(action: String) -> anyhow::Result<bool> {
         .arg(&command)
         .spawn()
         .is_ok())
+}
+
+/// Fetch Google Calendar events for the given date (`"YYYY-MM-DD"`).
+///
+/// Returns immediately. On first call without a stored token this initiates
+/// a device-flow: `status == "needs_auth"` with `auth_url` / `auth_code`.
+/// Subsequent calls while the user is completing auth return `status ==
+/// "polling"`. Once authorised, `status == "ready"` with the events list.
+/// If calendar is not configured in the user's config, returns
+/// `status == "not_configured"` and the events section stays hidden.
+pub fn fetch_calendar_events(date: String) -> CalendarFetchResult {
+    let config = crate::load_native_config();
+    match config.calendar {
+        None => CalendarFetchResult {
+            status: "not_configured".into(),
+            ..Default::default()
+        },
+        Some(cal_config) => crate::calendar::fetch_events(&date, &cal_config),
+    }
 }

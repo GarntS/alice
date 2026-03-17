@@ -49,6 +49,91 @@ class BarSnapshot {
           trayItems == other.trayItems;
 }
 
+class CalendarEvent {
+  final String id;
+  final String title;
+  final bool isAllDay;
+
+  /// `"HH:MM"` in local time, or empty for all-day events.
+  final String startLabel;
+
+  /// `"HH:MM"` in local time, or empty for all-day events.
+  final String endLabel;
+  final String calendarName;
+
+  /// `"#RRGGBB"` hex color, or `""` if unknown.
+  final String calendarColor;
+
+  const CalendarEvent({
+    required this.id,
+    required this.title,
+    required this.isAllDay,
+    required this.startLabel,
+    required this.endLabel,
+    required this.calendarName,
+    required this.calendarColor,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      title.hashCode ^
+      isAllDay.hashCode ^
+      startLabel.hashCode ^
+      endLabel.hashCode ^
+      calendarName.hashCode ^
+      calendarColor.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CalendarEvent &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          isAllDay == other.isAllDay &&
+          startLabel == other.startLabel &&
+          endLabel == other.endLabel &&
+          calendarName == other.calendarName &&
+          calendarColor == other.calendarColor;
+}
+
+class CalendarFetchResult {
+  /// `"not_configured"` | `"needs_auth"` | `"polling"` | `"ready"` | `"error"`
+  final String status;
+  final List<CalendarEvent> events;
+  final String? authUrl;
+  final String? authCode;
+  final String? errorMessage;
+
+  const CalendarFetchResult({
+    required this.status,
+    required this.events,
+    this.authUrl,
+    this.authCode,
+    this.errorMessage,
+  });
+
+  @override
+  int get hashCode =>
+      status.hashCode ^
+      events.hashCode ^
+      authUrl.hashCode ^
+      authCode.hashCode ^
+      errorMessage.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CalendarFetchResult &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          events == other.events &&
+          authUrl == other.authUrl &&
+          authCode == other.authCode &&
+          errorMessage == other.errorMessage;
+}
+
 class ClockSnapshot {
   final String timeZoneCode;
   final String dateLabel;

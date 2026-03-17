@@ -13,7 +13,7 @@ Size alicePanelSize(
 }) {
   return switch (panel) {
     AlicePanel.media => const Size(360, 268),
-    AlicePanel.clock => Size(320, config.timeZones.isEmpty ? 460 : 560),
+    AlicePanel.clock => Size(320, _clockHeight(config)),
     AlicePanel.trayOverflow => Size(
       320,
       (92 + (_trayOverflowCount(config, snapshot) * 52))
@@ -22,6 +22,11 @@ Size alicePanelSize(
     ),
     AlicePanel.power => const Size(280, 292),
   };
+}
+
+double _clockHeight(AliceConfig config) {
+  final base = config.timeZones.isEmpty ? 460 : 560;
+  return (base + (config.calendar != null ? 260 : 0)).toDouble();
 }
 
 int _trayOverflowCount(AliceConfig config, BarSnapshot snapshot) {

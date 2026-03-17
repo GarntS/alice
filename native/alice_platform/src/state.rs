@@ -57,3 +57,27 @@ pub struct TrayItemSnapshot {
     pub object_path: String,
     pub icon_png_bytes: Option<Vec<u8>>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct CalendarEvent {
+    pub id: String,
+    pub title: String,
+    pub is_all_day: bool,
+    /// `"HH:MM"` in local time, or empty for all-day events.
+    pub start_label: String,
+    /// `"HH:MM"` in local time, or empty for all-day events.
+    pub end_label: String,
+    pub calendar_name: String,
+    /// `"#RRGGBB"` hex color, or `""` if unknown.
+    pub calendar_color: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CalendarFetchResult {
+    /// `"not_configured"` | `"needs_auth"` | `"polling"` | `"ready"` | `"error"`
+    pub status: String,
+    pub events: Vec<CalendarEvent>,
+    pub auth_url: Option<String>,
+    pub auth_code: Option<String>,
+    pub error_message: Option<String>,
+}

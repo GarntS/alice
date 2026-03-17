@@ -10,6 +10,7 @@ class AliceConfig {
     required this.timeZones,
     required this.powerCommands,
     required this.panelTopGapPx,
+    this.calendar,
   });
 
   final ThemeMode themeMode;
@@ -20,6 +21,7 @@ class AliceConfig {
   final List<TimeZoneConfig> timeZones;
   final PowerCommandConfig powerCommands;
   final int panelTopGapPx;
+  final CalendarConfig? calendar;
 
   factory AliceConfig.fallback() {
     return const AliceConfig(
@@ -48,6 +50,16 @@ class TimeZoneConfig {
 
   final String label;
   final int offsetHours;
+}
+
+class CalendarConfig {
+  const CalendarConfig({
+    required this.googleClientId,
+    required this.googleClientSecret,
+  });
+
+  final String googleClientId;
+  final String googleClientSecret;
 }
 
 class PowerCommandConfig {

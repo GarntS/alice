@@ -18,3 +18,10 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.34"
 swayipc = "4.0.0"
 zbus = { version = "5.14.0", features = ["blocking"] }
+google-calendar3 = "7"
+yup-oauth2 = "12"
+hyper = { version = "1", features = ["full"] }
+hyper-rustls = { version = "0.27", features = ["http2", "webpki-roots", "ring"] }
+ring = "0.17"
+rustls = { version = "0.23", features = ["ring"] }
+hyper-util = { version = "0.1", features = ["client", "client-legacy", "http1", "http2", "tokio"] }

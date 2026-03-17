@@ -56,7 +56,9 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
       RustLibWire.fromExternalLibrary;
 
   @override
-  Future<void> executeRustInitializers() async {}
+  Future<void> executeRustInitializers() async {
+    await api.crateApiInitApp();
+  }
 
   @override
   ExternalLibraryLoaderConfig get defaultExternalLibraryLoaderConfig =>
@@ -66,7 +68,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 1353393966;
+  int get rustContentHash => 284410262;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -79,7 +81,13 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 abstract class RustLibApi extends BaseApi {
   Future<bool> crateApiExecutePowerAction({required String action});
 
+  Future<CalendarFetchResult> crateApiFetchCalendarEvents({
+    required String date,
+  });
+
   Future<bool> crateApiFocusWorkspace({required String label});
+
+  Future<void> crateApiInitApp();
 
   Future<AliceConfig> crateApiLoadConfig();
 
@@ -139,6 +147,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<CalendarFetchResult> crateApiFetchCalendarEvents({
+    required String date,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(date, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_calendar_fetch_result,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiFetchCalendarEventsConstMeta,
+        argValues: [date],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFetchCalendarEventsConstMeta =>
+      const TaskConstMeta(
+        debugName: "fetch_calendar_events",
+        argNames: ["date"],
+      );
+
+  @override
   Future<bool> crateApiFocusWorkspace({required String label}) {
     return handler.executeNormal(
       NormalTask(
@@ -148,7 +189,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 3,
             port: port_,
           );
         },
@@ -167,6 +208,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "focus_workspace", argNames: ["label"]);
 
   @override
+  Future<void> crateApiInitApp() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiInitAppConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiInitAppConstMeta =>
+      const TaskConstMeta(debugName: "init_app", argNames: []);
+
+  @override
   Future<AliceConfig> crateApiLoadConfig() {
     return handler.executeNormal(
       NormalTask(
@@ -175,7 +243,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 5,
             port: port_,
           );
         },
@@ -203,7 +271,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 6,
             port: port_,
           );
         },
@@ -233,7 +301,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 7,
             port: port_,
           );
         },
@@ -271,7 +339,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 8,
             port: port_,
           );
         },
@@ -303,7 +371,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 7,
+              funcId: 9,
               port: port_,
             );
           },
@@ -338,7 +406,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 8,
+              funcId: 10,
               port: port_,
             );
           },
@@ -391,8 +459,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AliceConfig dco_decode_alice_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return AliceConfig(
       themeMode: dco_decode_theme_mode(arr[0]),
       accentColor: dco_decode_String(arr[1]),
@@ -402,6 +470,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       timeZones: dco_decode_list_time_zone_config(arr[5]),
       powerCommands: dco_decode_power_command_config(arr[6]),
       panelTopGapPx: dco_decode_u_32(arr[7]),
+      calendar: dco_decode_opt_box_autoadd_calendar_config(arr[8]),
     );
   }
 
@@ -429,6 +498,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  CalendarConfig dco_decode_box_autoadd_calendar_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_calendar_config(raw);
+  }
+
+  @protected
   MediaSnapshot dco_decode_box_autoadd_media_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_media_snapshot(raw);
@@ -438,6 +513,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PanelCommand dco_decode_box_autoadd_panel_command(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_panel_command(raw);
+  }
+
+  @protected
+  CalendarConfig dco_decode_calendar_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return CalendarConfig(
+      googleClientId: dco_decode_String(arr[0]),
+      googleClientSecret: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  CalendarEvent dco_decode_calendar_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return CalendarEvent(
+      id: dco_decode_String(arr[0]),
+      title: dco_decode_String(arr[1]),
+      isAllDay: dco_decode_bool(arr[2]),
+      startLabel: dco_decode_String(arr[3]),
+      endLabel: dco_decode_String(arr[4]),
+      calendarName: dco_decode_String(arr[5]),
+      calendarColor: dco_decode_String(arr[6]),
+    );
+  }
+
+  @protected
+  CalendarFetchResult dco_decode_calendar_fetch_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return CalendarFetchResult(
+      status: dco_decode_String(arr[0]),
+      events: dco_decode_list_calendar_event(arr[1]),
+      authUrl: dco_decode_opt_String(arr[2]),
+      authCode: dco_decode_opt_String(arr[3]),
+      errorMessage: dco_decode_opt_String(arr[4]),
+    );
   }
 
   @protected
@@ -469,6 +588,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 dco_decode_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeI64(raw);
+  }
+
+  @protected
+  List<CalendarEvent> dco_decode_list_calendar_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_calendar_event).toList();
   }
 
   @protected
@@ -536,6 +661,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
+  CalendarConfig? dco_decode_opt_box_autoadd_calendar_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_calendar_config(raw);
   }
 
   @protected
@@ -693,6 +824,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_timeZones = sse_decode_list_time_zone_config(deserializer);
     var var_powerCommands = sse_decode_power_command_config(deserializer);
     var var_panelTopGapPx = sse_decode_u_32(deserializer);
+    var var_calendar = sse_decode_opt_box_autoadd_calendar_config(deserializer);
     return AliceConfig(
       themeMode: var_themeMode,
       accentColor: var_accentColor,
@@ -702,6 +834,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       timeZones: var_timeZones,
       powerCommands: var_powerCommands,
       panelTopGapPx: var_panelTopGapPx,
+      calendar: var_calendar,
     );
   }
 
@@ -733,6 +866,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  CalendarConfig sse_decode_box_autoadd_calendar_config(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_calendar_config(deserializer));
+  }
+
+  @protected
   MediaSnapshot sse_decode_box_autoadd_media_snapshot(
     SseDeserializer deserializer,
   ) {
@@ -746,6 +887,57 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_panel_command(deserializer));
+  }
+
+  @protected
+  CalendarConfig sse_decode_calendar_config(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_googleClientId = sse_decode_String(deserializer);
+    var var_googleClientSecret = sse_decode_String(deserializer);
+    return CalendarConfig(
+      googleClientId: var_googleClientId,
+      googleClientSecret: var_googleClientSecret,
+    );
+  }
+
+  @protected
+  CalendarEvent sse_decode_calendar_event(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_isAllDay = sse_decode_bool(deserializer);
+    var var_startLabel = sse_decode_String(deserializer);
+    var var_endLabel = sse_decode_String(deserializer);
+    var var_calendarName = sse_decode_String(deserializer);
+    var var_calendarColor = sse_decode_String(deserializer);
+    return CalendarEvent(
+      id: var_id,
+      title: var_title,
+      isAllDay: var_isAllDay,
+      startLabel: var_startLabel,
+      endLabel: var_endLabel,
+      calendarName: var_calendarName,
+      calendarColor: var_calendarColor,
+    );
+  }
+
+  @protected
+  CalendarFetchResult sse_decode_calendar_fetch_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_status = sse_decode_String(deserializer);
+    var var_events = sse_decode_list_calendar_event(deserializer);
+    var var_authUrl = sse_decode_opt_String(deserializer);
+    var var_authCode = sse_decode_opt_String(deserializer);
+    var var_errorMessage = sse_decode_opt_String(deserializer);
+    return CalendarFetchResult(
+      status: var_status,
+      events: var_events,
+      authUrl: var_authUrl,
+      authCode: var_authCode,
+      errorMessage: var_errorMessage,
+    );
   }
 
   @protected
@@ -777,6 +969,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  List<CalendarEvent> sse_decode_list_calendar_event(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <CalendarEvent>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_calendar_event(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -874,6 +1080,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  CalendarConfig? sse_decode_opt_box_autoadd_calendar_config(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_calendar_config(deserializer));
     } else {
       return null;
     }
@@ -1078,6 +1297,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_time_zone_config(self.timeZones, serializer);
     sse_encode_power_command_config(self.powerCommands, serializer);
     sse_encode_u_32(self.panelTopGapPx, serializer);
+    sse_encode_opt_box_autoadd_calendar_config(self.calendar, serializer);
   }
 
   @protected
@@ -1099,6 +1319,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_calendar_config(
+    CalendarConfig self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_calendar_config(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_media_snapshot(
     MediaSnapshot self,
     SseSerializer serializer,
@@ -1114,6 +1343,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_panel_command(self, serializer);
+  }
+
+  @protected
+  void sse_encode_calendar_config(
+    CalendarConfig self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.googleClientId, serializer);
+    sse_encode_String(self.googleClientSecret, serializer);
+  }
+
+  @protected
+  void sse_encode_calendar_event(CalendarEvent self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_bool(self.isAllDay, serializer);
+    sse_encode_String(self.startLabel, serializer);
+    sse_encode_String(self.endLabel, serializer);
+    sse_encode_String(self.calendarName, serializer);
+    sse_encode_String(self.calendarColor, serializer);
+  }
+
+  @protected
+  void sse_encode_calendar_fetch_result(
+    CalendarFetchResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.status, serializer);
+    sse_encode_list_calendar_event(self.events, serializer);
+    sse_encode_opt_String(self.authUrl, serializer);
+    sse_encode_opt_String(self.authCode, serializer);
+    sse_encode_opt_String(self.errorMessage, serializer);
   }
 
   @protected
@@ -1140,6 +1404,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_list_calendar_event(
+    List<CalendarEvent> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_calendar_event(item, serializer);
+    }
   }
 
   @protected
@@ -1225,6 +1501,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_String(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_calendar_config(
+    CalendarConfig? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_calendar_config(self, serializer);
     }
   }
 

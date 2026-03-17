@@ -167,6 +167,12 @@ class AlicePlatform {
         poweroff: r.powerCommands.poweroff,
       ),
       panelTopGapPx: r.panelTopGapPx,
+      calendar: r.calendar == null
+          ? null
+          : CalendarConfig(
+              googleClientId: r.calendar!.googleClientId,
+              googleClientSecret: r.calendar!.googleClientSecret,
+            ),
     );
   }
 

@@ -15,6 +15,7 @@ class AliceConfig {
   final List<TimeZoneConfig> timeZones;
   final PowerCommandConfig powerCommands;
   final int panelTopGapPx;
+  final CalendarConfig? calendar;
 
   const AliceConfig({
     required this.themeMode,
@@ -25,6 +26,7 @@ class AliceConfig {
     required this.timeZones,
     required this.powerCommands,
     required this.panelTopGapPx,
+    this.calendar,
   });
 
   @override
@@ -36,7 +38,8 @@ class AliceConfig {
       localTimeZoneLabel.hashCode ^
       timeZones.hashCode ^
       powerCommands.hashCode ^
-      panelTopGapPx.hashCode;
+      panelTopGapPx.hashCode ^
+      calendar.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -50,7 +53,29 @@ class AliceConfig {
           localTimeZoneLabel == other.localTimeZoneLabel &&
           timeZones == other.timeZones &&
           powerCommands == other.powerCommands &&
-          panelTopGapPx == other.panelTopGapPx;
+          panelTopGapPx == other.panelTopGapPx &&
+          calendar == other.calendar;
+}
+
+class CalendarConfig {
+  final String googleClientId;
+  final String googleClientSecret;
+
+  const CalendarConfig({
+    required this.googleClientId,
+    required this.googleClientSecret,
+  });
+
+  @override
+  int get hashCode => googleClientId.hashCode ^ googleClientSecret.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CalendarConfig &&
+          runtimeType == other.runtimeType &&
+          googleClientId == other.googleClientId &&
+          googleClientSecret == other.googleClientSecret;
 }
 
 class PowerCommandConfig {
