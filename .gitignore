@@ -39,6 +39,9 @@ linux/runner/frb_generated.h
 
 # LLM-related Nonsense
 .claude/
+.pi/
+.codex/
+.github/
 
 # Packaging build artifacts
 .flutter-sdk/

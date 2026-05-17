@@ -186,7 +186,11 @@ class _ClockPanelState extends State<ClockPanel> {
             },
           ),
           const SizedBox(height: 16),
-          _EventsSection(result: _fetchResult, loading: _loading),
+          Flexible(
+            child: SingleChildScrollView(
+              child: _EventsSection(result: _fetchResult, loading: _loading),
+            ),
+          ),
         ],
       ),
     );

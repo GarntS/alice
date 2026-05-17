@@ -839,8 +839,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   NotificationSnapshot dco_decode_notification_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return NotificationSnapshot(
       id: dco_decode_u_32(arr[0]),
       appName: dco_decode_String(arr[1]),
@@ -851,8 +851,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       actions: dco_decode_list_notification_action_snapshot(arr[6]),
       category: dco_decode_opt_String(arr[7]),
       isRead: dco_decode_bool(arr[8]),
-      imageData: dco_decode_opt_list_prim_u_8_strict(arr[9]),
-      imagePath: dco_decode_opt_String(arr[10]),
+      receivedAtUnixSecs: dco_decode_u_64(arr[9]),
+      imageData: dco_decode_opt_list_prim_u_8_strict(arr[10]),
+      imagePath: dco_decode_opt_String(arr[11]),
     );
   }
 
@@ -960,6 +961,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int dco_decode_u_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
+  }
+
+  @protected
+  BigInt dco_decode_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeU64(raw);
   }
 
   @protected
@@ -1348,6 +1355,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     );
     var var_category = sse_decode_opt_String(deserializer);
     var var_isRead = sse_decode_bool(deserializer);
+    var var_receivedAtUnixSecs = sse_decode_u_64(deserializer);
     var var_imageData = sse_decode_opt_list_prim_u_8_strict(deserializer);
     var var_imagePath = sse_decode_opt_String(deserializer);
     return NotificationSnapshot(
@@ -1360,6 +1368,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       actions: var_actions,
       category: var_category,
       isRead: var_isRead,
+      receivedAtUnixSecs: var_receivedAtUnixSecs,
       imageData: var_imageData,
       imagePath: var_imagePath,
     );
@@ -1509,6 +1518,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int sse_decode_u_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint32();
+  }
+
+  @protected
+  BigInt sse_decode_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getBigUint64();
   }
 
   @protected
@@ -1855,6 +1870,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_notification_action_snapshot(self.actions, serializer);
     sse_encode_opt_String(self.category, serializer);
     sse_encode_bool(self.isRead, serializer);
+    sse_encode_u_64(self.receivedAtUnixSecs, serializer);
     sse_encode_opt_list_prim_u_8_strict(self.imageData, serializer);
     sse_encode_opt_String(self.imagePath, serializer);
   }
@@ -1987,6 +2003,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_u_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint32(self);
+  }
+
+  @protected
+  void sse_encode_u_64(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putBigUint64(self);
   }
 
   @protected

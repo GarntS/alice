@@ -8,6 +8,7 @@ import 'bar_widgets/cpu_module.dart';
 import 'bar_widgets/media_module.dart';
 import 'bar_widgets/memory_module.dart';
 import 'bar_widgets/network_module.dart';
+import 'bar_widgets/notification_module.dart';
 import 'bar_widgets/power_module.dart';
 import 'bar_widgets/tray_module.dart';
 import 'bar_widgets/workspace_module.dart';
@@ -117,6 +118,18 @@ class TopBar extends StatelessWidget {
                           anchor,
                         ),
                       ),
+                    TopBarNotificationModule(
+                      unreadCount: snapshot.notifications
+                          .where((n) => !n.isRead)
+                          .length,
+                      highlighted: panelController.isOpen(
+                        AlicePanel.notifications,
+                      ),
+                      onToggle: (anchor) => panelController.toggle(
+                        AlicePanel.notifications,
+                        anchor,
+                      ),
+                    ),
                     TopBarPowerModule(
                       highlighted: panelController.isOpen(AlicePanel.power),
                       onToggle: (anchor) =>

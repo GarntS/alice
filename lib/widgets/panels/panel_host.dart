@@ -8,6 +8,7 @@ import 'media_panel.dart';
 import 'clock_panel.dart';
 import 'tray_panel.dart';
 import 'power_panel.dart';
+import 'notification_panel.dart';
 
 class AlicePanelCard extends StatelessWidget {
   const AlicePanelCard({
@@ -19,6 +20,11 @@ class AlicePanelCard extends StatelessWidget {
     required this.onMediaAction,
     required this.onSeekMedia,
     required this.onTrayAction,
+    required this.onDismissNotification,
+    required this.onDismissAllNotifications,
+    required this.onMarkAllNotificationsRead,
+    required this.onInvokeNotificationAction,
+    this.screenHeight = 1080.0,
   });
 
   final AlicePanel panel;
@@ -28,10 +34,20 @@ class AlicePanelCard extends StatelessWidget {
   final Future<void> Function(String) onMediaAction;
   final Future<void> Function(int) onSeekMedia;
   final Future<void> Function(TrayItemSnapshot) onTrayAction;
+  final Future<void> Function(int id) onDismissNotification;
+  final Future<void> Function() onDismissAllNotifications;
+  final Future<void> Function() onMarkAllNotificationsRead;
+  final Future<void> Function(int id, String actionKey) onInvokeNotificationAction;
+  final double screenHeight;
 
   @override
   Widget build(BuildContext context) {
-    final panelSize = alicePanelSize(panel, config: config, snapshot: snapshot);
+    final panelSize = alicePanelSize(
+      panel,
+      config: config,
+      snapshot: snapshot,
+      screenHeight: screenHeight,
+    );
     final content = switch (panel) {
       AlicePanel.media => MediaPanel(
         media: snapshot.media,
@@ -45,12 +61,22 @@ class AlicePanelCard extends StatelessWidget {
         onTrayAction: onTrayAction,
       ),
       AlicePanel.power => PowerPanel(onAction: onPowerAction),
+      AlicePanel.notifications => NotificationPanel(
+        notifications: snapshot.notifications,
+        onDismissAll: onDismissAllNotifications,
+        onDismissOne: (id) => onDismissNotification(id),
+        onMarkAllRead: onMarkAllNotificationsRead,
+        onInvokeAction: (id, key) => onInvokeNotificationAction(id, key),
+      ),
     };
 
+    final isFlexible = panel == AlicePanel.clock;
     return Material(
       color: Colors.transparent,
       child: Container(
         width: panelSize.width,
+        height: isFlexible ? null : panelSize.height,
+        constraints: isFlexible ? BoxConstraints(maxHeight: panelSize.height) : null,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.96),

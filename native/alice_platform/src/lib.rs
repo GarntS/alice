@@ -109,87 +109,23 @@ pub extern "C" fn alice_notify_panel_hide() {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::providers::{
-        ClockProvider, MediaProvider, NetworkProvider, Stats, StatsProvider, TrayProvider,
-        WorkspaceProvider,
-    };
-    use crate::state::{
-        ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot, TrayItemSnapshot,
-        WorkspaceSnapshot,
-    };
-
-    struct StubWorkspaceProvider;
-    struct StubMediaProvider;
-    struct StubStatsProvider;
-    struct StubNetworkProvider;
-    struct StubClockProvider;
-    struct StubTrayProvider;
-
-    impl WorkspaceProvider for StubWorkspaceProvider {
-        fn read_workspaces(&self) -> Result<Vec<WorkspaceSnapshot>, crate::PlatformError> {
-            Ok(vec![WorkspaceSnapshot {
-                label: "1".into(),
-                is_focused: true,
-                is_visible: true,
-            }])
-        }
-    }
-    impl MediaProvider for StubMediaProvider {
-        fn read_media(&self) -> Result<Option<MediaSnapshot>, crate::PlatformError> {
-            Ok(Some(MediaSnapshot {
-                title: "Song".into(),
-                artist: "Artist".into(),
-                album_title: "Album".into(),
-                art_url: "".into(),
-                position_label: "0:10".into(),
-                length_label: "1:00".into(),
-                position_micros: 10_000_000,
-                length_micros: 60_000_000,
-                is_playing: true,
-            }))
-        }
-    }
-    impl StatsProvider for StubStatsProvider {
-        fn read_stats(&self) -> Result<Stats, crate::PlatformError> {
-            Ok(Stats {
-                memory_usage_percent: 42.0,
-                cpu_usage_cores: 1.5,
-            })
-        }
-    }
-    impl NetworkProvider for StubNetworkProvider {
-        fn read_network(&self) -> Result<NetworkSnapshot, crate::PlatformError> {
-            Ok(NetworkSnapshot {
-                kind: NetworkKind::Wifi,
-                label: "testnet".into(),
-            })
-        }
-    }
-    impl ClockProvider for StubClockProvider {
-        fn read_clock(&self) -> Result<ClockSnapshot, crate::PlatformError> {
-            Ok(ClockSnapshot {
-                time_zone_code: "UTC".into(),
-                date_label: "09 Mar".into(),
-                time_label: "13:37".into(),
-            })
-        }
-    }
-    impl TrayProvider for StubTrayProvider {
-        fn read_tray_items(&self) -> Result<Vec<TrayItemSnapshot>, crate::PlatformError> {
-            Ok(vec![TrayItemSnapshot {
-                id: "discord".into(),
-                label: "Discord".into(),
-                service_name: "org.kde.StatusNotifierItem.discord".into(),
-                object_path: "/StatusNotifierItem".into(),
-                icon_png_bytes: None,
-            }])
-        }
-    }
+    use crate::config::AliceConfig;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
-    fn load_native_config_succeeds() {
-        let config = load_native_config();
+    fn config_load_test_uses_explicit_temp_path() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should be monotonic enough for test")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("alice-lib-config-test-{unique}"));
+        let path = root.join("alice/config.yaml");
+
+        let config = AliceConfig::load_or_create_default(&path)
+            .expect("config should load from explicit temp path");
         assert_eq!(config.accent_color, "#4C956C");
+        assert!(path.exists());
+
+        std::fs::remove_dir_all(root).expect("temp config tree should be removable");
     }
 }

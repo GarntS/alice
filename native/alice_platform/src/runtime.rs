@@ -169,46 +169,27 @@ fn build_snapshot() -> BarSnapshot {
     use crate::clock::LocalClockProvider;
     use crate::mpris::MprisMediaProvider;
     use crate::network::SysNetworkProvider;
-    use crate::providers::{
-        ClockProvider, MediaProvider, NetworkProvider, StatsProvider, TrayProvider,
-        WorkspaceProvider,
-    };
-    use crate::state::{
-        ClockSnapshot, NetworkKind, NetworkSnapshot, NotificationActionSnapshot,
-        NotificationSnapshot, NotificationUrgency,
-    };
     use crate::stats::ProcStatsProvider;
     use crate::sway::SwayWorkspaceProvider;
     use crate::tray::StatusNotifierTrayProvider;
 
-    let workspaces = SwayWorkspaceProvider::new()
-        .read_workspaces()
-        .unwrap_or_default();
-    let media = MprisMediaProvider::new().read_media().unwrap_or(None);
-    let network = SysNetworkProvider::new()
-        .read_network()
-        .unwrap_or(NetworkSnapshot {
-            kind: NetworkKind::Disconnected,
-            label: "Disconnected".into(),
-        });
-    let clock = LocalClockProvider::new()
-        .read_clock()
-        .unwrap_or(ClockSnapshot {
-            time_zone_code: "UTC".into(),
-            date_label: "-- ---".into(),
-            time_label: "--:--".into(),
-        });
-    let tray_items = StatusNotifierTrayProvider::new()
-        .read_tray_items()
-        .unwrap_or_default();
-    let stats = ProcStatsProvider::new()
-        .read_stats()
-        .unwrap_or(crate::providers::Stats {
-            memory_usage_percent: 0.0,
-            cpu_usage_cores: 0.0,
-        });
+    build_snapshot_from_providers(
+        &SwayWorkspaceProvider::new(),
+        &MprisMediaProvider::new(),
+        &ProcStatsProvider::new(),
+        &SysNetworkProvider::new(),
+        &LocalClockProvider::new(),
+        &StatusNotifierTrayProvider::new(),
+        notification_snapshots(),
+    )
+}
 
-    let notifications = crate::notifications::get_notifications()
+fn notification_snapshots() -> Vec<crate::state::NotificationSnapshot> {
+    use crate::state::{
+        NotificationActionSnapshot, NotificationSnapshot, NotificationUrgency,
+    };
+
+    crate::notifications::get_notifications()
         .into_iter()
         .map(|n| NotificationSnapshot {
             id: n.id,
@@ -231,10 +212,52 @@ fn build_snapshot() -> BarSnapshot {
                 .collect(),
             category: n.category,
             is_read: n.is_read,
+            received_at_unix_secs: n.received_at_unix_secs,
             image_data: n.image_data,
             image_path: n.image_path,
         })
-        .collect();
+        .collect()
+}
+
+pub(crate) fn build_snapshot_from_providers<W, M, S, N, C, T>(
+    workspace_provider: &W,
+    media_provider: &M,
+    stats_provider: &S,
+    network_provider: &N,
+    clock_provider: &C,
+    tray_provider: &T,
+    notifications: Vec<crate::state::NotificationSnapshot>,
+) -> BarSnapshot
+where
+    W: crate::providers::WorkspaceProvider,
+    M: crate::providers::MediaProvider,
+    S: crate::providers::StatsProvider,
+    N: crate::providers::NetworkProvider,
+    C: crate::providers::ClockProvider,
+    T: crate::providers::TrayProvider,
+{
+    use crate::state::{ClockSnapshot, NetworkKind, NetworkSnapshot};
+
+    let workspaces = workspace_provider.read_workspaces().unwrap_or_default();
+    let media = media_provider.read_media().unwrap_or(None);
+    let stats = stats_provider
+        .read_stats()
+        .unwrap_or(crate::providers::Stats {
+            memory_usage_percent: 0.0,
+            cpu_usage_cores: 0.0,
+        });
+    let network = network_provider
+        .read_network()
+        .unwrap_or(NetworkSnapshot {
+            kind: NetworkKind::Disconnected,
+            label: "Disconnected".into(),
+        });
+    let clock = clock_provider.read_clock().unwrap_or(ClockSnapshot {
+        time_zone_code: "UTC".into(),
+        date_label: "-- ---".into(),
+        time_label: "--:--".into(),
+    });
+    let tray_items = tray_provider.read_tray_items().unwrap_or_default();
 
     BarSnapshot {
         workspaces,
@@ -265,6 +288,163 @@ fn sway_event_watcher(tx: mpsc::Sender<Trigger>) {
         if tx.blocking_send(Trigger::Event).is_err() {
             break;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::providers::{
+        ClockProvider, MediaProvider, NetworkProvider, Stats, StatsProvider, TrayProvider,
+        WorkspaceProvider,
+    };
+    use crate::state::{
+        ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot, NotificationSnapshot,
+        NotificationUrgency, TrayItemSnapshot, WorkspaceSnapshot,
+    };
+    use crate::PlatformError;
+
+    struct FakeWorkspaceProvider(Result<Vec<WorkspaceSnapshot>, PlatformError>);
+    struct FakeMediaProvider(Result<Option<MediaSnapshot>, PlatformError>);
+    struct FakeStatsProvider(Result<Stats, PlatformError>);
+    struct FakeNetworkProvider(Result<NetworkSnapshot, PlatformError>);
+    struct FakeClockProvider(Result<ClockSnapshot, PlatformError>);
+    struct FakeTrayProvider(Result<Vec<TrayItemSnapshot>, PlatformError>);
+
+    impl WorkspaceProvider for FakeWorkspaceProvider {
+        fn read_workspaces(&self) -> Result<Vec<WorkspaceSnapshot>, PlatformError> {
+            self.0.clone()
+        }
+    }
+
+    impl MediaProvider for FakeMediaProvider {
+        fn read_media(&self) -> Result<Option<MediaSnapshot>, PlatformError> {
+            self.0.clone()
+        }
+    }
+
+    impl StatsProvider for FakeStatsProvider {
+        fn read_stats(&self) -> Result<Stats, PlatformError> {
+            self.0.clone()
+        }
+    }
+
+    impl NetworkProvider for FakeNetworkProvider {
+        fn read_network(&self) -> Result<NetworkSnapshot, PlatformError> {
+            self.0.clone()
+        }
+    }
+
+    impl ClockProvider for FakeClockProvider {
+        fn read_clock(&self) -> Result<ClockSnapshot, PlatformError> {
+            self.0.clone()
+        }
+    }
+
+    impl TrayProvider for FakeTrayProvider {
+        fn read_tray_items(&self) -> Result<Vec<TrayItemSnapshot>, PlatformError> {
+            self.0.clone()
+        }
+    }
+
+    fn err<T>() -> Result<T, PlatformError> {
+        Err(PlatformError::new("provider failed"))
+    }
+
+    fn media() -> MediaSnapshot {
+        MediaSnapshot {
+            title: "Song".into(),
+            artist: "Artist".into(),
+            album_title: "Album".into(),
+            art_url: "".into(),
+            position_label: "0:01".into(),
+            length_label: "0:02".into(),
+            position_micros: 1_000_000,
+            length_micros: 2_000_000,
+            is_playing: true,
+        }
+    }
+
+    #[test]
+    fn snapshot_aggregation_uses_fake_provider_values() {
+        let notifications = vec![NotificationSnapshot {
+            id: 7,
+            app_name: "app".into(),
+            app_icon: "".into(),
+            summary: "summary".into(),
+            body: "body".into(),
+            urgency: NotificationUrgency::Normal,
+            actions: vec![],
+            category: None,
+            is_read: false,
+            received_at_unix_secs: 42,
+            image_data: None,
+            image_path: None,
+        }];
+
+        let snapshot = build_snapshot_from_providers(
+            &FakeWorkspaceProvider(Ok(vec![WorkspaceSnapshot {
+                label: "1".into(),
+                is_focused: true,
+                is_visible: true,
+            }])),
+            &FakeMediaProvider(Ok(Some(media()))),
+            &FakeStatsProvider(Ok(Stats {
+                memory_usage_percent: 64.0,
+                cpu_usage_cores: 1.25,
+            })),
+            &FakeNetworkProvider(Ok(NetworkSnapshot {
+                kind: NetworkKind::Wifi,
+                label: "testnet".into(),
+            })),
+            &FakeClockProvider(Ok(ClockSnapshot {
+                time_zone_code: "UTC".into(),
+                date_label: "16 May".into(),
+                time_label: "12:34".into(),
+            })),
+            &FakeTrayProvider(Ok(vec![TrayItemSnapshot {
+                id: "tray".into(),
+                label: "Tray".into(),
+                service_name: "org.example.Tray".into(),
+                object_path: "/StatusNotifierItem".into(),
+                icon_png_bytes: None,
+            }])),
+            notifications.clone(),
+        );
+
+        assert_eq!(snapshot.workspaces.len(), 1);
+        assert_eq!(snapshot.media, Some(media()));
+        assert_eq!(snapshot.memory_usage_percent, 64.0);
+        assert_eq!(snapshot.cpu_usage_cores, 1.25);
+        assert_eq!(snapshot.network.label, "testnet");
+        assert_eq!(snapshot.clock.time_label, "12:34");
+        assert_eq!(snapshot.tray_items.len(), 1);
+        assert_eq!(snapshot.notifications, notifications);
+    }
+
+    #[test]
+    fn snapshot_aggregation_falls_back_when_fake_providers_fail() {
+        let snapshot = build_snapshot_from_providers(
+            &FakeWorkspaceProvider(err()),
+            &FakeMediaProvider(err()),
+            &FakeStatsProvider(err()),
+            &FakeNetworkProvider(err()),
+            &FakeClockProvider(err()),
+            &FakeTrayProvider(err()),
+            vec![],
+        );
+
+        assert!(snapshot.workspaces.is_empty());
+        assert_eq!(snapshot.media, None);
+        assert_eq!(snapshot.memory_usage_percent, 0.0);
+        assert_eq!(snapshot.cpu_usage_cores, 0.0);
+        assert_eq!(snapshot.network.kind, NetworkKind::Disconnected);
+        assert_eq!(snapshot.network.label, "Disconnected");
+        assert_eq!(snapshot.clock.time_zone_code, "UTC");
+        assert_eq!(snapshot.clock.date_label, "-- ---");
+        assert_eq!(snapshot.clock.time_label, "--:--");
+        assert!(snapshot.tray_items.is_empty());
+        assert!(snapshot.notifications.is_empty());
     }
 }
 

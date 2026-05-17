@@ -85,6 +85,8 @@ pub struct NotificationSnapshot {
     /// Freedesktop notification category (e.g. `"email"`, `"im.received"`).
     pub category: Option<String>,
     pub is_read: bool,
+    /// Unix timestamp (seconds) when the notification was received.
+    pub received_at_unix_secs: u64,
     /// PNG-encoded image bytes from the `image-data` hint, if present.
     pub image_data: Option<Vec<u8>>,
     /// File path or `file://` URI from the `image-path` hint, if present.

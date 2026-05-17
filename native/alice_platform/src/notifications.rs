@@ -47,6 +47,7 @@ pub struct StoredNotification {
     pub category: Option<String>,
     pub is_read: bool,
     pub received_at: std::time::Instant,
+    pub received_at_unix_secs: u64,
     /// PNG-encoded image bytes from the `image-data` hint, if present.
     pub image_data: Option<Vec<u8>>,
     /// File path or `file://` URI from the `image-path` hint, if present.
@@ -164,6 +165,11 @@ impl NotificationServer {
             self.next_id.fetch_add(1, Ordering::SeqCst)
         };
 
+        let received_at_unix_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
         let notification = StoredNotification {
             id,
             app_name: app_name.to_string(),
@@ -175,6 +181,7 @@ impl NotificationServer {
             category,
             is_read: false,
             received_at: std::time::Instant::now(),
+            received_at_unix_secs,
             image_data,
             image_path,
         };
@@ -197,34 +204,6 @@ impl NotificationServer {
 
         if let Ok(mut store) = self.store.lock() {
             store.add_or_replace(notification);
-        }
-
-        // Determine effective timeout.
-        // -1 = use server default, 0 = never expire, >0 = use as-is (milliseconds).
-        let effective_timeout_ms = if expire_timeout == -1 {
-            self.default_timeout_ms as i32
-        } else {
-            expire_timeout
-        };
-
-        if effective_timeout_ms > 0 {
-            let store = self.store.clone();
-            let trigger = self.trigger.clone();
-            let connection = self.connection.clone();
-            let ms = effective_timeout_ms as u64;
-            // Use the stored handle: tokio::spawn requires a tokio context but
-            // zbus runs interface handlers on its own executor thread.
-            if let Some(handle) = crate::runtime::tokio_handle() {
-                handle.spawn(async move {
-                    tokio::time::sleep(tokio::time::Duration::from_millis(ms)).await;
-                    let removed = store.lock().map(|mut s| s.remove(id)).unwrap_or(false);
-                    if removed {
-                        // reason 1 = expired
-                        emit_notification_closed(&connection, id, 1).await;
-                        let _ = trigger.send(Trigger::Event).await;
-                    }
-                });
-            }
         }
 
         let _ = self.trigger.send(Trigger::Event).await;

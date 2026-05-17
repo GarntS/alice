@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum AlicePanel { media, clock, trayOverflow, power }
+enum AlicePanel { media, clock, trayOverflow, power, notifications }
 
 AlicePanel? alicePanelFromId(String? panelId) {
   return switch (panelId) {
@@ -8,6 +8,7 @@ AlicePanel? alicePanelFromId(String? panelId) {
     'clock' => AlicePanel.clock,
     'trayOverflow' => AlicePanel.trayOverflow,
     'power' => AlicePanel.power,
+    'notifications' => AlicePanel.notifications,
     _ => null,
   };
 }

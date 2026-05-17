@@ -81,6 +81,23 @@ class AlicePlatform {
     return frb.executePowerAction(action: action);
   }
 
+  Future<void> dismissNotification(int id) =>
+      frb.dismissNotification(id: id);
+
+  Future<void> dismissAllNotifications() =>
+      frb.dismissAllNotifications();
+
+  Future<void> markAllNotificationsRead(
+    List<NotificationSnapshot> notifications,
+  ) async {
+    for (final n in notifications.where((n) => !n.isRead)) {
+      await frb.markNotificationRead(id: n.id);
+    }
+  }
+
+  Future<void> invokeNotificationAction(int id, String actionKey) =>
+      frb.invokeNotificationAction(id: id, actionKey: actionKey);
+
   // ---------------------------------------------------------------------------
   // Panel geometry commands — handled by C++ GTK layer-shell code
   // ---------------------------------------------------------------------------

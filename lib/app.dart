@@ -116,6 +116,7 @@ class _AliceAppState extends State<AliceApp> {
         openPanel,
         config: _config,
         snapshot: _snapshot,
+        screenHeight: _screenHeight,
       );
 
       await _platform.showPanel(
@@ -181,13 +182,59 @@ class _AliceAppState extends State<AliceApp> {
     }
   }
 
+  Future<void> _handleDismissNotification(int id) async {
+    try {
+      await _platform.dismissNotification(id);
+    } catch (e) {
+      debugPrint('Failed to dismiss notification: $e');
+    }
+  }
+
+  Future<void> _handleDismissAllNotifications() async {
+    try {
+      await _platform.dismissAllNotifications();
+    } catch (e) {
+      debugPrint('Failed to dismiss all notifications: $e');
+    }
+  }
+
+  Future<void> _handleMarkAllNotificationsRead() async {
+    try {
+      await _platform.markAllNotificationsRead(_snapshot.notifications);
+    } catch (e) {
+      debugPrint('Failed to mark notifications read: $e');
+    }
+  }
+
+  Future<void> _handleInvokeNotificationAction(
+    int id,
+    String actionKey,
+  ) async {
+    try {
+      await _platform.invokeNotificationAction(id, actionKey);
+    } catch (e) {
+      debugPrint('Failed to invoke notification action: $e');
+    }
+  }
+
   String _panelId(AlicePanel panel) {
     return switch (panel) {
       AlicePanel.media => 'media',
       AlicePanel.clock => 'clock',
       AlicePanel.trayOverflow => 'trayOverflow',
       AlicePanel.power => 'power',
+      AlicePanel.notifications => 'notifications',
     };
+  }
+
+  double get _screenHeight {
+    try {
+      final view =
+          WidgetsBinding.instance.platformDispatcher.views.first;
+      return view.display.size.height;
+    } catch (_) {
+      return 1080;
+    }
   }
 
   @override
@@ -250,6 +297,11 @@ class _AliceAppState extends State<AliceApp> {
                   onMediaAction: _handleMediaAction,
                   onSeekMedia: _handleMediaSeek,
                   onTrayAction: _handleTrayActivate,
+                  onDismissNotification: _handleDismissNotification,
+                  onDismissAllNotifications: _handleDismissAllNotifications,
+                  onMarkAllNotificationsRead: _handleMarkAllNotificationsRead,
+                  onInvokeNotificationAction: _handleInvokeNotificationAction,
+                  screenHeight: _screenHeight,
                 ),
         ),
       ),

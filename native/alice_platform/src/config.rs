@@ -525,6 +525,37 @@ theme:
     }
 
     #[test]
+    fn load_or_create_default_reads_existing_explicit_path() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should be monotonic enough for test")
+            .as_nanos();
+        let root = env::temp_dir().join(format!("alice-existing-config-test-{unique}"));
+        let path = root.join("alice/config.yaml");
+        fs::create_dir_all(path.parent().expect("path has parent"))
+            .expect("temp config tree should be creatable");
+        fs::write(
+            &path,
+            r##"
+theme:
+  mode: light
+  accent: "#00ff00"
+network:
+  show_label: false
+"##,
+        )
+        .expect("config should be writable");
+
+        let config = AliceConfig::load_or_create_default(&path)
+            .expect("existing explicit config should parse");
+        assert_eq!(config.theme_mode, ThemeMode::Light);
+        assert_eq!(config.accent_color, "#00FF00");
+        assert!(!config.show_network_label);
+
+        fs::remove_dir_all(root).expect("temp config tree should be removable");
+    }
+
+    #[test]
     fn ensure_default_config_writes_template_once() {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)

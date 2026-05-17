@@ -911,6 +911,7 @@ impl SseDecode for crate::state::NotificationSnapshot {
             <Vec<crate::state::NotificationActionSnapshot>>::sse_decode(deserializer);
         let mut var_category = <Option<String>>::sse_decode(deserializer);
         let mut var_isRead = <bool>::sse_decode(deserializer);
+        let mut var_receivedAtUnixSecs = <u64>::sse_decode(deserializer);
         let mut var_imageData = <Option<Vec<u8>>>::sse_decode(deserializer);
         let mut var_imagePath = <Option<String>>::sse_decode(deserializer);
         return crate::state::NotificationSnapshot {
@@ -923,6 +924,7 @@ impl SseDecode for crate::state::NotificationSnapshot {
             actions: var_actions,
             category: var_category,
             is_read: var_isRead,
+            received_at_unix_secs: var_receivedAtUnixSecs,
             image_data: var_imageData,
             image_path: var_imagePath,
         };
@@ -1082,6 +1084,13 @@ impl SseDecode for u32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_u32::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for u64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u64::<NativeEndian>().unwrap()
     }
 }
 
@@ -1394,6 +1403,7 @@ impl flutter_rust_bridge::IntoDart for crate::state::NotificationSnapshot {
             self.actions.into_into_dart().into_dart(),
             self.category.into_into_dart().into_dart(),
             self.is_read.into_into_dart().into_dart(),
+            self.received_at_unix_secs.into_into_dart().into_dart(),
             self.image_data.into_into_dart().into_dart(),
             self.image_path.into_into_dart().into_dart(),
         ]
@@ -1828,6 +1838,7 @@ impl SseEncode for crate::state::NotificationSnapshot {
         <Vec<crate::state::NotificationActionSnapshot>>::sse_encode(self.actions, serializer);
         <Option<String>>::sse_encode(self.category, serializer);
         <bool>::sse_encode(self.is_read, serializer);
+        <u64>::sse_encode(self.received_at_unix_secs, serializer);
         <Option<Vec<u8>>>::sse_encode(self.image_data, serializer);
         <Option<String>>::sse_encode(self.image_path, serializer);
     }
@@ -1963,6 +1974,13 @@ impl SseEncode for u32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_u32::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for u64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u64::<NativeEndian>(self).unwrap();
     }
 }
 

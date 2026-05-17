@@ -267,6 +267,9 @@ class NotificationSnapshot {
   final String? category;
   final bool isRead;
 
+  /// Unix timestamp (seconds) when the notification was received.
+  final BigInt receivedAtUnixSecs;
+
   /// PNG-encoded image bytes from the `image-data` hint, if present.
   final Uint8List? imageData;
 
@@ -283,6 +286,7 @@ class NotificationSnapshot {
     required this.actions,
     this.category,
     required this.isRead,
+    required this.receivedAtUnixSecs,
     this.imageData,
     this.imagePath,
   });
@@ -298,6 +302,7 @@ class NotificationSnapshot {
       actions.hashCode ^
       category.hashCode ^
       isRead.hashCode ^
+      receivedAtUnixSecs.hashCode ^
       imageData.hashCode ^
       imagePath.hashCode;
 
@@ -315,6 +320,7 @@ class NotificationSnapshot {
           actions == other.actions &&
           category == other.category &&
           isRead == other.isRead &&
+          receivedAtUnixSecs == other.receivedAtUnixSecs &&
           imageData == other.imageData &&
           imagePath == other.imagePath;
 }
