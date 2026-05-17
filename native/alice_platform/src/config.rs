@@ -15,6 +15,7 @@ pub const DEFAULT_CONFIG_TEMPLATE: &str =
 pub struct AliceConfig {
     pub theme_mode: ThemeMode,
     pub accent_color: String,
+    pub transparent_top_bar: bool,
     pub show_network_label: bool,
     pub max_visible_tray_items: u32,
     pub local_time_zone_label: Option<String>,
@@ -44,6 +45,7 @@ impl Default for AliceConfig {
         Self {
             theme_mode: ThemeMode::System,
             accent_color: "#4C956C".into(),
+            transparent_top_bar: false,
             show_network_label: true,
             max_visible_tray_items: 5,
             local_time_zone_label: None,
@@ -209,6 +211,7 @@ impl RawConfig {
                     .unwrap_or(&defaults.accent_color),
             )
             .unwrap_or(defaults.accent_color),
+            transparent_top_bar: self.theme.transparent_top_bar.unwrap_or(false),
             show_network_label: self.network.show_label.unwrap_or(true),
             max_visible_tray_items,
             local_time_zone_label,
@@ -245,6 +248,7 @@ impl RawConfig {
 struct RawThemeConfig {
     mode: Option<ThemeMode>,
     accent: Option<String>,
+    transparent_top_bar: Option<bool>,
     panel_top_gap_px: Option<u32>,
 }
 
@@ -427,6 +431,7 @@ mod tests {
 
         assert_eq!(config.theme_mode, ThemeMode::System);
         assert_eq!(config.accent_color, "#4C956C");
+        assert!(!config.transparent_top_bar);
         assert!(config.show_network_label);
         assert_eq!(config.max_visible_tray_items, 5);
         assert_eq!(config.local_time_zone_label, None);
@@ -440,6 +445,7 @@ mod tests {
 theme:
   mode: dark
   accent: "#112233"
+  transparent_top_bar: true
 network:
   show_label: false
 tray:
@@ -458,6 +464,7 @@ power:
 
         assert_eq!(config.theme_mode, ThemeMode::Dark);
         assert_eq!(config.accent_color, "#112233");
+        assert!(config.transparent_top_bar);
         assert!(!config.show_network_label);
         assert_eq!(config.max_visible_tray_items, 8);
         assert_eq!(config.local_time_zone_label, Some("ET".to_string()));
@@ -467,6 +474,19 @@ power:
         assert_eq!(config.power_commands.lock, "waylock");
         assert_eq!(config.power_commands.restart, "reboot-now");
         assert_eq!(config.power_commands.poweroff, "systemctl poweroff");
+    }
+
+    #[test]
+    fn parses_disabled_transparent_top_bar() {
+        let config = AliceConfig::from_yaml_str(
+            r##"
+theme:
+  transparent_top_bar: false
+"##,
+        )
+        .expect("yaml should parse");
+
+        assert!(!config.transparent_top_bar);
     }
 
     #[test]
@@ -489,6 +509,7 @@ power:
         .expect("yaml should parse");
 
         assert_eq!(config.accent_color, "#4C956C");
+        assert!(!config.transparent_top_bar);
         assert_eq!(config.max_visible_tray_items, 1);
         assert_eq!(config.local_time_zone_label, None);
         assert_eq!(config.time_zones[0].label, "UTC-4");

@@ -190,7 +190,11 @@ impl NotificationServer {
             image_path,
         };
 
-        let _ = expire_timeout;
+        let _effective_timeout_ms = if expire_timeout < 0 {
+            self.default_timeout_ms
+        } else {
+            expire_timeout as u32
+        };
 
         if let Ok(mut store) = self.store.lock() {
             store.add_or_replace(notification);

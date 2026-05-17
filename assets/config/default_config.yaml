@@ -11,6 +11,9 @@ theme:
   # Format: #RRGGBB
   accent: "#4C956C"
 
+  # Whether the outer top bar shell should omit its background and border.
+  transparent_top_bar: false
+
   # Gap in pixels between the bottom of the bar and the top of panel windows.
   # Default: 8
   panel_top_gap_px: 8

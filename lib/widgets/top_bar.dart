@@ -49,11 +49,15 @@ class TopBar extends StatelessWidget {
         height: 44,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface.withValues(alpha: 0.92),
+          color: config.transparentTopBar
+              ? null
+              : theme.colorScheme.surface.withValues(alpha: 0.92),
           borderRadius: BorderRadius.circular(0),
-          border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.35),
-          ),
+          border: config.transparentTopBar
+              ? null
+              : Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                ),
         ),
         child: DefaultTextStyle(
           style: (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(

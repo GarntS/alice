@@ -2,16 +2,21 @@
 
 ## Purpose
 Define the visible top bar structure and the composition of implemented bar modules.
-
 ## Requirements
-
 ### Requirement: Top bar surface layout
 Alice SHALL render a top-aligned 44 px bar divided into left, center, and right layout groups.
 
-#### Scenario: Bar is rendered
-- **WHEN** the Flutter bar view builds
+#### Scenario: Bar is rendered with default surface styling
+- **WHEN** the Flutter bar view builds with transparent top bar disabled
 - **THEN** Alice SHALL render a 44 px high container with horizontal padding and themed surface styling
 - **AND** Alice SHALL arrange content into three expanded horizontal groups
+
+#### Scenario: Bar is rendered with transparent surface styling
+- **WHEN** the Flutter bar view builds with transparent top bar enabled
+- **THEN** Alice SHALL render a 44 px high container with horizontal padding and no outer background fill
+- **AND** Alice SHALL render no outer accent-colored border around the top bar shell
+- **AND** Alice SHALL arrange content into three expanded horizontal groups
+- **AND** Alice SHALL preserve child module styling, including pills, workspace chips, highlights, and child borders
 
 ### Requirement: Left group workspaces
 The left group SHALL render Sway workspace chips from the current snapshot.
@@ -45,3 +50,4 @@ Bar widgets SHALL render from `BarSnapshot` plus configuration and SHALL delegat
 #### Scenario: Snapshot update arrives
 - **WHEN** a new `BarSnapshot` is received over the platform stream
 - **THEN** Alice SHALL update the displayed bar modules from the new snapshot values
+

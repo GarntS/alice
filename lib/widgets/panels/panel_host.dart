@@ -37,7 +37,8 @@ class AlicePanelCard extends StatelessWidget {
   final Future<void> Function(int id) onDismissNotification;
   final Future<void> Function() onDismissAllNotifications;
   final Future<void> Function() onMarkAllNotificationsRead;
-  final Future<void> Function(int id, String actionKey) onInvokeNotificationAction;
+  final Future<void> Function(int id, String actionKey)
+  onInvokeNotificationAction;
   final double screenHeight;
 
   @override
@@ -70,13 +71,16 @@ class AlicePanelCard extends StatelessWidget {
       ),
     };
 
-    final isFlexible = panel == AlicePanel.clock;
+    final hasDynamicHeight =
+        panel == AlicePanel.clock || panel == AlicePanel.media;
     return Material(
       color: Colors.transparent,
       child: Container(
         width: panelSize.width,
-        height: isFlexible ? null : panelSize.height,
-        constraints: isFlexible ? BoxConstraints(maxHeight: panelSize.height) : null,
+        height: hasDynamicHeight ? null : panelSize.height,
+        constraints: hasDynamicHeight
+            ? BoxConstraints(maxHeight: panelSize.height)
+            : null,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.96),

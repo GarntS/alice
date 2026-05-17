@@ -11,11 +11,13 @@ const _defaultMediaSentinel = Object();
 AliceConfig testConfig({
   int maxVisibleTrayItems = 3,
   bool showNetworkLabel = true,
+  bool transparentTopBar = false,
   CalendarConfig? calendar,
 }) {
   return AliceConfig(
     themeMode: ThemeMode.light,
     accentColor: const Color(0xFF4C956C),
+    transparentTopBar: transparentTopBar,
     showNetworkLabel: showNetworkLabel,
     maxVisibleTrayItems: maxVisibleTrayItems,
     localTimeZoneLabel: 'LOCAL',
@@ -51,8 +53,14 @@ BarSnapshot testSnapshot({
     media: resolvedMedia,
     memoryUsagePercent: memoryUsagePercent,
     cpuUsageCores: cpuUsageCores,
-    network: network ?? const NetworkSnapshot(kind: NetworkKind.wifi, label: 'alice-net'),
-    clock: const ClockSnapshot(timeZoneCode: 'UTC', dateLabel: '09 Mar', timeLabel: '13:37'),
+    network:
+        network ??
+        const NetworkSnapshot(kind: NetworkKind.wifi, label: 'alice-net'),
+    clock: const ClockSnapshot(
+      timeZoneCode: 'UTC',
+      dateLabel: '09 Mar',
+      timeLabel: '13:37',
+    ),
     trayItems: trayItems ?? testTrayItems(5),
     notifications: notifications ?? testNotifications(2),
   );
@@ -64,12 +72,17 @@ List<WorkspaceSnapshot> testWorkspaces() => const [
   WorkspaceSnapshot(label: '3', isFocused: false, isVisible: false),
 ];
 
-MediaSnapshot testMedia({int positionMicros = 26 * 1000 * 1000, int lengthMicros = 130 * 1000 * 1000}) {
+MediaSnapshot testMedia({
+  int positionMicros = 26 * 1000 * 1000,
+  int lengthMicros = 130 * 1000 * 1000,
+  String albumTitle = 'Boundary Album',
+  String artUrl = '',
+}) {
   return MediaSnapshot(
     title: 'A Very Testable Song',
     artist: 'Alice Artist',
-    albumTitle: 'Boundary Album',
-    artUrl: '',
+    albumTitle: albumTitle,
+    artUrl: artUrl,
     positionLabel: '0:26',
     lengthLabel: '2:10',
     positionMicros: positionMicros,
@@ -91,7 +104,10 @@ List<TrayItemSnapshot> testTrayItems(int count, {Uint8List? iconBytes}) {
   );
 }
 
-List<NotificationSnapshot> testNotifications(int count, {Uint8List? imageData}) {
+List<NotificationSnapshot> testNotifications(
+  int count, {
+  Uint8List? imageData,
+}) {
   final now = BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000);
   return List.generate(
     count,
@@ -100,8 +116,11 @@ List<NotificationSnapshot> testNotifications(int count, {Uint8List? imageData}) 
       appName: 'Notifier $i',
       appIcon: '',
       summary: 'Summary $i',
-      body: 'A long-ish notification body that should wrap without crashing the panel layout.',
-      urgency: i.isEven ? NotificationUrgency.normal : NotificationUrgency.critical,
+      body:
+          'A long-ish notification body that should wrap without crashing the panel layout.',
+      urgency: i.isEven
+          ? NotificationUrgency.normal
+          : NotificationUrgency.critical,
       actions: const [
         NotificationActionSnapshot(key: 'default', label: 'Open'),
         NotificationActionSnapshot(key: 'dismiss', label: 'Dismiss'),

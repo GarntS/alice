@@ -50,9 +50,24 @@ if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
   list(APPEND ALICE_CARGO_BUILD_ARGS --release)
 endif()
 
+file(GLOB_RECURSE ALICE_RUST_SOURCES CONFIGURE_DEPENDS
+  "${ALICE_NATIVE_DIR}/alice_platform/src/*.rs"
+  "${ALICE_NATIVE_DIR}/alice_layer_shell/src/*.rs"
+)
+
+set(ALICE_RUST_INPUTS
+  ${ALICE_RUST_SOURCES}
+  "${ALICE_NATIVE_DIR}/Cargo.toml"
+  "${ALICE_NATIVE_DIR}/Cargo.lock"
+  "${ALICE_NATIVE_DIR}/alice_platform/Cargo.toml"
+  "${ALICE_NATIVE_DIR}/alice_layer_shell/Cargo.toml"
+  "${CMAKE_SOURCE_DIR}/../flutter_rust_bridge.yaml"
+)
+
 add_custom_command(
   OUTPUT "${ALICE_PLATFORM_LIB}" "${ALICE_LAYER_SHELL_LIB}"
   COMMAND ${CARGO_EXECUTABLE} ${ALICE_CARGO_BUILD_ARGS} --package alice_platform --package alice_layer_shell
+  DEPENDS ${ALICE_RUST_INPUTS}
   WORKING_DIRECTORY "${ALICE_NATIVE_DIR}"
   COMMENT "Building Alice Rust native libraries"
   VERBATIM

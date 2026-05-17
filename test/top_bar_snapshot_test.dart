@@ -7,7 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'helpers/alice_test_helpers.dart';
 
 void main() {
-  testWidgets('top bar renders a mixed snapshot without throwing', (tester) async {
+  testWidgets('top bar renders a mixed snapshot without throwing', (
+    tester,
+  ) async {
     final controller = PanelController();
     final tappedWorkspaces = <String>[];
     final tappedTrayItems = <TrayItemSnapshot>[];
@@ -50,7 +52,59 @@ void main() {
     controller.dispose();
   });
 
-  testWidgets('top bar tolerates hidden network label and no media', (tester) async {
+  testWidgets('top bar shell decoration follows transparency config', (
+    tester,
+  ) async {
+    final controller = PanelController();
+
+    await pumpAliceWidget(
+      tester,
+      SizedBox(
+        width: 1000,
+        height: 80,
+        child: TopBar(
+          config: testConfig(),
+          snapshot: testSnapshot(),
+          panelController: controller,
+          onWorkspaceTap: (_) {},
+          onTrayItemTap: (_) {},
+          onBackgroundTap: () {},
+        ),
+      ),
+      size: const Size(1100, 120),
+    );
+
+    var decoration = _topBarShellDecoration(tester);
+    expect(decoration.color, isNotNull);
+    expect(decoration.border, isNotNull);
+
+    await pumpAliceWidget(
+      tester,
+      SizedBox(
+        width: 1000,
+        height: 80,
+        child: TopBar(
+          config: testConfig(transparentTopBar: true),
+          snapshot: testSnapshot(),
+          panelController: controller,
+          onWorkspaceTap: (_) {},
+          onTrayItemTap: (_) {},
+          onBackgroundTap: () {},
+        ),
+      ),
+      size: const Size(1100, 120),
+    );
+
+    decoration = _topBarShellDecoration(tester);
+    expect(decoration.color, isNull);
+    expect(decoration.border, isNull);
+
+    controller.dispose();
+  });
+
+  testWidgets('top bar tolerates hidden network label and no media', (
+    tester,
+  ) async {
     final controller = PanelController();
 
     await pumpAliceWidget(
@@ -62,7 +116,10 @@ void main() {
           config: testConfig(showNetworkLabel: false),
           snapshot: testSnapshot(
             media: null,
-            network: const NetworkSnapshot(kind: NetworkKind.disconnected, label: 'Disconnected'),
+            network: const NetworkSnapshot(
+              kind: NetworkKind.disconnected,
+              label: 'Disconnected',
+            ),
             trayItems: const [],
             notifications: const [],
           ),
@@ -81,4 +138,15 @@ void main() {
 
     controller.dispose();
   });
+}
+
+BoxDecoration _topBarShellDecoration(WidgetTester tester) {
+  final container = tester
+      .widgetList<Container>(find.byType(Container))
+      .singleWhere(
+        (container) =>
+            container.padding ==
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      );
+  return container.decoration! as BoxDecoration;
 }

@@ -4,6 +4,7 @@ class AliceConfig {
   const AliceConfig({
     required this.themeMode,
     required this.accentColor,
+    required this.transparentTopBar,
     required this.showNetworkLabel,
     required this.maxVisibleTrayItems,
     required this.localTimeZoneLabel,
@@ -15,6 +16,7 @@ class AliceConfig {
 
   final ThemeMode themeMode;
   final Color accentColor;
+  final bool transparentTopBar;
   final bool showNetworkLabel;
   final int maxVisibleTrayItems;
   final String? localTimeZoneLabel;
@@ -27,6 +29,7 @@ class AliceConfig {
     return const AliceConfig(
       themeMode: ThemeMode.system,
       accentColor: Color(0xFF4C956C),
+      transparentTopBar: false,
       showNetworkLabel: true,
       maxVisibleTrayItems: 5,
       localTimeZoneLabel: null,

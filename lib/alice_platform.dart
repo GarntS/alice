@@ -22,8 +22,7 @@ const _methodChannelName = 'alice/platform';
 /// hidePanel) that still live in C++.
 class AlicePlatform {
   AlicePlatform({MethodChannel? methodChannel})
-      : _methodChannel =
-            methodChannel ?? const MethodChannel(_methodChannelName);
+    : _methodChannel = methodChannel ?? const MethodChannel(_methodChannelName);
 
   final MethodChannel _methodChannel;
   final Map<String, Uint8List> _trayIconCache = <String, Uint8List>{};
@@ -81,11 +80,9 @@ class AlicePlatform {
     return frb.executePowerAction(action: action);
   }
 
-  Future<void> dismissNotification(int id) =>
-      frb.dismissNotification(id: id);
+  Future<void> dismissNotification(int id) => frb.dismissNotification(id: id);
 
-  Future<void> dismissAllNotifications() =>
-      frb.dismissAllNotifications();
+  Future<void> dismissAllNotifications() => frb.dismissAllNotifications();
 
   Future<void> markAllNotificationsRead(
     List<NotificationSnapshot> notifications,
@@ -172,11 +169,15 @@ class AlicePlatform {
         frb_config.ThemeMode.system => ThemeMode.system,
       },
       accentColor: _colorFromHex(r.accentColor),
+      transparentTopBar: r.transparentTopBar,
       showNetworkLabel: r.showNetworkLabel,
       maxVisibleTrayItems: r.maxVisibleTrayItems,
       localTimeZoneLabel: r.localTimeZoneLabel,
       timeZones: r.timeZones
-          .map((tz) => TimeZoneConfig(label: tz.label, offsetHours: tz.offsetHours))
+          .map(
+            (tz) =>
+                TimeZoneConfig(label: tz.label, offsetHours: tz.offsetHours),
+          )
           .toList(),
       powerCommands: PowerCommandConfig(
         lock: r.powerCommands.lock,

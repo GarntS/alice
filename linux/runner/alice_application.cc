@@ -597,6 +597,15 @@ static void create_main_window(AliceApplication* self) {
   gtk_widget_add_events(GTK_WIDGET(self->dismiss_window), GDK_BUTTON_PRESS_MASK);
   gtk_window_set_title(self->dismiss_window, "alice-panel-dismiss");
 
+  gtk_widget_set_app_paintable(GTK_WIDGET(window), TRUE);
+  GdkScreen* bar_screen = gtk_window_get_screen(window);
+  if (bar_screen != nullptr) {
+    GdkVisual* visual = gdk_screen_get_rgba_visual(bar_screen);
+    if (visual != nullptr) {
+      gtk_widget_set_visual(GTK_WIDGET(window), visual);
+    }
+  }
+
   gboolean use_header_bar = TRUE;
 
   if (self->layer_shell_supported && gtk_layer_is_supported()) {
@@ -627,8 +636,7 @@ static void create_main_window(AliceApplication* self) {
   FlView* view = fl_view_new(project);
   self->bar_fl_view = view;
 
-  GdkRGBA background_color;
-  gdk_rgba_parse(&background_color, "#000000");
+  GdkRGBA background_color = {0.0, 0.0, 0.0, 0.0};
   fl_view_set_background_color(view, &background_color);
   gtk_widget_set_hexpand(GTK_WIDGET(view), TRUE);
   gtk_widget_set_vexpand(GTK_WIDGET(view), TRUE);

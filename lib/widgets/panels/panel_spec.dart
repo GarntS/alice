@@ -13,7 +13,7 @@ Size alicePanelSize(
   double screenHeight = 1080.0,
 }) {
   return switch (panel) {
-    AlicePanel.media => const Size(360, 268),
+    AlicePanel.media => Size(360, _mediaHeight(snapshot.media)),
     AlicePanel.clock => Size(320, _clockHeight(config, screenHeight)),
     AlicePanel.trayOverflow => Size(
       320,
@@ -27,6 +27,11 @@ Size alicePanelSize(
       _notificationPanelHeight(snapshot.notifications.length, screenHeight),
     ),
   };
+}
+
+double _mediaHeight(MediaSnapshot? media) {
+  if (media == null) return 84.0;
+  return media.artUrl.trim().isNotEmpty ? 268.0 : 228.0;
 }
 
 double _clockHeight(AliceConfig config, double screenHeight) {

@@ -593,6 +593,7 @@ impl SseDecode for crate::config::AliceConfig {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_themeMode = <crate::config::ThemeMode>::sse_decode(deserializer);
         let mut var_accentColor = <String>::sse_decode(deserializer);
+        let mut var_transparentTopBar = <bool>::sse_decode(deserializer);
         let mut var_showNetworkLabel = <bool>::sse_decode(deserializer);
         let mut var_maxVisibleTrayItems = <u32>::sse_decode(deserializer);
         let mut var_localTimeZoneLabel = <Option<String>>::sse_decode(deserializer);
@@ -604,6 +605,7 @@ impl SseDecode for crate::config::AliceConfig {
         return crate::config::AliceConfig {
             theme_mode: var_themeMode,
             accent_color: var_accentColor,
+            transparent_top_bar: var_transparentTopBar,
             show_network_label: var_showNetworkLabel,
             max_visible_tray_items: var_maxVisibleTrayItems,
             local_time_zone_label: var_localTimeZoneLabel,
@@ -1167,6 +1169,7 @@ impl flutter_rust_bridge::IntoDart for crate::config::AliceConfig {
         [
             self.theme_mode.into_into_dart().into_dart(),
             self.accent_color.into_into_dart().into_dart(),
+            self.transparent_top_bar.into_into_dart().into_dart(),
             self.show_network_label.into_into_dart().into_dart(),
             self.max_visible_tray_items.into_into_dart().into_dart(),
             self.local_time_zone_label.into_into_dart().into_dart(),
@@ -1606,6 +1609,7 @@ impl SseEncode for crate::config::AliceConfig {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::config::ThemeMode>::sse_encode(self.theme_mode, serializer);
         <String>::sse_encode(self.accent_color, serializer);
+        <bool>::sse_encode(self.transparent_top_bar, serializer);
         <bool>::sse_encode(self.show_network_label, serializer);
         <u32>::sse_encode(self.max_visible_tray_items, serializer);
         <Option<String>>::sse_encode(self.local_time_zone_label, serializer);

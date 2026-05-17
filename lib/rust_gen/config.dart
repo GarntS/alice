@@ -9,6 +9,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 class AliceConfig {
   final ThemeMode themeMode;
   final String accentColor;
+  final bool transparentTopBar;
   final bool showNetworkLabel;
   final int maxVisibleTrayItems;
   final String? localTimeZoneLabel;
@@ -21,6 +22,7 @@ class AliceConfig {
   const AliceConfig({
     required this.themeMode,
     required this.accentColor,
+    required this.transparentTopBar,
     required this.showNetworkLabel,
     required this.maxVisibleTrayItems,
     this.localTimeZoneLabel,
@@ -35,6 +37,7 @@ class AliceConfig {
   int get hashCode =>
       themeMode.hashCode ^
       accentColor.hashCode ^
+      transparentTopBar.hashCode ^
       showNetworkLabel.hashCode ^
       maxVisibleTrayItems.hashCode ^
       localTimeZoneLabel.hashCode ^
@@ -51,6 +54,7 @@ class AliceConfig {
           runtimeType == other.runtimeType &&
           themeMode == other.themeMode &&
           accentColor == other.accentColor &&
+          transparentTopBar == other.transparentTopBar &&
           showNetworkLabel == other.showNetworkLabel &&
           maxVisibleTrayItems == other.maxVisibleTrayItems &&
           localTimeZoneLabel == other.localTimeZoneLabel &&

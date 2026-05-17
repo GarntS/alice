@@ -591,19 +591,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AliceConfig dco_decode_alice_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 10)
-      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return AliceConfig(
       themeMode: dco_decode_theme_mode(arr[0]),
       accentColor: dco_decode_String(arr[1]),
-      showNetworkLabel: dco_decode_bool(arr[2]),
-      maxVisibleTrayItems: dco_decode_u_32(arr[3]),
-      localTimeZoneLabel: dco_decode_opt_String(arr[4]),
-      timeZones: dco_decode_list_time_zone_config(arr[5]),
-      powerCommands: dco_decode_power_command_config(arr[6]),
-      panelTopGapPx: dco_decode_u_32(arr[7]),
-      calendar: dco_decode_opt_box_autoadd_calendar_config(arr[8]),
-      notifications: dco_decode_notification_config(arr[9]),
+      transparentTopBar: dco_decode_bool(arr[2]),
+      showNetworkLabel: dco_decode_bool(arr[3]),
+      maxVisibleTrayItems: dco_decode_u_32(arr[4]),
+      localTimeZoneLabel: dco_decode_opt_String(arr[5]),
+      timeZones: dco_decode_list_time_zone_config(arr[6]),
+      powerCommands: dco_decode_power_command_config(arr[7]),
+      panelTopGapPx: dco_decode_u_32(arr[8]),
+      calendar: dco_decode_opt_box_autoadd_calendar_config(arr[9]),
+      notifications: dco_decode_notification_config(arr[10]),
     );
   }
 
@@ -1030,6 +1031,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_themeMode = sse_decode_theme_mode(deserializer);
     var var_accentColor = sse_decode_String(deserializer);
+    var var_transparentTopBar = sse_decode_bool(deserializer);
     var var_showNetworkLabel = sse_decode_bool(deserializer);
     var var_maxVisibleTrayItems = sse_decode_u_32(deserializer);
     var var_localTimeZoneLabel = sse_decode_opt_String(deserializer);
@@ -1041,6 +1043,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return AliceConfig(
       themeMode: var_themeMode,
       accentColor: var_accentColor,
+      transparentTopBar: var_transparentTopBar,
       showNetworkLabel: var_showNetworkLabel,
       maxVisibleTrayItems: var_maxVisibleTrayItems,
       localTimeZoneLabel: var_localTimeZoneLabel,
@@ -1606,6 +1609,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_theme_mode(self.themeMode, serializer);
     sse_encode_String(self.accentColor, serializer);
+    sse_encode_bool(self.transparentTopBar, serializer);
     sse_encode_bool(self.showNetworkLabel, serializer);
     sse_encode_u_32(self.maxVisibleTrayItems, serializer);
     sse_encode_opt_String(self.localTimeZoneLabel, serializer);

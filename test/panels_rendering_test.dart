@@ -1,7 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:alicebar/widgets/panels/clock_panel.dart';
+import 'package:alicebar/panel_controller.dart';
 import 'package:alicebar/widgets/panels/media_panel.dart';
+import 'package:alicebar/widgets/panels/panel_host.dart';
+import 'package:alicebar/widgets/panels/panel_spec.dart';
 import 'package:alicebar/widgets/panels/notification_panel.dart';
 import 'package:alicebar/widgets/panels/power_panel.dart';
 import 'package:alicebar/widgets/panels/tray_panel.dart';
@@ -11,6 +14,79 @@ import 'package:flutter_test/flutter_test.dart';
 import 'helpers/alice_test_helpers.dart';
 
 void main() {
+  test('media panel size follows available content', () {
+    final config = testConfig();
+
+    expect(
+      alicePanelSize(
+        AlicePanel.media,
+        config: config,
+        snapshot: testSnapshot(media: null),
+      ).height,
+      84,
+    );
+    expect(
+      alicePanelSize(
+        AlicePanel.media,
+        config: config,
+        snapshot: testSnapshot(media: testMedia(artUrl: '')),
+      ).height,
+      228,
+    );
+    expect(
+      alicePanelSize(
+        AlicePanel.media,
+        config: config,
+        snapshot: testSnapshot(media: testMedia(artUrl: 'file:///tmp/art.png')),
+      ).height,
+      268,
+    );
+  });
+
+  testWidgets(
+    'media panel card keeps fixed width but sizes height to content',
+    (tester) async {
+      final snapshot = testSnapshot(media: testMedia(artUrl: ''));
+
+      await pumpAliceWidget(
+        tester,
+        AlicePanelCard(
+          panel: AlicePanel.media,
+          config: testConfig(),
+          snapshot: snapshot,
+          onPowerAction: (_) async {},
+          onMediaAction: (_) async {},
+          onSeekMedia: (_) async {},
+          onTrayAction: (_) async {},
+          onDismissNotification: (_) async {},
+          onDismissAllNotifications: () async {},
+          onMarkAllNotificationsRead: () async {},
+          onInvokeNotificationAction: (_, __) async {},
+        ),
+      );
+
+      final cardSize = tester.getSize(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Container && widget.padding == const EdgeInsets.all(16),
+        ),
+      );
+
+      expect(cardSize.width, 360);
+      expect(
+        cardSize.height,
+        lessThan(
+          alicePanelSize(
+            AlicePanel.media,
+            config: testConfig(),
+            snapshot: snapshot,
+          ).height,
+        ),
+      );
+      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+    },
+  );
+
   testWidgets('media panel renders empty and populated states', (tester) async {
     final actions = <String>[];
     final seeks = <int>[];
@@ -20,7 +96,11 @@ void main() {
       SizedBox(
         width: 380,
         height: 300,
-        child: MediaPanel(media: null, onAction: (a) async => actions.add(a), onSeek: (p) async => seeks.add(p)),
+        child: MediaPanel(
+          media: null,
+          onAction: (a) async => actions.add(a),
+          onSeek: (p) async => seeks.add(p),
+        ),
       ),
     );
     expectNoFlutterErrors();
@@ -31,7 +111,11 @@ void main() {
       SizedBox(
         width: 380,
         height: 300,
-        child: MediaPanel(media: testMedia(lengthMicros: 0), onAction: (a) async => actions.add(a), onSeek: (p) async => seeks.add(p)),
+        child: MediaPanel(
+          media: testMedia(lengthMicros: 0),
+          onAction: (a) async => actions.add(a),
+          onSeek: (p) async => seeks.add(p),
+        ),
       ),
     );
     expectNoFlutterErrors();
@@ -43,7 +127,9 @@ void main() {
     expect(actions, contains('playPause'));
   });
 
-  testWidgets('tray, notifications, and power panels render edge cases', (tester) async {
+  testWidgets('tray, notifications, and power panels render edge cases', (
+    tester,
+  ) async {
     final trayTaps = <String>[];
     final powerActions = <String>[];
     final notificationActions = <String>[];
@@ -73,7 +159,10 @@ void main() {
         width: 420,
         height: 500,
         child: NotificationPanel(
-          notifications: testNotifications(3, imageData: Uint8List.fromList([9, 8, 7])),
+          notifications: testNotifications(
+            3,
+            imageData: Uint8List.fromList([9, 8, 7]),
+          ),
           onDismissAll: () => clearAll++,
           onDismissOne: dismissed.add,
           onMarkAllRead: () => markRead++,
@@ -93,7 +182,11 @@ void main() {
 
     await pumpAliceWidget(
       tester,
-      SizedBox(width: 300, height: 320, child: PowerPanel(onAction: (action) async => powerActions.add(action))),
+      SizedBox(
+        width: 300,
+        height: 320,
+        child: PowerPanel(onAction: (action) async => powerActions.add(action)),
+      ),
     );
     expectNoFlutterErrors();
     expect(find.text('Power Off'), findsOneWidget);
@@ -102,7 +195,9 @@ void main() {
     expect(powerActions, contains('lock'));
   });
 
-  testWidgets('calendar widget changes dates without native calendar calls', (tester) async {
+  testWidgets('calendar widget changes dates without native calendar calls', (
+    tester,
+  ) async {
     final selected = <DateTime>[];
 
     await pumpAliceWidget(
