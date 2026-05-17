@@ -17,6 +17,10 @@ use zbus::zvariant::{OwnedValue, Value};
 
 use crate::runtime::Trigger;
 
+const MAX_NOTIFICATION_IMAGE_DIMENSION: u32 = 2048;
+const MAX_NOTIFICATION_IMAGE_BYTES: usize = 16 * 1024 * 1024;
+const NOTIFICATION_ICON_THUMBNAIL_PX: u32 = 96;
+
 // ---------------------------------------------------------------------------
 // Public data types
 // ---------------------------------------------------------------------------
@@ -186,21 +190,7 @@ impl NotificationServer {
             image_path,
         };
 
-        // --- DEBUG: remove before shipping ---
-        eprintln!(
-            "[notify] id={id} app={:?} summary={:?} body={:?} urgency={:?} \
-             category={:?} timeout={}ms image_data={} image_path={:?} actions={:?}",
-            notification.app_name,
-            notification.summary,
-            notification.body,
-            notification.urgency,
-            notification.category,
-            expire_timeout,
-            if notification.image_data.is_some() { "yes" } else { "no" },
-            notification.image_path,
-            notification.actions.iter().map(|a| format!("{}={}", a.key, a.label)).collect::<Vec<_>>(),
-        );
-        // --- END DEBUG ---
+        let _ = expire_timeout;
 
         if let Ok(mut store) = self.store.lock() {
             store.add_or_replace(notification);
@@ -453,7 +443,13 @@ fn encode_image_data_to_png(s: &zbus::zvariant::Structure<'_>) -> Option<Vec<u8>
     let channels = extract_i32(&fields[5])? as u32;
     let data = extract_bytes(&fields[6])?;
 
-    if width == 0 || height == 0 {
+    if width == 0
+        || height == 0
+        || width > MAX_NOTIFICATION_IMAGE_DIMENSION
+        || height > MAX_NOTIFICATION_IMAGE_DIMENSION
+        || data.len() > MAX_NOTIFICATION_IMAGE_BYTES
+        || !((has_alpha && channels == 4) || (!has_alpha && channels == 3))
+    {
         return None;
     }
 
@@ -480,6 +476,11 @@ fn encode_image_data_to_png(s: &zbus::zvariant::Structure<'_>) -> Option<Vec<u8>
         }
         DynamicImage::ImageRgb8(RgbImage::from_raw(width, height, rgb)?)
     };
+
+    let img = img.thumbnail(
+        NOTIFICATION_ICON_THUMBNAIL_PX,
+        NOTIFICATION_ICON_THUMBNAIL_PX,
+    );
 
     let mut buf = Vec::new();
     img.write_to(

@@ -2,9 +2,7 @@
 
 ## Purpose
 Define Alice's user configuration file, default generation behavior, and typed configuration contract shared between Rust and Flutter.
-
 ## Requirements
-
 ### Requirement: Config file discovery and first-run creation
 Alice SHALL load configuration from `$XDG_CONFIG_HOME/alice/config.yaml`, falling back to `$HOME/.config/alice/config.yaml` when `XDG_CONFIG_HOME` is unset.
 
@@ -53,3 +51,17 @@ Alice SHALL resolve configured additional clock time zones from exactly the impl
 - **THEN** Alice SHALL map it to the implemented fixed offset table
 - **WHEN** an entry uses `offset_hours`
 - **THEN** Alice SHALL use that fixed offset and derive a UTC-style label unless a label is provided
+
+### Requirement: Hermetic configuration testability
+Alice SHALL support configuration tests that exercise default creation, existing-file parsing, and fallback behavior through explicit test-controlled paths or in-memory YAML.
+
+#### Scenario: Tests load from an explicit path
+- **WHEN** tests need to verify config file creation or parsing
+- **THEN** they SHALL use a temporary explicit config path
+- **AND** they SHALL NOT read or assert against the developer's real Alice config file
+
+#### Scenario: Tests parse YAML in memory
+- **WHEN** tests need to verify defaults, invalid-value fallback, optional sections, or typed configuration mapping
+- **THEN** they SHALL parse controlled YAML input in memory where possible
+- **AND** they SHALL NOT require environment variables to point at a particular real config directory
+

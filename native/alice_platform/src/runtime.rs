@@ -1,6 +1,6 @@
 //! Tokio async runtime: drives all event subscriptions and snapshot streaming.
 
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::frb_generated::StreamSink;
 use tokio::sync::mpsc;
@@ -90,6 +90,8 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
 
     rt.block_on(async {
         let (tx, mut rx) = mpsc::channel::<Trigger>(32);
+        let mpris_cache = crate::mpris::MprisCache::new();
+        crate::mpris::MprisCache::install_global(mpris_cache.clone());
 
         // --- 1 s stats timer ---
         let tx_stats = tx.clone();
@@ -149,6 +151,21 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
             }
         });
 
+        // --- MPRIS lifecycle/property watcher and position refresh ---
+        let tx_mpris = tx.clone();
+        let mpris_watcher_cache = mpris_cache.clone();
+        tokio::spawn(async move {
+            if let Err(error) = crate::mpris::run_mpris_runtime_service(mpris_watcher_cache, tx_mpris).await {
+                eprintln!("alice: MPRIS watcher error: {error:?}");
+            }
+        });
+
+        let tx_mpris_position = tx.clone();
+        let mpris_position_cache = mpris_cache.clone();
+        tokio::spawn(async move {
+            crate::mpris::media_position_trigger(mpris_position_cache, tx_mpris_position).await;
+        });
+
         // Initial snapshot immediately
         let _ = tx.send(Trigger::Event).await;
 
@@ -157,7 +174,7 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
             while rx.try_recv().is_ok() {}
 
-            let snapshot = build_snapshot();
+            let snapshot = build_snapshot(mpris_cache.clone());
             if sink.add(snapshot).is_err() {
                 break;
             }
@@ -165,9 +182,9 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
     });
 }
 
-fn build_snapshot() -> BarSnapshot {
+fn build_snapshot(mpris_cache: Arc<crate::mpris::MprisCache>) -> BarSnapshot {
     use crate::clock::LocalClockProvider;
-    use crate::mpris::MprisMediaProvider;
+    use crate::mpris::CachedMprisMediaProvider;
     use crate::network::SysNetworkProvider;
     use crate::stats::ProcStatsProvider;
     use crate::sway::SwayWorkspaceProvider;
@@ -175,7 +192,7 @@ fn build_snapshot() -> BarSnapshot {
 
     build_snapshot_from_providers(
         &SwayWorkspaceProvider::new(),
-        &MprisMediaProvider::new(),
+        &CachedMprisMediaProvider::new(mpris_cache),
         &ProcStatsProvider::new(),
         &SysNetworkProvider::new(),
         &LocalClockProvider::new(),

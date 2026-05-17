@@ -93,8 +93,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
                     return _NotificationCard(
                       notification: n,
                       onDismiss: () => widget.onDismissOne(n.id),
-                      onInvokeAction: (key) =>
-                          widget.onInvokeAction(n.id, key),
+                      onInvokeAction: (key) => widget.onInvokeAction(n.id, key),
                     );
                   },
                 ),
@@ -157,7 +156,9 @@ class _NotificationCardState extends State<_NotificationCard> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.55,
+                          ),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -166,7 +167,9 @@ class _NotificationCardState extends State<_NotificationCard> {
                       _formatTimestamp(n.receivedAtUnixSecs),
                       style: TextStyle(
                         fontSize: 12,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.55,
+                        ),
                       ),
                     ),
                   ],
@@ -183,6 +186,8 @@ class _NotificationCardState extends State<_NotificationCard> {
                   const SizedBox(height: 3),
                   Text(
                     n.body,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 14),
                   ),
                 ],
@@ -278,22 +283,27 @@ class _NotificationIcon extends StatelessWidget {
       final path = imagePath.startsWith('file://')
           ? Uri.parse(imagePath).toFilePath()
           : imagePath;
-      return Image.file(
-        File(path),
-        width: 24,
-        height: 24,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => _tryAppIcon(n.appIcon),
-      );
+      if (path.startsWith('/')) {
+        return Image.file(
+          File(path),
+          width: 24,
+          height: 24,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => _tryAppIcon(n.appIcon),
+        );
+      }
     }
 
     return _tryAppIcon(n.appIcon);
   }
 
   Widget _tryAppIcon(String appIcon) {
-    if (appIcon.isNotEmpty) {
+    if (appIcon.startsWith('/') || appIcon.startsWith('file://')) {
+      final path = appIcon.startsWith('file://')
+          ? Uri.parse(appIcon).toFilePath()
+          : appIcon;
       return Image.file(
-        File(appIcon),
+        File(path),
         width: 24,
         height: 24,
         fit: BoxFit.contain,
@@ -367,7 +377,11 @@ class _SplitActionButton extends StatelessWidget {
               ),
             ),
           ),
-          Container(width: 1, height: 28, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+          Container(
+            width: 1,
+            height: 28,
+            color: theme.colorScheme.outline.withValues(alpha: 0.3),
+          ),
           PopupMenuButton<String>(
             onSelected: onInvokeAction,
             padding: EdgeInsets.zero,

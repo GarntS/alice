@@ -43,6 +43,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "flutter_rust_bridge",
+ "futures-util",
  "google-calendar3",
  "hyper",
  "hyper-rustls",

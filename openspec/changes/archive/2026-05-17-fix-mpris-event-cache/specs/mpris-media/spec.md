@@ -1,9 +1,4 @@
-# MPRIS Media Specification
-
-## Purpose
-Define implemented MPRIS media discovery, bar display, media panel, and media control actions.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: MPRIS player discovery
 Alice SHALL discover MPRIS players from the D-Bus session bus by listing names with the `org.mpris.MediaPlayer2.` prefix during MPRIS cache startup, and SHALL keep discovered players current by watching D-Bus owner changes for that prefix.
@@ -37,6 +32,8 @@ Alice SHALL expose current media metadata and playback position in `MediaSnapsho
 - **WHEN** Alice builds a bar snapshot
 - **THEN** Alice SHALL read media from the cached MPRIS state
 - **AND** Alice SHALL NOT rediscover all MPRIS players as part of normal snapshot assembly
+
+## ADDED Requirements
 
 ### Requirement: MPRIS property change subscription
 Alice SHALL subscribe to relevant MPRIS player property changes and update cached media state when those changes occur.
@@ -72,33 +69,3 @@ Alice SHALL prefer controlling the cached selected MPRIS player when handling me
 - **WHEN** Flutter requests a media control action
 - **AND** the cached selected player cannot be used
 - **THEN** Rust SHALL fall back to discovering an available MPRIS control target using the existing player-selection behavior
-
-### Requirement: Top-bar media module
-Alice SHALL render the media top-bar module only when a media snapshot is present.
-
-#### Scenario: Media is available
-- **WHEN** the media snapshot exists
-- **THEN** the bar SHALL show a pill with play/pause icon and `Title - Artist - position/length`
-- **AND** clicking the pill SHALL toggle the media panel
-
-### Requirement: Media panel display
-Alice SHALL render album art, metadata, scrubber, and playback controls in the media panel.
-
-#### Scenario: Media panel opens with active media
-- **WHEN** the media panel renders a media snapshot
-- **THEN** Alice SHALL display title, artist, optional album, optional album art, position/length labels, seek slider, previous, play/pause, and next controls
-
-#### Scenario: No media is available
-- **WHEN** the media panel renders with no media snapshot
-- **THEN** Alice SHALL display a no-active-player message
-
-### Requirement: Media actions
-Alice SHALL send implemented MPRIS control methods through Rust FRB calls.
-
-#### Scenario: Playback control is requested
-- **WHEN** Flutter requests `previous`, `playPause`, or `next`
-- **THEN** Rust SHALL call `Previous`, `PlayPause`, or `Next` on the selected MPRIS player
-
-#### Scenario: Seek is requested
-- **WHEN** Flutter requests an absolute seek position in microseconds
-- **THEN** Rust SHALL call MPRIS `SetPosition` with the current track id or the no-track fallback path
