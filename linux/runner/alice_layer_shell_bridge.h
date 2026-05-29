@@ -23,6 +23,7 @@ typedef struct {
 AliceLayerShellCapabilitiesFFI alice_layer_shell_detect_capabilities(void);
 AliceSurfacePlacementFFI alice_layer_shell_bar_placement(void);
 AliceSurfacePlacementFFI alice_layer_shell_panel_placement(void);
+AliceSurfacePlacementFFI alice_layer_shell_notification_popup_placement(void);
 
 #ifdef __cplusplus
 }

@@ -72,7 +72,9 @@ class AlicePanelCard extends StatelessWidget {
     };
 
     final hasDynamicHeight =
-        panel == AlicePanel.clock || panel == AlicePanel.media;
+        panel == AlicePanel.clock ||
+        panel == AlicePanel.media ||
+        panel == AlicePanel.notifications;
     return Material(
       color: Colors.transparent,
       child: Container(

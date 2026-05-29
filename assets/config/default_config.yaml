@@ -56,7 +56,19 @@ power:
 #   # How often (in seconds) to poll for calendar event changes. Default: 30
 #   # poll_interval_secs: 30
 
-# notifications:
-#   # Duration in milliseconds before a notification auto-dismisses.
-#   # Use 0 to never auto-dismiss. Default: 5000
-#   default_timeout_ms: 5000
+notifications:
+  # Duration in milliseconds before the freedesktop notification server
+  # auto-dismisses a notification. Use 0 to never auto-dismiss. Default: 5000
+  default_timeout_ms: 5000
+
+  # Show newly received notifications as floating popup cards. Default: true
+  show_notification_popup: true
+
+  # Duration in milliseconds before popup cards disappear. Timed popup removal
+  # keeps the notification unread in the notification list. Use 0 to never
+  # auto-expire popups. Default: 5000
+  notification_display_time_ms: 5000
+
+  # Critical notification popups stay visible by default. Set true to apply
+  # notification_display_time_ms to critical popups too. Default: false
+  expire_critical_notifications: false

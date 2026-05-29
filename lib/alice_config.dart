@@ -11,6 +11,7 @@ class AliceConfig {
     required this.timeZones,
     required this.powerCommands,
     required this.panelTopGapPx,
+    required this.notifications,
     this.calendar,
   });
 
@@ -23,6 +24,7 @@ class AliceConfig {
   final List<TimeZoneConfig> timeZones;
   final PowerCommandConfig powerCommands;
   final int panelTopGapPx;
+  final NotificationConfig notifications;
   final CalendarConfig? calendar;
 
   factory AliceConfig.fallback() {
@@ -44,8 +46,28 @@ class AliceConfig {
         poweroff: 'systemctl poweroff',
       ),
       panelTopGapPx: 8,
+      notifications: NotificationConfig(
+        defaultTimeoutMs: 5000,
+        showNotificationPopup: true,
+        notificationDisplayTimeMs: 5000,
+        expireCriticalNotifications: false,
+      ),
     );
   }
+}
+
+class NotificationConfig {
+  const NotificationConfig({
+    required this.defaultTimeoutMs,
+    required this.showNotificationPopup,
+    required this.notificationDisplayTimeMs,
+    required this.expireCriticalNotifications,
+  });
+
+  final int defaultTimeoutMs;
+  final bool showNotificationPopup;
+  final int notificationDisplayTimeMs;
+  final bool expireCriticalNotifications;
 }
 
 class TimeZoneConfig {

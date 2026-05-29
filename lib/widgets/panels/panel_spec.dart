@@ -22,10 +22,7 @@ Size alicePanelSize(
           .toDouble(),
     ),
     AlicePanel.power => const Size(280, 292),
-    AlicePanel.notifications => Size(
-      380,
-      _notificationPanelHeight(snapshot.notifications.length, screenHeight),
-    ),
+    AlicePanel.notifications => const Size(380, 880),
   };
 }
 
@@ -36,21 +33,6 @@ double _mediaHeight(MediaSnapshot? media) {
 
 double _clockHeight(AliceConfig config, double screenHeight) {
   return screenHeight / 2;
-}
-
-double _notificationPanelHeight(int count, double screenHeight) {
-  // 32 px outer padding + ~30 px title row + 8 px gap below title
-  const overhead = 70.0;
-  // Approximate per-card height (12 px padding × 2, header row, summary,
-  // body, optional actions) plus the 6 px separator between cards.
-  const cardHeight = 96.0;
-  const cardSpacing = 6.0;
-  const minHeight = 150.0;
-  final maxHeight = (screenHeight - 60).clamp(400.0, 2000.0);
-
-  if (count == 0) return minHeight;
-  final content = overhead + count * cardHeight + (count - 1) * cardSpacing;
-  return content.clamp(minHeight, maxHeight);
 }
 
 int _trayOverflowCount(AliceConfig config, BarSnapshot snapshot) {

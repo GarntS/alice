@@ -831,9 +831,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   NotificationConfig dco_decode_notification_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 1)
-      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
-    return NotificationConfig(defaultTimeoutMs: dco_decode_u_32(arr[0]));
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return NotificationConfig(
+      defaultTimeoutMs: dco_decode_u_32(arr[0]),
+      showNotificationPopup: dco_decode_bool(arr[1]),
+      notificationDisplayTimeMs: dco_decode_u_32(arr[2]),
+      expireCriticalNotifications: dco_decode_bool(arr[3]),
+    );
   }
 
   @protected
@@ -1339,7 +1344,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_defaultTimeoutMs = sse_decode_u_32(deserializer);
-    return NotificationConfig(defaultTimeoutMs: var_defaultTimeoutMs);
+    var var_showNotificationPopup = sse_decode_bool(deserializer);
+    var var_notificationDisplayTimeMs = sse_decode_u_32(deserializer);
+    var var_expireCriticalNotifications = sse_decode_bool(deserializer);
+    return NotificationConfig(
+      defaultTimeoutMs: var_defaultTimeoutMs,
+      showNotificationPopup: var_showNotificationPopup,
+      notificationDisplayTimeMs: var_notificationDisplayTimeMs,
+      expireCriticalNotifications: var_expireCriticalNotifications,
+    );
   }
 
   @protected
@@ -1857,6 +1870,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_32(self.defaultTimeoutMs, serializer);
+    sse_encode_bool(self.showNotificationPopup, serializer);
+    sse_encode_u_32(self.notificationDisplayTimeMs, serializer);
+    sse_encode_bool(self.expireCriticalNotifications, serializer);
   }
 
   @protected

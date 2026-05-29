@@ -57,9 +57,9 @@ class _TopBarWorkspaceChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
+          /*border: Border.all(
             color: theme.colorScheme.primary.withValues(alpha: 0.2),
-          ),
+            ),*/
         ),
         child: Text(
           workspace.label,

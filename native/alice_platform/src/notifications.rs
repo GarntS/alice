@@ -346,6 +346,7 @@ pub fn mark_notification_read_impl(id: u32) {
 
 /// Emit the `ActionInvoked` signal for the given notification and action key.
 pub fn invoke_action_impl(id: u32, action_key: String) {
+    eprintln!("alice: invoke notification action id={id} key={action_key}");
     if let Some(conn) = NOTIFICATION_CONNECTION.get().cloned() {
         if let Some(handle) = crate::runtime::tokio_handle() {
             handle.spawn(async move {
@@ -354,12 +355,22 @@ pub fn invoke_action_impl(id: u32, action_key: String) {
                     .interface::<_, NotificationServer>("/org/freedesktop/Notifications")
                     .await
                 {
-                    let _ = NotificationServer::action_invoked(
+                    match NotificationServer::action_invoked(
                         iface.signal_emitter(),
                         id,
                         &action_key,
                     )
-                    .await;
+                    .await
+                    {
+                        Ok(()) => eprintln!(
+                            "alice: emitted notification action id={id} key={action_key}"
+                        ),
+                        Err(error) => eprintln!(
+                            "alice: failed to emit notification action id={id} key={action_key}: {error}"
+                        ),
+                    }
+                } else {
+                    eprintln!("alice: notification interface unavailable for action id={id}");
                 }
             });
         }

@@ -84,6 +84,8 @@ class AlicePlatform {
 
   Future<void> dismissAllNotifications() => frb.dismissAllNotifications();
 
+  Future<void> markNotificationRead(int id) => frb.markNotificationRead(id: id);
+
   Future<void> markAllNotificationsRead(
     List<NotificationSnapshot> notifications,
   ) async {
@@ -123,6 +125,18 @@ class AlicePlatform {
 
   Future<void> hidePanel() {
     return _methodChannel.invokeMethod<void>('hidePanel');
+  }
+
+  Future<int> showNotificationPopups({required int panelTopGapPx}) async {
+    final viewId = await _methodChannel.invokeMethod<int>(
+      'showNotificationPopups',
+      <String, Object?>{'panelTopGapPx': panelTopGapPx},
+    );
+    return viewId ?? -1;
+  }
+
+  Future<void> hideNotificationPopups() {
+    return _methodChannel.invokeMethod<void>('hideNotificationPopups');
   }
 
   // ---------------------------------------------------------------------------
@@ -186,6 +200,13 @@ class AlicePlatform {
         poweroff: r.powerCommands.poweroff,
       ),
       panelTopGapPx: r.panelTopGapPx,
+      notifications: NotificationConfig(
+        defaultTimeoutMs: r.notifications.defaultTimeoutMs,
+        showNotificationPopup: r.notifications.showNotificationPopup,
+        notificationDisplayTimeMs: r.notifications.notificationDisplayTimeMs,
+        expireCriticalNotifications:
+            r.notifications.expireCriticalNotifications,
+      ),
       calendar: r.calendar == null
           ? null
           : CalendarConfig(

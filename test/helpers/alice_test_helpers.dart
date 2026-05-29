@@ -13,6 +13,12 @@ AliceConfig testConfig({
   bool showNetworkLabel = true,
   bool transparentTopBar = false,
   CalendarConfig? calendar,
+  NotificationConfig notifications = const NotificationConfig(
+    defaultTimeoutMs: 5000,
+    showNotificationPopup: true,
+    notificationDisplayTimeMs: 5000,
+    expireCriticalNotifications: false,
+  ),
 }) {
   return AliceConfig(
     themeMode: ThemeMode.light,
@@ -32,6 +38,7 @@ AliceConfig testConfig({
       poweroff: 'poweroff',
     ),
     panelTopGapPx: 8,
+    notifications: notifications,
     calendar: calendar,
   );
 }

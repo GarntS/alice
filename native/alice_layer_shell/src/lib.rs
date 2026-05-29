@@ -16,6 +16,7 @@ const LAYER_SHELL_INTERFACE: &str = "zwlr_layer_shell_v1";
 pub enum SurfaceRole {
     Bar,
     Panel,
+    NotificationPopup,
 }
 
 /// Output-relative placement for a surface.
@@ -56,6 +57,15 @@ impl LayerShellHost {
             SurfaceRole::Panel => SurfacePlacement {
                 width: 320,
                 height: 220,
+                anchor_top: true,
+                anchor_left: false,
+                anchor_right: true,
+            },
+            SurfaceRole::NotificationPopup => SurfacePlacement {
+                width: 380,
+                // Height is finalized by the GTK runner from monitor geometry so
+                // the popup surface can extend to the bottom of the display.
+                height: 0,
                 anchor_top: true,
                 anchor_left: false,
                 anchor_right: true,
@@ -144,6 +154,11 @@ pub extern "C" fn alice_layer_shell_panel_placement() -> AliceSurfacePlacementFF
     LayerShellHost::placement_for(SurfaceRole::Panel).into()
 }
 
+#[unsafe(no_mangle)]
+pub extern "C" fn alice_layer_shell_notification_popup_placement() -> AliceSurfacePlacementFFI {
+    LayerShellHost::placement_for(SurfaceRole::NotificationPopup).into()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,5 +191,15 @@ mod tests {
         assert_eq!(placement.width, 0);
         assert_eq!(placement.height, 44);
         assert!(placement.anchor_top);
+    }
+
+    #[test]
+    fn notification_popup_matches_panel_width_and_top_right_anchor() {
+        let placement = LayerShellHost::placement_for(SurfaceRole::NotificationPopup);
+        assert_eq!(placement.width, 380);
+        assert_eq!(placement.height, 0);
+        assert!(placement.anchor_top);
+        assert!(!placement.anchor_left);
+        assert!(placement.anchor_right);
     }
 }

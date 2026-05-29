@@ -95,20 +95,41 @@ class CalendarConfig {
 }
 
 class NotificationConfig {
-  /// How long (ms) before a notification auto-dismisses. 0 = never expire.
+  /// How long (ms) before the freedesktop server auto-dismisses. 0 = never expire.
   final int defaultTimeoutMs;
 
-  const NotificationConfig({required this.defaultTimeoutMs});
+  /// Whether newly received notifications should appear as floating popups.
+  final bool showNotificationPopup;
+
+  /// How long (ms) popup cards remain visible. 0 = never auto-expire.
+  final int notificationDisplayTimeMs;
+
+  /// Whether critical notification popups are allowed to auto-expire.
+  final bool expireCriticalNotifications;
+
+  const NotificationConfig({
+    required this.defaultTimeoutMs,
+    required this.showNotificationPopup,
+    required this.notificationDisplayTimeMs,
+    required this.expireCriticalNotifications,
+  });
 
   @override
-  int get hashCode => defaultTimeoutMs.hashCode;
+  int get hashCode =>
+      defaultTimeoutMs.hashCode ^
+      showNotificationPopup.hashCode ^
+      notificationDisplayTimeMs.hashCode ^
+      expireCriticalNotifications.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is NotificationConfig &&
           runtimeType == other.runtimeType &&
-          defaultTimeoutMs == other.defaultTimeoutMs;
+          defaultTimeoutMs == other.defaultTimeoutMs &&
+          showNotificationPopup == other.showNotificationPopup &&
+          notificationDisplayTimeMs == other.notificationDisplayTimeMs &&
+          expireCriticalNotifications == other.expireCriticalNotifications;
 }
 
 class PowerCommandConfig {

@@ -28,8 +28,14 @@ pub struct AliceConfig {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NotificationConfig {
-    /// How long (ms) before a notification auto-dismisses. 0 = never expire.
+    /// How long (ms) before the freedesktop server auto-dismisses. 0 = never expire.
     pub default_timeout_ms: u32,
+    /// Whether newly received notifications should appear as floating popups.
+    pub show_notification_popup: bool,
+    /// How long (ms) popup cards remain visible. 0 = never auto-expire.
+    pub notification_display_time_ms: u32,
+    /// Whether critical notification popups are allowed to auto-expire.
+    pub expire_critical_notifications: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,6 +75,9 @@ impl Default for AliceConfig {
             calendar: None,
             notifications: NotificationConfig {
                 default_timeout_ms: 5000,
+                show_notification_popup: true,
+                notification_display_time_ms: 5000,
+                expire_critical_notifications: false,
             },
         }
     }
@@ -179,6 +188,9 @@ struct RawConfig {
 #[derive(Debug, Default, Deserialize)]
 struct RawNotificationConfig {
     default_timeout_ms: Option<u32>,
+    show_notification_popup: Option<bool>,
+    notification_display_time_ms: Option<u32>,
+    expire_critical_notifications: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -239,6 +251,18 @@ impl RawConfig {
                     .notifications
                     .default_timeout_ms
                     .unwrap_or(defaults.notifications.default_timeout_ms),
+                show_notification_popup: self
+                    .notifications
+                    .show_notification_popup
+                    .unwrap_or(defaults.notifications.show_notification_popup),
+                notification_display_time_ms: self
+                    .notifications
+                    .notification_display_time_ms
+                    .unwrap_or(defaults.notifications.notification_display_time_ms),
+                expire_critical_notifications: self
+                    .notifications
+                    .expire_critical_notifications
+                    .unwrap_or(defaults.notifications.expire_critical_notifications),
             },
         }
     }
@@ -275,7 +299,6 @@ struct RawPowerConfig {
     restart: Option<String>,
     poweroff: Option<String>,
 }
-
 
 #[derive(Debug, Deserialize)]
 struct RawTimeZoneConfig {
@@ -436,6 +459,40 @@ mod tests {
         assert_eq!(config.max_visible_tray_items, 5);
         assert_eq!(config.local_time_zone_label, None);
         assert_eq!(config.time_zones.len(), 2);
+        assert_eq!(config.notifications.default_timeout_ms, 5000);
+        assert!(config.notifications.show_notification_popup);
+        assert_eq!(config.notifications.notification_display_time_ms, 5000);
+        assert!(!config.notifications.expire_critical_notifications);
+    }
+
+    #[test]
+    fn parses_notification_popup_defaults_when_omitted() {
+        let config = AliceConfig::from_yaml_str("notifications:\n  default_timeout_ms: 7000\n")
+            .expect("yaml should parse");
+
+        assert_eq!(config.notifications.default_timeout_ms, 7000);
+        assert!(config.notifications.show_notification_popup);
+        assert_eq!(config.notifications.notification_display_time_ms, 5000);
+        assert!(!config.notifications.expire_critical_notifications);
+    }
+
+    #[test]
+    fn parses_explicit_notification_popup_config() {
+        let config = AliceConfig::from_yaml_str(
+            r##"
+notifications:
+  default_timeout_ms: 9000
+  show_notification_popup: false
+  notification_display_time_ms: 0
+  expire_critical_notifications: true
+"##,
+        )
+        .expect("yaml should parse");
+
+        assert_eq!(config.notifications.default_timeout_ms, 9000);
+        assert!(!config.notifications.show_notification_popup);
+        assert_eq!(config.notifications.notification_display_time_ms, 0);
+        assert!(config.notifications.expire_critical_notifications);
     }
 
     #[test]

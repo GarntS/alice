@@ -26,7 +26,7 @@
 // Section: imports
 
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
@@ -894,8 +894,14 @@ impl SseDecode for crate::config::NotificationConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_defaultTimeoutMs = <u32>::sse_decode(deserializer);
+        let mut var_showNotificationPopup = <bool>::sse_decode(deserializer);
+        let mut var_notificationDisplayTimeMs = <u32>::sse_decode(deserializer);
+        let mut var_expireCriticalNotifications = <bool>::sse_decode(deserializer);
         return crate::config::NotificationConfig {
             default_timeout_ms: var_defaultTimeoutMs,
+            show_notification_popup: var_showNotificationPopup,
+            notification_display_time_ms: var_notificationDisplayTimeMs,
+            expire_critical_notifications: var_expireCriticalNotifications,
         };
     }
 }
@@ -1379,7 +1385,17 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::NotificationActionSnapshot>
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::config::NotificationConfig {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [self.default_timeout_ms.into_into_dart().into_dart()].into_dart()
+        [
+            self.default_timeout_ms.into_into_dart().into_dart(),
+            self.show_notification_popup.into_into_dart().into_dart(),
+            self.notification_display_time_ms
+                .into_into_dart()
+                .into_dart(),
+            self.expire_critical_notifications
+                .into_into_dart()
+                .into_dart(),
+        ]
+        .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
@@ -1827,6 +1843,9 @@ impl SseEncode for crate::config::NotificationConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <u32>::sse_encode(self.default_timeout_ms, serializer);
+        <bool>::sse_encode(self.show_notification_popup, serializer);
+        <u32>::sse_encode(self.notification_display_time_ms, serializer);
+        <bool>::sse_encode(self.expire_critical_notifications, serializer);
     }
 }
 
@@ -2020,7 +2039,7 @@ mod io {
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,
     };
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
@@ -2044,7 +2063,7 @@ mod web {
     };
     use flutter_rust_bridge::for_generated::wasm_bindgen;
     use flutter_rust_bridge::for_generated::wasm_bindgen::prelude::*;
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate

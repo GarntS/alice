@@ -7,6 +7,8 @@ import 'rust_gen/state.dart';
 import 'alice_platform.dart';
 import 'panel_controller.dart';
 import 'alice_theme.dart';
+import 'notification_popup_state.dart';
+import 'widgets/notification_popups.dart';
 import 'widgets/panels/panel_host.dart';
 import 'widgets/panels/panel_spec.dart';
 import 'widgets/top_bar.dart';
@@ -48,11 +50,21 @@ class _AliceAppState extends State<AliceApp> {
 
   // viewId (int) → panelId (String) — populated when C++ calls alice_notify_panel_show
   final Map<int, String> _viewPanelMap = {};
+  late final NotificationPopupState _notificationPopupState;
+  int? _notificationPopupViewId;
   int _viewCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _notificationPopupState = NotificationPopupState(
+      config: _config,
+      onChanged: () {
+        if (!mounted) return;
+        setState(() {});
+        _syncNotificationPopupWindow();
+      },
+    );
     _panelController.addListener(_syncPanelState);
     _loadConfig();
 
@@ -72,7 +84,11 @@ class _AliceAppState extends State<AliceApp> {
     _snapshotSubscription = _platform.watchBarSnapshots().listen(
       (snapshot) {
         if (!mounted) return;
-        setState(() => _snapshot = snapshot);
+        setState(() {
+          _snapshot = snapshot;
+          _notificationPopupState.processSnapshot(snapshot.notifications);
+        });
+        _syncNotificationPopupWindow();
       },
       onError: (Object error, StackTrace stackTrace) {
         debugPrint('Failed to receive native snapshots: $error');
@@ -80,11 +96,9 @@ class _AliceAppState extends State<AliceApp> {
     );
 
     // Detect when C++ adds new FlViews (panel windows)
-    _viewCount =
-        WidgetsBinding.instance.platformDispatcher.views.length;
+    _viewCount = WidgetsBinding.instance.platformDispatcher.views.length;
     WidgetsBinding.instance.platformDispatcher.onMetricsChanged = () {
-      final count =
-          WidgetsBinding.instance.platformDispatcher.views.length;
+      final count = WidgetsBinding.instance.platformDispatcher.views.length;
       if (count != _viewCount) {
         if (mounted) setState(() => _viewCount = count);
       }
@@ -95,7 +109,10 @@ class _AliceAppState extends State<AliceApp> {
     try {
       final config = await _platform.loadConfig();
       if (!mounted) return;
-      setState(() => _config = config);
+      setState(() {
+        _config = config;
+        _notificationPopupState.config = config;
+      });
     } catch (error) {
       debugPrint('Failed to load native config, using fallback: $error');
     }
@@ -109,6 +126,10 @@ class _AliceAppState extends State<AliceApp> {
         return;
       }
 
+      if (openPanel == AlicePanel.notifications) {
+        _hideAllNotificationPopups();
+      }
+
       final anchor = _panelController.anchor;
       if (anchor == null) return;
 
@@ -118,20 +139,37 @@ class _AliceAppState extends State<AliceApp> {
         snapshot: _snapshot,
         screenHeight: _screenHeight,
       );
-
-      await _platform.showPanel(
-        _panelId(openPanel),
-        anchorX: anchor.globalPosition.dx,
-        anchorY: anchor.globalPosition.dy,
-        alignment: switch (anchor.alignment) {
-          PanelAlignment.center => 'center',
-          PanelAlignment.right => 'right',
-        },
-        width: panelSize.width,
-        height: panelSize.height,
-        includeTrayIconBytes: openPanel == AlicePanel.trayOverflow,
-        panelTopGapPx: _config.panelTopGapPx,
+      debugPrint(
+        '[panel-sync] show ${_panelId(openPanel)} '
+        'size=${panelSize.width}x${panelSize.height} '
+        'notifications=${_snapshot.notifications.length} '
+        'visiblePopups=${_notificationPopupState.visibleIds.length}',
       );
+
+      final panelId = _panelId(openPanel);
+      debugPrint('[panel-sync] invoking showPanel $panelId');
+      await _platform
+          .showPanel(
+            panelId,
+            anchorX: anchor.globalPosition.dx,
+            anchorY: anchor.globalPosition.dy,
+            alignment: switch (anchor.alignment) {
+              PanelAlignment.center => 'center',
+              PanelAlignment.right => 'right',
+            },
+            width: panelSize.width,
+            height: panelSize.height,
+            includeTrayIconBytes: openPanel == AlicePanel.trayOverflow,
+            panelTopGapPx: _config.panelTopGapPx,
+          )
+          .timeout(
+            const Duration(seconds: 2),
+            onTimeout: () {
+              debugPrint('[panel-sync] showPanel TIMEOUT $panelId');
+              throw TimeoutException('showPanel timed out for $panelId');
+            },
+          );
+      debugPrint('[panel-sync] showPanel returned $panelId');
     } catch (error) {
       debugPrint('Failed to sync panel state: $error');
     }
@@ -198,6 +236,14 @@ class _AliceAppState extends State<AliceApp> {
     }
   }
 
+  Future<void> _handleMarkNotificationRead(int id) async {
+    try {
+      await _platform.markNotificationRead(id);
+    } catch (e) {
+      debugPrint('Failed to mark notification read: $e');
+    }
+  }
+
   Future<void> _handleMarkAllNotificationsRead() async {
     try {
       await _platform.markAllNotificationsRead(_snapshot.notifications);
@@ -206,15 +252,56 @@ class _AliceAppState extends State<AliceApp> {
     }
   }
 
-  Future<void> _handleInvokeNotificationAction(
-    int id,
-    String actionKey,
-  ) async {
+  Future<void> _handleInvokeNotificationAction(int id, String actionKey) async {
     try {
+      debugPrint('[notification-action] invoke id=$id key=$actionKey');
       await _platform.invokeNotificationAction(id, actionKey);
+      debugPrint('[notification-action] invoked id=$id key=$actionKey');
     } catch (e) {
       debugPrint('Failed to invoke notification action: $e');
     }
+  }
+
+  void _hideAllNotificationPopups() {
+    final changed = _notificationPopupState.hideAll();
+    if (changed) setState(() {});
+    _syncNotificationPopupWindow();
+  }
+
+  Future<void> _syncNotificationPopupWindow() async {
+    try {
+      if (_notificationPopupState.visibleIds.isEmpty) {
+        await _platform.hideNotificationPopups();
+        return;
+      }
+      final viewId = await _platform.showNotificationPopups(
+        panelTopGapPx: _config.panelTopGapPx,
+      );
+      if (mounted && viewId >= 0 && _notificationPopupViewId != viewId) {
+        setState(() => _notificationPopupViewId = viewId);
+      }
+    } catch (e) {
+      debugPrint('Failed to sync notification popup window: $e');
+    }
+  }
+
+  Future<void> _handleDismissPopupRead(int id) async {
+    setState(() => _notificationPopupState.remove(id));
+    _syncNotificationPopupWindow();
+    await _handleMarkNotificationRead(id);
+  }
+
+  Future<void> _handlePopupDismissNotification(int id) async {
+    setState(() => _notificationPopupState.remove(id));
+    _syncNotificationPopupWindow();
+    await _handleDismissNotification(id);
+  }
+
+  Future<void> _handlePopupAction(int id, String actionKey) async {
+    setState(() => _notificationPopupState.remove(id));
+    _syncNotificationPopupWindow();
+    await _handleInvokeNotificationAction(id, actionKey);
+    await _handleMarkNotificationRead(id);
   }
 
   String _panelId(AlicePanel panel) {
@@ -229,8 +316,7 @@ class _AliceAppState extends State<AliceApp> {
 
   double get _screenHeight {
     try {
-      final view =
-          WidgetsBinding.instance.platformDispatcher.views.first;
+      final view = WidgetsBinding.instance.platformDispatcher.views.first;
       return view.display.size.height;
     } catch (_) {
       return 1080;
@@ -241,6 +327,7 @@ class _AliceAppState extends State<AliceApp> {
   void dispose() {
     _panelCommandSubscription.cancel();
     _snapshotSubscription.cancel();
+    _notificationPopupState.dispose();
     _panelController.removeListener(_syncPanelState);
     _panelController.dispose();
     WidgetsBinding.instance.platformDispatcher.onMetricsChanged = null;
@@ -308,14 +395,39 @@ class _AliceAppState extends State<AliceApp> {
     );
   }
 
+  Widget _buildNotificationPopups() {
+    final byId = {for (final n in _snapshot.notifications) n.id: n};
+    final notifications = _notificationPopupState.visibleIds
+        .map((id) => byId[id])
+        .whereType<NotificationSnapshot>()
+        .toList();
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      themeMode: _config.themeMode,
+      theme: buildAliceTheme(_config, Brightness.light),
+      darkTheme: buildAliceTheme(_config, Brightness.dark),
+      home: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: NotificationPopupStack(
+          notifications: notifications,
+          onDismissPopupRead: _handleDismissPopupRead,
+          onDismissNotification: _handlePopupDismissNotification,
+          onMarkRead: _handleMarkNotificationRead,
+          onInvokeAction: _handlePopupAction,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final views =
-        WidgetsBinding.instance.platformDispatcher.views.toList();
+    final views = WidgetsBinding.instance.platformDispatcher.views.toList();
     return ViewCollection(
       views: views.map((v) {
         final child = v.viewId == 0
             ? _buildBar()
+            : v.viewId == _notificationPopupViewId
+            ? _buildNotificationPopups()
             : _buildPanel(_viewPanelMap[v.viewId]);
         return View(view: v, child: child);
       }).toList(),

@@ -107,6 +107,16 @@ struct _AlicePanel {
   _AliceApplication*    app;
 };
 
+struct _AliceNotificationPopup {
+  GtkApplicationWindow* gtk_window;
+  FlView*               fl_view;
+  int64_t               view_id;
+  gint                  panel_top_gap_px;
+  _AliceApplication*    app;
+};
+
+typedef struct _AliceNotificationPopup AliceNotificationPopup;
+
 struct _AliceApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
@@ -114,6 +124,7 @@ struct _AliceApplication {
   GtkWindow* bar_window;
   FlView*    bar_fl_view;
   GHashTable* panels;          // gchar* panel_id → AlicePanel*
+  AliceNotificationPopup* notification_popup;
   GtkWindow* dismiss_window;
   gboolean layer_shell_supported;
   gchar* current_panel_id;     // currently shown panel_id (or nullptr)
@@ -126,6 +137,8 @@ G_DEFINE_TYPE(AliceApplication, alice_application, GTK_TYPE_APPLICATION)
 // ---------------------------------------------------------------------------
 
 static void update_panel_window_geometry(AliceApplication* self, AlicePanel* panel);
+static void update_notification_popup_geometry(AliceApplication* self,
+                                               AliceNotificationPopup* popup);
 
 // ---------------------------------------------------------------------------
 // AlicePanel cleanup
@@ -136,6 +149,10 @@ static void alice_panel_free(gpointer data) {
   g_free(panel->panel_id);
   g_free(panel->alignment);
   g_free(panel);
+}
+
+static void alice_notification_popup_free(AliceNotificationPopup* popup) {
+  g_free(popup);
 }
 
 // ---------------------------------------------------------------------------
@@ -207,10 +224,78 @@ static void configure_layer_shell_dismiss_window(GtkWindow* window) {
   gtk_window_set_accept_focus(window, FALSE);
 }
 
+static void configure_layer_shell_notification_popup_window(GtkWindow* window) {
+  AliceSurfacePlacementFFI placement = alice_layer_shell_notification_popup_placement();
+  GdkDisplay* display = gdk_display_get_default();
+  GdkMonitor* monitor =
+      display == nullptr ? nullptr : gdk_display_get_primary_monitor(display);
+
+  gtk_layer_init_for_window(window);
+  gtk_layer_set_namespace(window, "alice-notification-popups");
+  gtk_layer_set_layer(window, GTK_LAYER_SHELL_LAYER_OVERLAY);
+  gtk_layer_set_keyboard_mode(window, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE);
+  gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_TOP, TRUE);
+  gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
+  gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_LEFT, FALSE);
+  gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_BOTTOM, FALSE);
+  gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_TOP, 0);
+  gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_RIGHT, 0);
+  gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_LEFT, 0);
+  gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_BOTTOM, 0);
+  gtk_layer_set_exclusive_zone(window, 0);
+  gtk_layer_set_respect_close(window, TRUE);
+  if (monitor != nullptr) {
+    gtk_layer_set_monitor(window, monitor);
+  }
+
+  gint initial_height = static_cast<gint>(placement.height);
+  if (initial_height <= 0 && monitor != nullptr) {
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(monitor, &geometry);
+    initial_height = geometry.height;
+  }
+  if (initial_height <= 0) {
+    initial_height = 720;
+  }
+
+  gtk_widget_set_size_request(GTK_WIDGET(window), static_cast<gint>(placement.width),
+                              initial_height);
+  gtk_window_set_default_size(window, static_cast<gint>(placement.width),
+                              initial_height);
+  gtk_window_set_resizable(window, FALSE);
+  gtk_window_set_decorated(window, FALSE);
+  gtk_window_set_skip_taskbar_hint(window, TRUE);
+  gtk_window_set_skip_pager_hint(window, TRUE);
+  gtk_window_set_accept_focus(window, FALSE);
+}
+
 static void configure_panel_fallback_window(GtkWindow* window) {
   AliceSurfacePlacementFFI placement = alice_layer_shell_panel_placement();
   gtk_window_set_default_size(window, static_cast<gint>(placement.width),
                               static_cast<gint>(placement.height));
+  gtk_window_set_resizable(window, FALSE);
+  gtk_window_set_decorated(window, FALSE);
+  gtk_window_set_skip_taskbar_hint(window, TRUE);
+  gtk_window_set_skip_pager_hint(window, TRUE);
+  gtk_window_set_keep_above(window, TRUE);
+  gtk_window_set_accept_focus(window, FALSE);
+}
+
+static void configure_notification_popup_fallback_window(GtkWindow* window) {
+  AliceSurfacePlacementFFI placement = alice_layer_shell_notification_popup_placement();
+  gint initial_height = static_cast<gint>(placement.height);
+  GdkDisplay* display = gdk_display_get_default();
+  GdkMonitor* monitor = display == nullptr ? nullptr : gdk_display_get_primary_monitor(display);
+  if (initial_height <= 0 && monitor != nullptr) {
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(monitor, &geometry);
+    initial_height = geometry.height;
+  }
+  if (initial_height <= 0) {
+    initial_height = 720;
+  }
+  gtk_window_set_default_size(window, static_cast<gint>(placement.width),
+                              initial_height);
   gtk_window_set_resizable(window, FALSE);
   gtk_window_set_decorated(window, FALSE);
   gtk_window_set_skip_taskbar_hint(window, TRUE);
@@ -321,6 +406,47 @@ static void update_panel_window_geometry(AliceApplication* self, AlicePanel* pan
                               static_cast<gint>(placement.height));
   gtk_window_resize(win, static_cast<gint>(placement.width),
                     static_cast<gint>(placement.height));
+}
+
+static void update_notification_popup_geometry(AliceApplication* self,
+                                               AliceNotificationPopup* popup) {
+  GtkWindow* win = GTK_WINDOW(popup->gtk_window);
+  AliceSurfacePlacementFFI popup_placement = alice_layer_shell_notification_popup_placement();
+  AliceSurfacePlacementFFI bar_placement = alice_layer_shell_bar_placement();
+
+  GdkDisplay* display = gdk_display_get_default();
+  GdkMonitor* monitor = display == nullptr ? nullptr : gdk_display_get_primary_monitor(display);
+  gint monitor_height = 720;
+  if (monitor != nullptr) {
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(monitor, &geometry);
+    monitor_height = geometry.height;
+  }
+  if (monitor != nullptr && self->layer_shell_supported && gtk_layer_is_supported()) {
+    gtk_layer_set_monitor(win, monitor);
+  }
+
+  const gint margin_top = static_cast<gint>(bar_placement.height) + popup->panel_top_gap_px;
+  const gint popup_height = MAX(1, monitor_height - margin_top);
+  if (self->layer_shell_supported && gtk_layer_is_supported()) {
+    gtk_layer_set_margin(win, GTK_LAYER_SHELL_EDGE_TOP, margin_top);
+    gtk_layer_set_margin(win, GTK_LAYER_SHELL_EDGE_RIGHT, 0);
+  } else if (monitor != nullptr) {
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(monitor, &geometry);
+    gtk_window_move(win,
+                    geometry.x + geometry.width - static_cast<gint>(popup_placement.width),
+                    geometry.y + margin_top);
+  }
+
+  gtk_widget_set_size_request(GTK_WIDGET(popup->fl_view),
+                              static_cast<gint>(popup_placement.width),
+                              popup_height);
+  gtk_widget_set_size_request(GTK_WIDGET(win),
+                              static_cast<gint>(popup_placement.width),
+                              popup_height);
+  gtk_window_resize(win, static_cast<gint>(popup_placement.width),
+                    popup_height);
 }
 
 // ---------------------------------------------------------------------------
@@ -434,6 +560,54 @@ static AlicePanel* ensure_panel(AliceApplication* self, const gchar* panel_id) {
   return panel;
 }
 
+static AliceNotificationPopup* ensure_notification_popup(AliceApplication* self) {
+  if (self->notification_popup != nullptr) {
+    return self->notification_popup;
+  }
+
+  AliceNotificationPopup* popup = g_new0(AliceNotificationPopup, 1);
+  popup->app = self;
+
+  FlEngine* engine = fl_view_get_engine(self->bar_fl_view);
+  FlView* fl_view = fl_view_new_for_engine(engine);
+  popup->fl_view = fl_view;
+
+  GtkWindow* win = GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(self)));
+  popup->gtk_window = GTK_APPLICATION_WINDOW(win);
+
+  gtk_widget_set_app_paintable(GTK_WIDGET(win), TRUE);
+  GdkScreen* screen = gtk_window_get_screen(win);
+  if (screen != nullptr) {
+    GdkVisual* visual = gdk_screen_get_rgba_visual(screen);
+    if (visual != nullptr) {
+      gtk_widget_set_visual(GTK_WIDGET(win), visual);
+    }
+  }
+
+  GdkRGBA transparent = {0.0, 0.0, 0.0, 0.0};
+  fl_view_set_background_color(fl_view, &transparent);
+  gtk_widget_set_hexpand(GTK_WIDGET(fl_view), TRUE);
+  gtk_widget_set_vexpand(GTK_WIDGET(fl_view), TRUE);
+
+  AliceSurfacePlacementFFI placement = alice_layer_shell_notification_popup_placement();
+  gtk_widget_set_size_request(GTK_WIDGET(fl_view),
+                              static_cast<gint>(placement.width),
+                              720);
+  gtk_widget_show(GTK_WIDGET(fl_view));
+  gtk_container_add(GTK_CONTAINER(win), GTK_WIDGET(fl_view));
+  gtk_window_set_title(win, "alice-notification-popups");
+
+  if (self->layer_shell_supported && gtk_layer_is_supported()) {
+    configure_layer_shell_notification_popup_window(win);
+  } else {
+    configure_notification_popup_fallback_window(win);
+  }
+
+  popup->view_id = fl_view_get_id(fl_view);
+  self->notification_popup = popup;
+  return popup;
+}
+
 // ---------------------------------------------------------------------------
 // Platform method channel
 // ---------------------------------------------------------------------------
@@ -476,6 +650,25 @@ static void platform_method_call_cb(FlMethodChannel* channel,
             ? static_cast<gint>(fl_value_get_int(gap_value))
             : 0;
 
+        g_message("alice showPanel id=%s width=%.1f height=%.1f anchor=(%.1f,%.1f)",
+                  panel_id_str, width, height, anchor_x, anchor_y);
+
+        // Reusing/resizing the notifications panel's secondary FlView across
+        // dynamic height changes can wedge Flutter's Linux multi-view renderer.
+        // Recreate that native panel view only when its requested size changes.
+        if (g_strcmp0(panel_id_str, "notifications") == 0) {
+          AlicePanel* existing = static_cast<AlicePanel*>(
+              g_hash_table_lookup(self->panels, panel_id_str));
+          if (existing != nullptr &&
+              (existing->width != width || existing->height != height)) {
+            g_message("alice showPanel recreating notifications panel view_id=%ld old=%.1fx%.1f new=%.1fx%.1f",
+                      static_cast<long>(existing->view_id), existing->width,
+                      existing->height, width, height);
+            gtk_widget_destroy(GTK_WIDGET(existing->gtk_window));
+            g_hash_table_remove(self->panels, panel_id_str);
+          }
+        }
+
         AlicePanel* panel = ensure_panel(self, panel_id_str);
 
         // Store geometry on the panel
@@ -507,7 +700,12 @@ static void platform_method_call_cb(FlMethodChannel* channel,
         // the Wayland surface exists and the Flutter view reports the right
         // dimensions when Dart renders the first frame.
         update_panel_window_geometry(self, panel);
-        if (self->dismiss_window != nullptr) {
+        // Keep the dismiss overlay disabled for the notifications panel while
+        // investigating Linux multi-view geometry issues. Showing the overlay
+        // can make panel failures look like input lockups, and the bounded
+        // overlay experiment regressed notification-panel opening after popups.
+        if (self->dismiss_window != nullptr &&
+            g_strcmp0(panel_id_str, "notifications") != 0) {
           gtk_widget_show_all(GTK_WIDGET(self->dismiss_window));
         }
         gtk_widget_show_all(GTK_WIDGET(panel->gtk_window));
@@ -524,8 +722,11 @@ static void platform_method_call_cb(FlMethodChannel* channel,
         }
 
         // Notify Dart — engine renders into an already-visible, correctly-sized view.
+        g_message("alice showPanel notify Dart id=%s view_id=%ld", panel_id_str,
+                  static_cast<long>(panel->view_id));
         alice_notify_panel_show(panel_id_str, panel->view_id, include_bytes != FALSE,
                                 anchor_x, anchor_y, width, height);
+        g_message("alice showPanel native complete id=%s", panel_id_str);
 
         ok = TRUE;
       }
@@ -534,6 +735,28 @@ static void platform_method_call_cb(FlMethodChannel* channel,
         ? FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_null()))
         : FL_METHOD_RESPONSE(fl_method_error_response_new(
               "panel_show_failed", "Failed to show panel", nullptr));
+  } else if (strcmp(method, "showNotificationPopups") == 0) {
+    FlValue* gap_value = args == nullptr ? nullptr : fl_value_lookup_string(args, "panelTopGapPx");
+    const gint panel_gap = gap_value != nullptr
+        ? static_cast<gint>(fl_value_get_int(gap_value))
+        : 0;
+    AliceNotificationPopup* popup = ensure_notification_popup(self);
+    popup->panel_top_gap_px = panel_gap;
+    update_notification_popup_geometry(self, popup);
+    gtk_widget_show_all(GTK_WIDGET(popup->gtk_window));
+    popup->view_id = fl_view_get_id(popup->fl_view);
+    GdkDisplay* display = gdk_display_get_default();
+    if (display != nullptr) {
+      gdk_display_flush(display);
+    }
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(
+        fl_value_new_int(popup->view_id)));
+  } else if (strcmp(method, "hideNotificationPopups") == 0) {
+    if (self->notification_popup != nullptr) {
+      gtk_widget_hide(GTK_WIDGET(self->notification_popup->gtk_window));
+    }
+    response =
+        FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_null()));
   } else if (strcmp(method, "hidePanel") == 0) {
     if (self->current_panel_id != nullptr) {
       AlicePanel* panel = static_cast<AlicePanel*>(
@@ -553,9 +776,15 @@ static void platform_method_call_cb(FlMethodChannel* channel,
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }
 
+  if (strcmp(method, "showPanel") == 0) {
+    g_message("alice showPanel sending method response");
+  }
   g_autoptr(GError) error = nullptr;
   if (!fl_method_call_respond(method_call, response, &error)) {
     g_warning("Failed to send method response: %s", error->message);
+  }
+  if (strcmp(method, "showPanel") == 0) {
+    g_message("alice showPanel method response sent");
   }
 }
 
@@ -745,6 +974,7 @@ static void alice_application_dispose(GObject* object) {
   g_clear_object(&self->platform_channel);
   g_clear_pointer(&self->current_panel_id, g_free);
   g_clear_pointer(&self->panels, g_hash_table_destroy);
+  g_clear_pointer(&self->notification_popup, alice_notification_popup_free);
   G_OBJECT_CLASS(alice_application_parent_class)->dispose(object);
 }
 
@@ -762,6 +992,7 @@ static void alice_application_init(AliceApplication* self) {
   self->bar_fl_view = nullptr;
   self->panels = g_hash_table_new_full(g_str_hash, g_str_equal,
                                        g_free, alice_panel_free);
+  self->notification_popup = nullptr;
   self->dismiss_window = nullptr;
   self->layer_shell_supported = FALSE;
   self->current_panel_id = nullptr;
