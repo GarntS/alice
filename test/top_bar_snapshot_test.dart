@@ -21,7 +21,7 @@ void main() {
         height: 80,
         child: TopBar(
           config: testConfig(maxVisibleTrayItems: 3),
-          snapshot: testSnapshot(),
+          snapshotState: testSnapshotState(snapshot: testSnapshot()),
           panelController: controller,
           onWorkspaceTap: tappedWorkspaces.add,
           onTrayItemTap: tappedTrayItems.add,
@@ -67,7 +67,7 @@ void main() {
         height: 80,
         child: TopBar(
           config: testConfig(),
-          snapshot: testSnapshot(),
+          snapshotState: testSnapshotState(snapshot: testSnapshot()),
           panelController: controller,
           onWorkspaceTap: (_) {},
           onTrayItemTap: (_) {},
@@ -88,7 +88,7 @@ void main() {
         height: 80,
         child: TopBar(
           config: testConfig(transparentTopBar: true),
-          snapshot: testSnapshot(),
+          snapshotState: testSnapshotState(snapshot: testSnapshot()),
           panelController: controller,
           onWorkspaceTap: (_) {},
           onTrayItemTap: (_) {},
@@ -117,14 +117,16 @@ void main() {
         height: 80,
         child: TopBar(
           config: testConfig(showNetworkLabel: false),
-          snapshot: testSnapshot(
-            media: null,
-            network: const NetworkSnapshot(
-              kind: NetworkKind.disconnected,
-              label: 'Disconnected',
+          snapshotState: testSnapshotState(
+            snapshot: testSnapshot(
+              media: null,
+              network: const NetworkSnapshot(
+                kind: NetworkKind.disconnected,
+                label: 'Disconnected',
+              ),
+              trayItems: const [],
+              notifications: const [],
             ),
-            trayItems: const [],
-            notifications: const [],
           ),
           panelController: controller,
           onWorkspaceTap: (_) {},

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:alicebar/alice_config.dart';
 import 'package:alicebar/alice_theme.dart';
 import 'package:alicebar/rust_gen/state.dart';
+import 'package:alicebar/snapshot_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,6 +50,11 @@ BarSnapshot testSnapshot({
   List<TrayItemSnapshot>? trayItems,
   List<NotificationSnapshot>? notifications,
   NetworkSnapshot? network,
+  ClockSnapshot clock = const ClockSnapshot(
+    timeZoneCode: 'UTC',
+    dateLabel: '09 Mar',
+    timeLabel: '13:37',
+  ),
   double memoryUsagePercent = 82,
   double cpuUsageCores = 2.7,
 }) {
@@ -63,13 +69,34 @@ BarSnapshot testSnapshot({
     network:
         network ??
         const NetworkSnapshot(kind: NetworkKind.wifi, label: 'alice-net'),
-    clock: const ClockSnapshot(
-      timeZoneCode: 'UTC',
-      dateLabel: '09 Mar',
-      timeLabel: '13:37',
-    ),
+    clock: clock,
     trayItems: trayItems ?? testTrayItems(5),
     notifications: notifications ?? testNotifications(2),
+  );
+}
+
+BarSnapshot copyTestSnapshot(
+  BarSnapshot snapshot, {
+  List<WorkspaceSnapshot>? workspaces,
+  Object? media = _defaultMediaSentinel,
+  double? memoryUsagePercent,
+  double? cpuUsageCores,
+  NetworkSnapshot? network,
+  ClockSnapshot? clock,
+  List<TrayItemSnapshot>? trayItems,
+  List<NotificationSnapshot>? notifications,
+}) {
+  return BarSnapshot(
+    workspaces: workspaces ?? snapshot.workspaces,
+    media: identical(media, _defaultMediaSentinel)
+        ? snapshot.media
+        : media as MediaSnapshot?,
+    memoryUsagePercent: memoryUsagePercent ?? snapshot.memoryUsagePercent,
+    cpuUsageCores: cpuUsageCores ?? snapshot.cpuUsageCores,
+    network: network ?? snapshot.network,
+    clock: clock ?? snapshot.clock,
+    trayItems: trayItems ?? snapshot.trayItems,
+    notifications: notifications ?? snapshot.notifications,
   );
 }
 
@@ -115,7 +142,7 @@ List<NotificationSnapshot> testNotifications(
   int count, {
   Uint8List? imageData,
 }) {
-  final now = BigInt.from(DateTime.now().millisecondsSinceEpoch ~/ 1000);
+  final now = BigInt.from(1770000000);
   return List.generate(
     count,
     (i) => NotificationSnapshot(
@@ -139,6 +166,15 @@ List<NotificationSnapshot> testNotifications(
       imagePath: null,
     ),
   );
+}
+
+AliceSnapshotState testSnapshotState({
+  AliceConfig? config,
+  BarSnapshot? snapshot,
+}) {
+  final state = AliceSnapshotState(config: config ?? testConfig());
+  state.ingest(snapshot ?? testSnapshot());
+  return state;
 }
 
 Future<void> pumpAliceWidget(
@@ -165,4 +201,23 @@ Future<void> pumpAliceWidget(
 
 void expectNoFlutterErrors() {
   expect(TestWidgetsFlutterBinding.instance.takeException(), isNull);
+}
+
+class BuildCounter extends StatelessWidget {
+  const BuildCounter({
+    super.key,
+    required this.name,
+    required this.counts,
+    required this.child,
+  });
+
+  final String name;
+  final Map<String, int> counts;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    counts[name] = (counts[name] ?? 0) + 1;
+    return child;
+  }
 }

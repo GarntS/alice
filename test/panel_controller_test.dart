@@ -14,8 +14,14 @@ void main() {
 
   test('toggle tracks a single open panel and anchor', () {
     final controller = PanelController();
-    final mediaAnchor = PanelAnchor(globalPosition: const Offset(10, 20), alignment: PanelAlignment.center);
-    final powerAnchor = PanelAnchor(globalPosition: const Offset(30, 40), alignment: PanelAlignment.right);
+    final mediaAnchor = PanelAnchor(
+      globalPosition: const Offset(10, 20),
+      alignment: PanelAlignment.center,
+    );
+    final powerAnchor = PanelAnchor(
+      globalPosition: const Offset(30, 40),
+      alignment: PanelAlignment.right,
+    );
     var notifications = 0;
     controller.addListener(() => notifications++);
 
@@ -38,6 +44,43 @@ void main() {
     expect(controller.openPanel, isNull);
     expect(controller.anchor, isNull);
     expect(notifications, 3);
+
+    controller.dispose();
+  });
+
+  test('granular open-state listeners notify only changed panels', () {
+    final controller = PanelController();
+    final mediaAnchor = PanelAnchor(
+      globalPosition: const Offset(10, 20),
+      alignment: PanelAlignment.center,
+    );
+    final clockAnchor = PanelAnchor(
+      globalPosition: const Offset(30, 40),
+      alignment: PanelAlignment.right,
+    );
+    final counts = <AlicePanel, int>{};
+    for (final panel in AlicePanel.values) {
+      controller.openListenable(panel).addListener(() {
+        counts[panel] = (counts[panel] ?? 0) + 1;
+      });
+    }
+
+    controller.toggle(AlicePanel.media, mediaAnchor);
+    expect(counts, {AlicePanel.media: 1});
+    expect(controller.mediaOpen.value, isTrue);
+    expect(controller.clockOpen.value, isFalse);
+
+    controller.toggle(AlicePanel.clock, clockAnchor);
+    expect(counts[AlicePanel.media], 2);
+    expect(counts[AlicePanel.clock], 1);
+    expect(counts.length, 2);
+    expect(controller.mediaOpen.value, isFalse);
+    expect(controller.clockOpen.value, isTrue);
+
+    controller.toggle(AlicePanel.clock, clockAnchor);
+    expect(counts[AlicePanel.clock], 2);
+    expect(counts.length, 2);
+    expect(controller.clockOpen.value, isFalse);
 
     controller.dispose();
   });

@@ -8,6 +8,7 @@ import 'alice_platform.dart';
 import 'panel_controller.dart';
 import 'alice_theme.dart';
 import 'notification_popup_state.dart';
+import 'snapshot_state.dart';
 import 'widgets/notification_popups.dart';
 import 'widgets/panels/panel_host.dart';
 import 'widgets/panels/panel_spec.dart';
@@ -15,6 +16,19 @@ import 'widgets/top_bar.dart';
 
 // frb-generated bindings — used directly for watchPanelCommands.
 import 'rust_gen/api.dart' as frb;
+
+@visibleForTesting
+void applyPanelCommandToViewMap(
+  Map<int, String> viewPanelMap,
+  frb.PanelCommand? command,
+) {
+  if (command == null) {
+    viewPanelMap.clear();
+    return;
+  }
+
+  viewPanelMap[command.viewId] = command.panelId;
+}
 
 class AliceApp extends StatefulWidget {
   const AliceApp({super.key});
@@ -30,25 +44,11 @@ class _AliceAppState extends State<AliceApp> {
   late final StreamSubscription<frb.PanelCommand?> _panelCommandSubscription;
 
   AliceConfig _config = AliceConfig.fallback();
+  late final AliceSnapshotState _snapshotState = AliceSnapshotState(
+    config: _config,
+  );
   late ThemeData _lightTheme = buildAliceTheme(_config, Brightness.light);
   late ThemeData _darkTheme = buildAliceTheme(_config, Brightness.dark);
-  BarSnapshot _snapshot = const BarSnapshot(
-    workspaces: [],
-    media: null,
-    memoryUsagePercent: 0,
-    cpuUsageCores: 0,
-    network: NetworkSnapshot(
-      kind: NetworkKind.disconnected,
-      label: 'Disconnected',
-    ),
-    clock: ClockSnapshot(
-      timeZoneCode: 'UTC',
-      dateLabel: '-- ---',
-      timeLabel: '--:--',
-    ),
-    trayItems: [],
-    notifications: [],
-  );
 
   // viewId (int) → panelId (String) — populated when C++ calls alice_notify_panel_show
   final Map<int, String> _viewPanelMap = {};
@@ -63,29 +63,33 @@ class _AliceAppState extends State<AliceApp> {
       config: _config,
       onChanged: () {
         if (!mounted) return;
-        setState(() {});
+        _snapshotState.updatePopupVisibleIds(
+          _notificationPopupState.visibleIds,
+        );
         _syncNotificationPopupWindow();
       },
     );
     _panelController.addListener(_syncPanelState);
+    _snapshotState.media.addListener(_syncMediaPanelSize);
+    _snapshotState.trayOverflowCount.addListener(_syncTrayPanelSize);
     _loadConfig();
 
     _panelCommandSubscription = frb.watchPanelCommands().listen((cmd) {
       if (!mounted) return;
-      if (cmd != null) {
-        setState(() => _viewPanelMap[cmd.viewId] = cmd.panelId);
-      } else {
+      setState(() => applyPanelCommandToViewMap(_viewPanelMap, cmd));
+      if (cmd == null) {
         _panelController.close();
       }
     }, onError: (_, _) {});
 
     _snapshotSubscription = _platform.watchBarSnapshots().listen((snapshot) {
       if (!mounted) return;
-      setState(() {
-        _snapshot = snapshot;
-        _notificationPopupState.processSnapshot(snapshot.notifications);
-      });
-      _syncNotificationPopupWindow();
+      _snapshotState.ingest(snapshot);
+      final popupsChanged = _notificationPopupState.processSnapshot(
+        snapshot.notifications,
+      );
+      _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
+      if (popupsChanged) _syncNotificationPopupWindow();
     }, onError: (_, _) {});
 
     // Detect when C++ adds new FlViews (panel windows)
@@ -107,6 +111,7 @@ class _AliceAppState extends State<AliceApp> {
         _lightTheme = buildAliceTheme(config, Brightness.light);
         _darkTheme = buildAliceTheme(config, Brightness.dark);
         _notificationPopupState.config = config;
+        _snapshotState.updateConfig(config);
       });
     } catch (_) {}
   }
@@ -126,10 +131,11 @@ class _AliceAppState extends State<AliceApp> {
       final anchor = _panelController.anchor;
       if (anchor == null) return;
 
-      final panelSize = alicePanelSize(
+      final panelSize = alicePanelSizeFromSlices(
         openPanel,
         config: _config,
-        snapshot: _snapshot,
+        media: _snapshotState.currentMedia,
+        trayOverflowCount: _snapshotState.currentTrayOverflowCount,
         screenHeight: _screenHeight,
       );
       final panelId = _panelId(openPanel);
@@ -154,6 +160,15 @@ class _AliceAppState extends State<AliceApp> {
             },
           );
     } catch (_) {}
+  }
+
+  void _syncMediaPanelSize() {
+    if (_panelController.openPanel == AlicePanel.media) _syncPanelState();
+  }
+
+  void _syncTrayPanelSize() {
+    if (_panelController.openPanel == AlicePanel.trayOverflow)
+      _syncPanelState();
   }
 
   Future<void> _closePanel() async {
@@ -211,7 +226,9 @@ class _AliceAppState extends State<AliceApp> {
 
   Future<void> _handleMarkAllNotificationsRead() async {
     try {
-      await _platform.markAllNotificationsRead(_snapshot.notifications);
+      await _platform.markAllNotificationsRead(
+        _snapshotState.currentNotifications,
+      );
     } catch (_) {}
   }
 
@@ -223,7 +240,9 @@ class _AliceAppState extends State<AliceApp> {
 
   void _hideAllNotificationPopups() {
     final changed = _notificationPopupState.hideAll();
-    if (changed) setState(() {});
+    if (changed) {
+      _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
+    }
     _syncNotificationPopupWindow();
   }
 
@@ -243,19 +262,22 @@ class _AliceAppState extends State<AliceApp> {
   }
 
   Future<void> _handleDismissPopupRead(int id) async {
-    setState(() => _notificationPopupState.remove(id));
+    _notificationPopupState.remove(id);
+    _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
     _syncNotificationPopupWindow();
     await _handleMarkNotificationRead(id);
   }
 
   Future<void> _handlePopupDismissNotification(int id) async {
-    setState(() => _notificationPopupState.remove(id));
+    _notificationPopupState.remove(id);
+    _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
     _syncNotificationPopupWindow();
     await _handleDismissNotification(id);
   }
 
   Future<void> _handlePopupAction(int id, String actionKey) async {
-    setState(() => _notificationPopupState.remove(id));
+    _notificationPopupState.remove(id);
+    _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
     _syncNotificationPopupWindow();
     await _handleInvokeNotificationAction(id, actionKey);
     await _handleMarkNotificationRead(id);
@@ -285,6 +307,9 @@ class _AliceAppState extends State<AliceApp> {
     _panelCommandSubscription.cancel();
     _snapshotSubscription.cancel();
     _notificationPopupState.dispose();
+    _snapshotState.media.removeListener(_syncMediaPanelSize);
+    _snapshotState.trayOverflowCount.removeListener(_syncTrayPanelSize);
+    _snapshotState.dispose();
     _panelController.removeListener(_syncPanelState);
     _panelController.dispose();
     WidgetsBinding.instance.platformDispatcher.onMetricsChanged = null;
@@ -292,49 +317,23 @@ class _AliceAppState extends State<AliceApp> {
   }
 
   Widget _buildBar() {
-    return AnimatedBuilder(
-      animation: _panelController,
-      builder: (context, _) {
-        /*return MaterialApp(
-          title: 'alice',
-          debugShowCheckedModeBanner: false,
-          themeMode: _config.themeMode,
-          theme: _lightTheme,
-          darkTheme: _darkTheme,
-          home: Scaffold(
-            backgroundColor: Colors.transparent,
-            body: Align(
-              alignment: Alignment.topCenter,
-              child: TopBar(
-                config: _config,
-                snapshot: _snapshot,
-                panelController: _panelController,
-                onWorkspaceTap: _handleWorkspaceFocus,
-                onTrayItemTap: _handleTrayActivate,
-                onBackgroundTap: _closePanel,
-              ),
-            ),
-          ),
-        );*/
-        return MaterialApp(
-          title: 'alice',
-          debugShowCheckedModeBanner: false,
-          themeMode: _config.themeMode,
-          theme: _lightTheme,
-          darkTheme: _darkTheme,
-          home: Scaffold(
-            backgroundColor: Colors.transparent,
-            body: TopBar(
-              config: _config,
-              snapshot: _snapshot,
-              panelController: _panelController,
-              onWorkspaceTap: _handleWorkspaceFocus,
-              onTrayItemTap: _handleTrayActivate,
-              onBackgroundTap: _closePanel,
-            ),
-          ),
-        );
-      },
+    return MaterialApp(
+      title: 'alice',
+      debugShowCheckedModeBanner: false,
+      themeMode: _config.themeMode,
+      theme: _lightTheme,
+      darkTheme: _darkTheme,
+      home: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: TopBar(
+          config: _config,
+          snapshotState: _snapshotState,
+          panelController: _panelController,
+          onWorkspaceTap: _handleWorkspaceFocus,
+          onTrayItemTap: _handleTrayActivate,
+          onBackgroundTap: _closePanel,
+        ),
+      ),
     );
   }
 
@@ -354,7 +353,7 @@ class _AliceAppState extends State<AliceApp> {
               : AlicePanelCard(
                   panel: panel,
                   config: _config,
-                  snapshot: _snapshot,
+                  snapshotState: _snapshotState,
                   onPowerAction: _handlePowerAction,
                   onMediaAction: _handleMediaAction,
                   onSeekMedia: _handleMediaSeek,
@@ -371,11 +370,6 @@ class _AliceAppState extends State<AliceApp> {
   }
 
   Widget _buildNotificationPopups() {
-    final byId = {for (final n in _snapshot.notifications) n.id: n};
-    final notifications = _notificationPopupState.visibleIds
-        .map((id) => byId[id])
-        .whereType<NotificationSnapshot>()
-        .toList();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       themeMode: _config.themeMode,
@@ -383,12 +377,15 @@ class _AliceAppState extends State<AliceApp> {
       darkTheme: _darkTheme,
       home: Scaffold(
         backgroundColor: Colors.transparent,
-        body: NotificationPopupStack(
-          notifications: notifications,
-          onDismissPopupRead: _handleDismissPopupRead,
-          onDismissNotification: _handlePopupDismissNotification,
-          onMarkRead: _handleMarkNotificationRead,
-          onInvokeAction: _handlePopupAction,
+        body: ValueListenableBuilder<List<NotificationSnapshot>>(
+          valueListenable: _snapshotState.popupNotifications,
+          builder: (context, notifications, _) => NotificationPopupStack(
+            notifications: notifications,
+            onDismissPopupRead: _handleDismissPopupRead,
+            onDismissNotification: _handlePopupDismissNotification,
+            onMarkRead: _handleMarkNotificationRead,
+            onInvokeAction: _handlePopupAction,
+          ),
         ),
       ),
     );

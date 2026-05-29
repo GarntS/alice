@@ -53,7 +53,7 @@ void main() {
         AlicePanelCard(
           panel: AlicePanel.media,
           config: testConfig(),
-          snapshot: snapshot,
+          snapshotState: testSnapshotState(snapshot: snapshot),
           onPowerAction: (_) async {},
           onMediaAction: (_) async {},
           onSeekMedia: (_) async {},

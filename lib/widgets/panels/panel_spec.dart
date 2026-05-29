@@ -12,14 +12,28 @@ Size alicePanelSize(
   required BarSnapshot snapshot,
   double screenHeight = 1080.0,
 }) {
+  return alicePanelSizeFromSlices(
+    panel,
+    config: config,
+    media: snapshot.media,
+    trayOverflowCount: _trayOverflowCount(config, snapshot),
+    screenHeight: screenHeight,
+  );
+}
+
+Size alicePanelSizeFromSlices(
+  AlicePanel panel, {
+  required AliceConfig config,
+  required MediaSnapshot? media,
+  required int trayOverflowCount,
+  double screenHeight = 1080.0,
+}) {
   return switch (panel) {
-    AlicePanel.media => Size(360, _mediaHeight(snapshot.media)),
+    AlicePanel.media => Size(360, _mediaHeight(media)),
     AlicePanel.clock => Size(320, _clockHeight(config, screenHeight)),
     AlicePanel.trayOverflow => Size(
       320,
-      (92 + (_trayOverflowCount(config, snapshot) * 52))
-          .clamp(120, 320)
-          .toDouble(),
+      (92 + (trayOverflowCount * 52)).clamp(120, 320).toDouble(),
     ),
     AlicePanel.power => const Size(280, 292),
     AlicePanel.notifications => const Size(380, 880),
