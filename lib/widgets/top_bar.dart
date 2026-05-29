@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../alice_config.dart';
@@ -160,35 +161,14 @@ class _TopBarState extends State<TopBar> {
                             ),
                           ),
                     ),
-                    ValueListenableBuilder<List<TrayItemSnapshot>>(
-                      valueListenable: widget.snapshotState.visibleTrayItems,
-                      builder: (context, items, _) => _probe(
-                        'tray',
-                        items.isEmpty
-                            ? const SizedBox.shrink()
-                            : TopBarTrayGroupModule(
-                                items: items,
-                                onItemTap: widget.onTrayItemTap,
-                              ),
-                      ),
-                    ),
-                    ValueListenableBuilder<int>(
-                      valueListenable: widget.snapshotState.trayOverflowCount,
-                      builder: (context, overflowCount, _) => overflowCount <= 0
-                          ? const SizedBox.shrink()
-                          : ValueListenableBuilder<bool>(
-                              valueListenable:
-                                  widget.panelController.trayOverflowOpen,
-                              builder: (context, highlighted, _) => _probe(
-                                'trayOverflow',
-                                TopBarTrayOverflowModule(
-                                  overflowCount: overflowCount,
-                                  highlighted: highlighted,
-                                  onToggle: (anchor) => widget.panelController
-                                      .toggle(AlicePanel.trayOverflow, anchor),
-                                ),
-                              ),
-                            ),
+                    _TrayCluster(
+                      visibleTrayItems: widget.snapshotState.visibleTrayItems,
+                      trayOverflowCount: widget.snapshotState.trayOverflowCount,
+                      trayOverflowOpen: widget.panelController.trayOverflowOpen,
+                      onTrayItemTap: widget.onTrayItemTap,
+                      onTrayOverflowToggle: (anchor) => widget.panelController
+                          .toggle(AlicePanel.trayOverflow, anchor),
+                      probe: _probe,
                     ),
                     ValueListenableBuilder<int>(
                       valueListenable:
@@ -227,6 +207,64 @@ class _TopBarState extends State<TopBar> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _TrayCluster extends StatelessWidget {
+  const _TrayCluster({
+    required this.visibleTrayItems,
+    required this.trayOverflowCount,
+    required this.trayOverflowOpen,
+    required this.onTrayItemTap,
+    required this.onTrayOverflowToggle,
+    required this.probe,
+  });
+
+  final ValueListenable<List<TrayItemSnapshot>> visibleTrayItems;
+  final ValueListenable<int> trayOverflowCount;
+  final ValueListenable<bool> trayOverflowOpen;
+  final ValueChanged<TrayItemSnapshot> onTrayItemTap;
+  final ValueChanged<PanelAnchor> onTrayOverflowToggle;
+  final Widget Function(String name, Widget child) probe;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<TrayItemSnapshot>>(
+      valueListenable: visibleTrayItems,
+      builder: (context, items, _) => ValueListenableBuilder<int>(
+        valueListenable: trayOverflowCount,
+        builder: (context, overflowCount, _) {
+          if (items.isEmpty && overflowCount <= 0) {
+            return const SizedBox.shrink();
+          }
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (items.isNotEmpty)
+                probe(
+                  'tray',
+                  TopBarTrayGroupModule(items: items, onItemTap: onTrayItemTap),
+                ),
+              if (items.isNotEmpty && overflowCount > 0)
+                const SizedBox(width: 8),
+              if (overflowCount > 0)
+                ValueListenableBuilder<bool>(
+                  valueListenable: trayOverflowOpen,
+                  builder: (context, highlighted, _) => probe(
+                    'trayOverflow',
+                    TopBarTrayOverflowModule(
+                      overflowCount: overflowCount,
+                      highlighted: highlighted,
+                      onToggle: onTrayOverflowToggle,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

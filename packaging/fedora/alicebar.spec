@@ -4,7 +4,7 @@
 %undefine _annotated_build
 
 Name:       alicebar
-Version:    1.0.0
+Version:    %{?alicebar_version}%{!?alicebar_version:1.0.0}
 Release:    1%{?dist}
 Summary:    Flutter-based Wayland top bar for wlroots compositors
 License:    GPL-3.0-only

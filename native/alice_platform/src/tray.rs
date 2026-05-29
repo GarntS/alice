@@ -62,11 +62,13 @@ fn sni_watcher_state() -> Arc<Mutex<WatcherState>> {
 struct KdeSniWatcher {
     state: Arc<Mutex<WatcherState>>,
     trigger: mpsc::Sender<crate::runtime::Trigger>,
+    connection: Arc<zbus::Connection>,
 }
 
 struct FreedesktopSniWatcher {
     state: Arc<Mutex<WatcherState>>,
     trigger: mpsc::Sender<crate::runtime::Trigger>,
+    connection: Arc<zbus::Connection>,
 }
 
 fn canonical_sni_item_id(sender: Option<&str>, service_or_path: &str) -> Option<String> {
@@ -87,28 +89,21 @@ fn canonical_sni_item_id(sender: Option<&str>, service_or_path: &str) -> Option<
     Some(format!("{s}{DEFAULT_ITEM_PATH}"))
 }
 
-async fn handle_register_item(
+fn register_sni_item(
     state: &Arc<Mutex<WatcherState>>,
-    trigger: &mpsc::Sender<crate::runtime::Trigger>,
     sender: Option<&str>,
     service_or_path: &str,
-) {
-    if let Some(id) = canonical_sni_item_id(sender, service_or_path) {
-        let added = state
-            .lock()
-            .map(|mut s| s.registered_items.insert(id))
-            .unwrap_or(false);
-        if added {
-            let _ = trigger.send(crate::runtime::Trigger::Event).await;
-        }
-    }
+) -> Option<String> {
+    let id = canonical_sni_item_id(sender, service_or_path)?;
+    let added = state
+        .lock()
+        .map(|mut s| s.registered_items.insert(id.clone()))
+        .unwrap_or(false);
+    added.then_some(id)
 }
 
-async fn handle_register_host(
-    state: &Arc<Mutex<WatcherState>>,
-    trigger: &mpsc::Sender<crate::runtime::Trigger>,
-) {
-    let changed = state
+fn register_sni_host(state: &Arc<Mutex<WatcherState>>) -> bool {
+    state
         .lock()
         .map(|mut s| {
             if !s.host_registered {
@@ -118,9 +113,68 @@ async fn handle_register_host(
                 false
             }
         })
-        .unwrap_or(false);
+        .unwrap_or(false)
+}
+
+async fn handle_register_item(
+    state: &Arc<Mutex<WatcherState>>,
+    trigger: &mpsc::Sender<crate::runtime::Trigger>,
+    sender: Option<&str>,
+    service_or_path: &str,
+) -> Option<String> {
+    let registered_id = register_sni_item(state, sender, service_or_path);
+    if registered_id.is_some() {
+        let _ = trigger.send(crate::runtime::Trigger::Event).await;
+    }
+    registered_id
+}
+
+async fn handle_register_host(
+    state: &Arc<Mutex<WatcherState>>,
+    trigger: &mpsc::Sender<crate::runtime::Trigger>,
+) -> bool {
+    let changed = register_sni_host(state);
     if changed {
         let _ = trigger.send(crate::runtime::Trigger::Event).await;
+    }
+    changed
+}
+
+async fn emit_item_registered_signals(conn: &zbus::Connection, service: &str) {
+    if let Ok(iface) = conn
+        .object_server()
+        .interface::<_, KdeSniWatcher>(WATCHER_PATH)
+        .await
+    {
+        let _ =
+            KdeSniWatcher::status_notifier_item_registered(iface.signal_emitter(), service).await;
+    }
+    if let Ok(iface) = conn
+        .object_server()
+        .interface::<_, FreedesktopSniWatcher>(WATCHER_PATH)
+        .await
+    {
+        let _ =
+            FreedesktopSniWatcher::status_notifier_item_registered(iface.signal_emitter(), service)
+                .await;
+    }
+}
+
+async fn emit_host_registered_signals(conn: &zbus::Connection) {
+    if let Ok(iface) = conn
+        .object_server()
+        .interface::<_, KdeSniWatcher>(WATCHER_PATH)
+        .await
+    {
+        let _ = KdeSniWatcher::status_notifier_host_registered(iface.signal_emitter()).await;
+    }
+    if let Ok(iface) = conn
+        .object_server()
+        .interface::<_, FreedesktopSniWatcher>(WATCHER_PATH)
+        .await
+    {
+        let _ =
+            FreedesktopSniWatcher::status_notifier_host_registered(iface.signal_emitter()).await;
     }
 }
 
@@ -132,18 +186,23 @@ impl KdeSniWatcher {
         #[zbus(header)] header: zbus::message::Header<'_>,
     ) -> zbus::fdo::Result<()> {
         let sender = header.sender().map(|s| s.to_string());
-        handle_register_item(
+        if let Some(registered_id) = handle_register_item(
             &self.state,
             &self.trigger,
             sender.as_deref(),
             service_or_path,
         )
-        .await;
+        .await
+        {
+            emit_item_registered_signals(&self.connection, &registered_id).await;
+        }
         Ok(())
     }
 
     async fn register_status_notifier_host(&self, _service: &str) -> zbus::fdo::Result<()> {
-        handle_register_host(&self.state, &self.trigger).await;
+        if handle_register_host(&self.state, &self.trigger).await {
+            emit_host_registered_signals(&self.connection).await;
+        }
         Ok(())
     }
 
@@ -203,18 +262,23 @@ impl FreedesktopSniWatcher {
         #[zbus(header)] header: zbus::message::Header<'_>,
     ) -> zbus::fdo::Result<()> {
         let sender = header.sender().map(|s| s.to_string());
-        handle_register_item(
+        if let Some(registered_id) = handle_register_item(
             &self.state,
             &self.trigger,
             sender.as_deref(),
             service_or_path,
         )
-        .await;
+        .await
+        {
+            emit_item_registered_signals(&self.connection, &registered_id).await;
+        }
         Ok(())
     }
 
     async fn register_status_notifier_host(&self, _service: &str) -> zbus::fdo::Result<()> {
-        handle_register_host(&self.state, &self.trigger).await;
+        if handle_register_host(&self.state, &self.trigger).await {
+            emit_host_registered_signals(&self.connection).await;
+        }
         Ok(())
     }
 
@@ -274,7 +338,7 @@ pub async fn run_status_notifier_watcher(
 ) -> zbus::Result<()> {
     let state = sni_watcher_state();
 
-    let conn = zbus::connection::Builder::session()?.build().await?;
+    let conn = Arc::new(zbus::connection::Builder::session()?.build().await?);
 
     conn.object_server()
         .at(
@@ -282,6 +346,7 @@ pub async fn run_status_notifier_watcher(
             KdeSniWatcher {
                 state: state.clone(),
                 trigger: trigger.clone(),
+                connection: conn.clone(),
             },
         )
         .await?;
@@ -291,13 +356,18 @@ pub async fn run_status_notifier_watcher(
             WATCHER_PATH,
             FreedesktopSniWatcher {
                 state: state.clone(),
-                trigger,
+                trigger: trigger.clone(),
+                connection: conn.clone(),
             },
         )
         .await?;
 
     conn.request_name(WATCHER_BUS_NAME_KDE).await?;
     conn.request_name(WATCHER_BUS_NAME_FREEDESKTOP).await?;
+
+    if handle_register_host(&state, &trigger).await {
+        emit_host_registered_signals(&conn).await;
+    }
 
     // Keep the watcher alive; resolved items accumulate until the runtime stops.
     std::future::pending::<()>().await;
@@ -914,10 +984,12 @@ fn read_process_name(pid: u32) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
     use super::{
-        DEFAULT_ITEM_PATH, TrayItemAction, argb_pixmap_to_png, filter_status_notifier_names,
-        humanize_status_notifier_identifier, parse_item_identifier, select_icon_name,
-        simplify_status_notifier_label,
+        DEFAULT_ITEM_PATH, TrayItemAction, WatcherState, argb_pixmap_to_png,
+        filter_status_notifier_names, humanize_status_notifier_identifier, parse_item_identifier,
+        register_sni_host, register_sni_item, select_icon_name, simplify_status_notifier_label,
     };
 
     #[test]
@@ -972,6 +1044,54 @@ mod tests {
 
         assert_eq!(parsed.service_name, ":1.42");
         assert_eq!(parsed.object_path, "/StatusNotifierItem");
+    }
+
+    #[test]
+    fn registers_canonical_sni_item_once() {
+        let state = Arc::new(Mutex::new(WatcherState::default()));
+
+        let registered = register_sni_item(
+            &state,
+            Some(":1.42"),
+            "org.kde.StatusNotifierItem-2-1/StatusNotifierItem",
+        );
+        assert_eq!(
+            registered.as_deref(),
+            Some("org.kde.StatusNotifierItem-2-1/StatusNotifierItem")
+        );
+        assert_eq!(
+            register_sni_item(
+                &state,
+                Some(":1.42"),
+                "org.kde.StatusNotifierItem-2-1/StatusNotifierItem",
+            ),
+            None
+        );
+
+        let items = &state.lock().expect("state lock").registered_items;
+        assert_eq!(items.len(), 1);
+        assert!(items.contains("org.kde.StatusNotifierItem-2-1/StatusNotifierItem"));
+    }
+
+    #[test]
+    fn registers_object_path_sni_item_with_sender_once() {
+        let state = Arc::new(Mutex::new(WatcherState::default()));
+
+        let registered = register_sni_item(&state, Some(":1.42"), "/StatusNotifierItem");
+        assert_eq!(registered.as_deref(), Some(":1.42/StatusNotifierItem"));
+        assert_eq!(
+            register_sni_item(&state, Some(":1.42"), "/StatusNotifierItem"),
+            None
+        );
+    }
+
+    #[test]
+    fn registers_sni_host_once() {
+        let state = Arc::new(Mutex::new(WatcherState::default()));
+
+        assert!(register_sni_host(&state));
+        assert!(!register_sni_host(&state));
+        assert!(state.lock().expect("state lock").host_registered);
     }
 
     #[test]
