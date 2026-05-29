@@ -5,12 +5,12 @@ Define Alice's notification popup surface, ordering, card behavior, dismissal se
 
 ## Requirements
 ### Requirement: Popup window placement
-Alice SHALL render notification popups in a transparent floating surface anchored to the top-right of the screen below the top bar.
+Alice SHALL render notification popups in a transparent floating surface anchored to the top-right of the screen.
 
 #### Scenario: Popup surface is shown
 - **WHEN** one or more notification popups are visible
 - **THEN** Alice SHALL show them in a transparent non-exclusive floating surface
-- **AND** Alice SHALL position the surface below the bar plus the configured `panel_top_gap_px`
+- **AND** Alice SHALL position the surface flush with the top-right screen edges so card padding provides equal top and right margins
 - **AND** Alice SHALL use the notification panel width for the popup surface
 - **AND** Alice SHALL size the popup surface tall enough to extend to the bottom of the display
 

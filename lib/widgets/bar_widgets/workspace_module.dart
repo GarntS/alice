@@ -14,18 +14,35 @@ class TopBarWorkspaceModule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: workspaces
-          .map(
-            (workspace) => _TopBarWorkspaceChip(
-              workspace: workspace,
-              onTap: () => onWorkspaceTap(workspace.label),
-            ),
-          )
-          .toList(),
+    if (workspaces.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        key: const ValueKey('top-bar-workspace-group-background'),
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.secondary.withValues(alpha: 0.75),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 0,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: workspaces
+              .map(
+                (workspace) => _TopBarWorkspaceChip(
+                  workspace: workspace,
+                  onTap: () => onWorkspaceTap(workspace.label),
+                ),
+              )
+              .toList(),
+        ),
+      ),
     );
   }
 }

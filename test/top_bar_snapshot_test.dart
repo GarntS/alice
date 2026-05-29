@@ -35,6 +35,9 @@ void main() {
     expect(find.text('1'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
+    final workspaceDecoration = _workspaceGroupDecoration(tester);
+    expect(workspaceDecoration.color, isNotNull);
+    expect(workspaceDecoration.borderRadius, BorderRadius.circular(14));
     expect(find.textContaining('A Very Testable Song'), findsOneWidget);
     expect(find.text('alice-net'), findsOneWidget);
     expect(find.textContaining('09 Mar'), findsOneWidget);
@@ -148,5 +151,12 @@ BoxDecoration _topBarShellDecoration(WidgetTester tester) {
             container.padding ==
             const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       );
+  return container.decoration! as BoxDecoration;
+}
+
+BoxDecoration _workspaceGroupDecoration(WidgetTester tester) {
+  final container = tester.widget<Container>(
+    find.byKey(const ValueKey('top-bar-workspace-group-background')),
+  );
   return container.decoration! as BoxDecoration;
 }

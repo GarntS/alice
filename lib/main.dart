@@ -12,5 +12,7 @@ Future<void> main(List<String> args) async {
   await RustLib.init(
     externalLibrary: ExternalLibrary.process(iKnowHowToUseIt: true),
   );
+  /*debugProfileBuildsEnabled = true;
+  /*debugPrintRebuildDirtyWidgets = true;*/
   runWidget(AliceApp());
 }

@@ -132,8 +132,13 @@ impl KdeSniWatcher {
         #[zbus(header)] header: zbus::message::Header<'_>,
     ) -> zbus::fdo::Result<()> {
         let sender = header.sender().map(|s| s.to_string());
-        handle_register_item(&self.state, &self.trigger, sender.as_deref(), service_or_path)
-            .await;
+        handle_register_item(
+            &self.state,
+            &self.trigger,
+            sender.as_deref(),
+            service_or_path,
+        )
+        .await;
         Ok(())
     }
 
@@ -198,8 +203,13 @@ impl FreedesktopSniWatcher {
         #[zbus(header)] header: zbus::message::Header<'_>,
     ) -> zbus::fdo::Result<()> {
         let sender = header.sender().map(|s| s.to_string());
-        handle_register_item(&self.state, &self.trigger, sender.as_deref(), service_or_path)
-            .await;
+        handle_register_item(
+            &self.state,
+            &self.trigger,
+            sender.as_deref(),
+            service_or_path,
+        )
+        .await;
         Ok(())
     }
 
@@ -264,9 +274,7 @@ pub async fn run_status_notifier_watcher(
 ) -> zbus::Result<()> {
     let state = sni_watcher_state();
 
-    let conn = zbus::connection::Builder::session()?
-        .build()
-        .await?;
+    let conn = zbus::connection::Builder::session()?.build().await?;
 
     conn.object_server()
         .at(
@@ -508,15 +516,16 @@ fn read_item_snapshot(
         .unwrap_or_else(|| simplify_status_notifier_label(&service_name));
 
     let icon_png_bytes =
-        read_sni_icon_png(connection, &item_ref.service_name, &item_ref.object_path)
-            .or_else(|| {
+        read_sni_icon_png(connection, &item_ref.service_name, &item_ref.object_path).or_else(
+            || {
                 let name = if !icon_name.is_empty() {
                     icon_name.as_str()
                 } else {
                     ayatana_icon_name_from_path(&item_ref.object_path)?
                 };
                 resolve_icon_name_to_png(name, icon_theme_path.as_deref())
-            });
+            },
+        );
 
     Ok(Some(TrayItemSnapshot {
         id: item_id,
@@ -617,10 +626,7 @@ fn argb_pixmap_to_png(width: u32, height: u32, argb_data: &[u8]) -> Option<Vec<u
 
     let mut buf = Vec::new();
     dynamic
-        .write_to(
-            &mut std::io::Cursor::new(&mut buf),
-            image::ImageFormat::Png,
-        )
+        .write_to(&mut std::io::Cursor::new(&mut buf), image::ImageFormat::Png)
         .ok()?;
 
     Some(buf)
@@ -714,10 +720,7 @@ fn load_and_scale_png(path: &std::path::Path) -> Option<Vec<u8>> {
     };
     let mut buf = Vec::new();
     scaled
-        .write_to(
-            &mut std::io::Cursor::new(&mut buf),
-            image::ImageFormat::Png,
-        )
+        .write_to(&mut std::io::Cursor::new(&mut buf), image::ImageFormat::Png)
         .ok()?;
     Some(buf)
 }
@@ -820,9 +823,7 @@ fn parse_item_identifier(
 fn filter_status_notifier_names(names: &[String]) -> Vec<String> {
     let mut filtered = names
         .iter()
-        .filter(|name| {
-            name.starts_with(KDE_SNI_PREFIX) || name.starts_with(FREEDESKTOP_SNI_PREFIX)
-        })
+        .filter(|name| name.starts_with(KDE_SNI_PREFIX) || name.starts_with(FREEDESKTOP_SNI_PREFIX))
         .cloned()
         .collect::<Vec<_>>();
     filtered.sort();

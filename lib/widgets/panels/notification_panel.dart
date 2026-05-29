@@ -56,10 +56,11 @@ class _NotificationPanelState extends State<NotificationPanel> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final sorted = widget.notifications
-        .where((n) => !_pendingDismissedIds.contains(n.id))
-        .toList()
-      ..sort((a, b) => b.id.compareTo(a.id));
+    final sorted =
+        widget.notifications
+            .where((n) => !_pendingDismissedIds.contains(n.id))
+            .toList()
+          ..sort((a, b) => b.id.compareTo(a.id));
 
     return Scrollbar(
       controller: _scrollController,
@@ -125,9 +126,6 @@ class _NotificationPanelState extends State<NotificationPanel> {
                   notification: sorted[index],
                   onDismiss: () => _dismissNotification(sorted[index].id),
                   onInvokeAction: (key) {
-                    debugPrint(
-                      '[notification-panel] action id=${sorted[index].id} key=$key',
-                    );
                     widget.onInvokeAction(sorted[index].id, key);
                   },
                 ),

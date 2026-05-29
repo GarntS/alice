@@ -30,6 +30,8 @@ class _AliceAppState extends State<AliceApp> {
   late final StreamSubscription<frb.PanelCommand?> _panelCommandSubscription;
 
   AliceConfig _config = AliceConfig.fallback();
+  late ThemeData _lightTheme = buildAliceTheme(_config, Brightness.light);
+  late ThemeData _darkTheme = buildAliceTheme(_config, Brightness.dark);
   BarSnapshot _snapshot = const BarSnapshot(
     workspaces: [],
     media: null,
@@ -68,32 +70,23 @@ class _AliceAppState extends State<AliceApp> {
     _panelController.addListener(_syncPanelState);
     _loadConfig();
 
-    _panelCommandSubscription = frb.watchPanelCommands().listen(
-      (cmd) {
-        if (!mounted) return;
-        if (cmd != null) {
-          setState(() => _viewPanelMap[cmd.viewId] = cmd.panelId);
-        } else {
-          _panelController.close();
-        }
-      },
-      onError: (Object e, StackTrace st) =>
-          debugPrint('Failed to receive panel command: $e'),
-    );
+    _panelCommandSubscription = frb.watchPanelCommands().listen((cmd) {
+      if (!mounted) return;
+      if (cmd != null) {
+        setState(() => _viewPanelMap[cmd.viewId] = cmd.panelId);
+      } else {
+        _panelController.close();
+      }
+    }, onError: (_, _) {});
 
-    _snapshotSubscription = _platform.watchBarSnapshots().listen(
-      (snapshot) {
-        if (!mounted) return;
-        setState(() {
-          _snapshot = snapshot;
-          _notificationPopupState.processSnapshot(snapshot.notifications);
-        });
-        _syncNotificationPopupWindow();
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        debugPrint('Failed to receive native snapshots: $error');
-      },
-    );
+    _snapshotSubscription = _platform.watchBarSnapshots().listen((snapshot) {
+      if (!mounted) return;
+      setState(() {
+        _snapshot = snapshot;
+        _notificationPopupState.processSnapshot(snapshot.notifications);
+      });
+      _syncNotificationPopupWindow();
+    }, onError: (_, _) {});
 
     // Detect when C++ adds new FlViews (panel windows)
     _viewCount = WidgetsBinding.instance.platformDispatcher.views.length;
@@ -111,11 +104,11 @@ class _AliceAppState extends State<AliceApp> {
       if (!mounted) return;
       setState(() {
         _config = config;
+        _lightTheme = buildAliceTheme(config, Brightness.light);
+        _darkTheme = buildAliceTheme(config, Brightness.dark);
         _notificationPopupState.config = config;
       });
-    } catch (error) {
-      debugPrint('Failed to load native config, using fallback: $error');
-    }
+    } catch (_) {}
   }
 
   Future<void> _syncPanelState() async {
@@ -139,15 +132,7 @@ class _AliceAppState extends State<AliceApp> {
         snapshot: _snapshot,
         screenHeight: _screenHeight,
       );
-      debugPrint(
-        '[panel-sync] show ${_panelId(openPanel)} '
-        'size=${panelSize.width}x${panelSize.height} '
-        'notifications=${_snapshot.notifications.length} '
-        'visiblePopups=${_notificationPopupState.visibleIds.length}',
-      );
-
       final panelId = _panelId(openPanel);
-      debugPrint('[panel-sync] invoking showPanel $panelId');
       await _platform
           .showPanel(
             panelId,
@@ -165,14 +150,10 @@ class _AliceAppState extends State<AliceApp> {
           .timeout(
             const Duration(seconds: 2),
             onTimeout: () {
-              debugPrint('[panel-sync] showPanel TIMEOUT $panelId');
               throw TimeoutException('showPanel timed out for $panelId');
             },
           );
-      debugPrint('[panel-sync] showPanel returned $panelId');
-    } catch (error) {
-      debugPrint('Failed to sync panel state: $error');
-    }
+    } catch (_) {}
   }
 
   Future<void> _closePanel() async {
@@ -183,83 +164,61 @@ class _AliceAppState extends State<AliceApp> {
     try {
       await _platform.executePowerAction(action);
       _panelController.close();
-    } catch (error) {
-      debugPrint('Failed to execute power action: $error');
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleMediaAction(String action) async {
     try {
       await _platform.sendMediaAction(action);
-    } catch (error) {
-      debugPrint('Failed to send media action: $error');
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleMediaSeek(int positionMicros) async {
     try {
       await _platform.seekMedia(positionMicros);
-    } catch (error) {
-      debugPrint('Failed to seek media: $error');
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleWorkspaceFocus(String label) async {
     try {
       await _platform.focusWorkspace(label);
-    } catch (error) {
-      debugPrint('Failed to focus workspace: $error');
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleTrayActivate(TrayItemSnapshot item) async {
     try {
       await _platform.sendTrayAction(item, action: 'activate');
-    } catch (error) {
-      debugPrint('Failed to activate tray item: $error');
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleDismissNotification(int id) async {
     try {
       await _platform.dismissNotification(id);
-    } catch (e) {
-      debugPrint('Failed to dismiss notification: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleDismissAllNotifications() async {
     try {
       await _platform.dismissAllNotifications();
-    } catch (e) {
-      debugPrint('Failed to dismiss all notifications: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleMarkNotificationRead(int id) async {
     try {
       await _platform.markNotificationRead(id);
-    } catch (e) {
-      debugPrint('Failed to mark notification read: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleMarkAllNotificationsRead() async {
     try {
       await _platform.markAllNotificationsRead(_snapshot.notifications);
-    } catch (e) {
-      debugPrint('Failed to mark notifications read: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleInvokeNotificationAction(int id, String actionKey) async {
     try {
-      debugPrint('[notification-action] invoke id=$id key=$actionKey');
       await _platform.invokeNotificationAction(id, actionKey);
-      debugPrint('[notification-action] invoked id=$id key=$actionKey');
-    } catch (e) {
-      debugPrint('Failed to invoke notification action: $e');
-    }
+    } catch (_) {}
   }
 
   void _hideAllNotificationPopups() {
@@ -280,9 +239,7 @@ class _AliceAppState extends State<AliceApp> {
       if (mounted && viewId >= 0 && _notificationPopupViewId != viewId) {
         setState(() => _notificationPopupViewId = viewId);
       }
-    } catch (e) {
-      debugPrint('Failed to sync notification popup window: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _handleDismissPopupRead(int id) async {
@@ -338,12 +295,12 @@ class _AliceAppState extends State<AliceApp> {
     return AnimatedBuilder(
       animation: _panelController,
       builder: (context, _) {
-        return MaterialApp(
+        /*return MaterialApp(
           title: 'alice',
           debugShowCheckedModeBanner: false,
           themeMode: _config.themeMode,
-          theme: buildAliceTheme(_config, Brightness.light),
-          darkTheme: buildAliceTheme(_config, Brightness.dark),
+          theme: _lightTheme,
+          darkTheme: _darkTheme,
           home: Scaffold(
             backgroundColor: Colors.transparent,
             body: Align(
@@ -358,6 +315,24 @@ class _AliceAppState extends State<AliceApp> {
               ),
             ),
           ),
+        );*/
+        return MaterialApp(
+          title: 'alice',
+          debugShowCheckedModeBanner: false,
+          themeMode: _config.themeMode,
+          theme: _lightTheme,
+          darkTheme: _darkTheme,
+          home: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: TopBar(
+              config: _config,
+              snapshot: _snapshot,
+              panelController: _panelController,
+              onWorkspaceTap: _handleWorkspaceFocus,
+              onTrayItemTap: _handleTrayActivate,
+              onBackgroundTap: _closePanel,
+            ),
+          ),
         );
       },
     );
@@ -368,8 +343,8 @@ class _AliceAppState extends State<AliceApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       themeMode: _config.themeMode,
-      theme: buildAliceTheme(_config, Brightness.light),
-      darkTheme: buildAliceTheme(_config, Brightness.dark),
+      theme: _lightTheme,
+      darkTheme: _darkTheme,
       home: Scaffold(
         backgroundColor: Colors.transparent,
         body: Align(
@@ -404,8 +379,8 @@ class _AliceAppState extends State<AliceApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       themeMode: _config.themeMode,
-      theme: buildAliceTheme(_config, Brightness.light),
-      darkTheme: buildAliceTheme(_config, Brightness.dark),
+      theme: _lightTheme,
+      darkTheme: _darkTheme,
       home: Scaffold(
         backgroundColor: Colors.transparent,
         body: NotificationPopupStack(

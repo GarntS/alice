@@ -3,7 +3,9 @@
 //! Run `flutter_rust_bridge_codegen generate` after modifying this file to
 //! regenerate `frb_generated.rs` and the Dart bindings in `lib/rust_gen/`.
 
-pub use crate::config::{AliceConfig, CalendarConfig, NotificationConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig};
+pub use crate::config::{
+    AliceConfig, CalendarConfig, NotificationConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig,
+};
 pub use crate::state::{
     BarSnapshot, CalendarEvent, CalendarFetchResult, ClockSnapshot, MediaSnapshot, NetworkKind,
     NetworkSnapshot, NotificationActionSnapshot, NotificationSnapshot, NotificationUrgency,

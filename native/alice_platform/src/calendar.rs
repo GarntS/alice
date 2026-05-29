@@ -229,8 +229,6 @@ fn run_device_auth(
     token_path: PathBuf,
     url_tx: std::sync::mpsc::Sender<String>,
 ) {
-    eprintln!("[alice/calendar] auth thread started");
-
     calendar_runtime().block_on(async move {
         let secret = make_app_secret(&config);
         let delegate = CodeCapture { sender: url_tx };
@@ -239,7 +237,6 @@ fn run_device_auth(
             let _ = std::fs::create_dir_all(parent);
         }
 
-        eprintln!("[alice/calendar] building InstalledFlowAuthenticator…");
         let auth = match yup_oauth2::InstalledFlowAuthenticator::builder(
             secret,
             yup_oauth2::InstalledFlowReturnMethod::HTTPPortRedirect(8085),
@@ -249,10 +246,7 @@ fn run_device_auth(
         .build()
         .await
         {
-            Ok(a) => {
-                eprintln!("[alice/calendar] authenticator built OK");
-                a
-            }
+            Ok(a) => a,
             Err(e) => {
                 eprintln!("[alice/calendar] auth build failed: {e}");
                 let mut s = AUTH_STATE.lock().unwrap();
@@ -261,11 +255,9 @@ fn run_device_auth(
             }
         };
 
-        eprintln!("[alice/calendar] requesting token (will trigger installed flow)…");
         let scopes = ["https://www.googleapis.com/auth/calendar.readonly"];
         match auth.token(&scopes).await {
             Ok(_) => {
-                eprintln!("[alice/calendar] token obtained — authorised");
                 // Store auth before marking Authorized so do_fetch_events
                 // always finds a live instance with the token in memory.
                 *CALENDAR_AUTH.lock().unwrap() = Some(auth);
@@ -296,7 +288,6 @@ impl yup_oauth2::authenticator_delegate::InstalledFlowDelegate for CodeCapture {
         _need_code: bool,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send + 'a>>
     {
-        eprintln!("[alice/calendar] present_user_url called — url={url}");
         let _ = self.sender.send(url.to_owned());
         Box::pin(std::future::ready(Ok(String::new())))
     }
@@ -343,10 +334,7 @@ impl google_calendar3::common::GetToken for CalendarReadonlyAuth {
     ) -> std::pin::Pin<
         Box<
             dyn std::future::Future<
-                    Output = Result<
-                        Option<String>,
-                        Box<dyn std::error::Error + Send + Sync>,
-                    >,
+                    Output = Result<Option<String>, Box<dyn std::error::Error + Send + Sync>>,
                 > + Send
                 + 'a,
         >,
@@ -375,9 +363,8 @@ fn build_hub(
         .https_or_http()
         .enable_http2()
         .build();
-    let client =
-        hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new())
-            .build(https);
+    let client = hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new())
+        .build(https);
     google_calendar3::CalendarHub::new(client, CalendarReadonlyAuth(auth))
 }
 
@@ -431,10 +418,8 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
         let window_end = date_naive + chrono::Months::new(3) + chrono::Duration::days(1); // exclusive
 
         use chrono::TimeZone as _;
-        let time_min =
-            chrono::Utc.from_utc_datetime(&window_start.and_hms_opt(0, 0, 0).unwrap());
-        let time_max =
-            chrono::Utc.from_utc_datetime(&window_end.and_hms_opt(0, 0, 0).unwrap());
+        let time_min = chrono::Utc.from_utc_datetime(&window_start.and_hms_opt(0, 0, 0).unwrap());
+        let time_max = chrono::Utc.from_utc_datetime(&window_end.and_hms_opt(0, 0, 0).unwrap());
 
         // Fetch calendar list for names + colours.
         let cal_list = match hub.calendar_list().list().doit().await {
@@ -566,9 +551,6 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
                 // 410 Gone means the sync token has expired; clear the cache
                 // so that the next fetch_events call triggers a full re-fetch.
                 if e_str.contains("410") || e_str.contains("Gone") {
-                    eprintln!(
-                        "[alice/calendar] sync token expired for {cal_id}; clearing cache"
-                    );
                     *EVENT_CACHE.lock().unwrap() = None;
                     return Ok(());
                 }
@@ -593,17 +575,12 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
 
                         if !is_cancelled {
                             if let Some(event_date) = extract_event_date(&event) {
-                                let title = event
-                                    .summary
-                                    .clone()
-                                    .unwrap_or_else(|| "(No title)".into());
+                                let title =
+                                    event.summary.clone().unwrap_or_else(|| "(No title)".into());
                                 let (is_all_day, start_label, end_label) =
                                     extract_time_labels(&event);
-                                let (cal_name, cal_color) = cache
-                                    .cal_meta
-                                    .get(&cal_id)
-                                    .cloned()
-                                    .unwrap_or_default();
+                                let (cal_name, cal_color) =
+                                    cache.cal_meta.get(&cal_id).cloned().unwrap_or_default();
                                 cache.entries.push((
                                     event_date,
                                     CalendarEvent {
@@ -625,13 +602,13 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
                     }
 
                     // Re-sort: all-day first, then by start_label.
-                    cache.entries.sort_by(|(_, a), (_, b)| {
-                        match (a.is_all_day, b.is_all_day) {
+                    cache
+                        .entries
+                        .sort_by(|(_, a), (_, b)| match (a.is_all_day, b.is_all_day) {
                             (true, false) => std::cmp::Ordering::Less,
                             (false, true) => std::cmp::Ordering::Greater,
                             _ => a.start_label.cmp(&b.start_label),
-                        }
-                    });
+                        });
                 }
             }
         }

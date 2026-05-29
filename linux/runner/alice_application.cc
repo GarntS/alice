@@ -55,8 +55,6 @@ void configure_layer_shell_bar_window(GtkWindow* window) {
   gtk_window_set_decorated(window, FALSE);
   gtk_window_set_skip_taskbar_hint(window, TRUE);
   gtk_window_set_skip_pager_hint(window, TRUE);
-  g_message("Configured gtk-layer-shell bar window at %dx%u", monitor_width,
-            bar_placement.height);
 }
 
 void configure_bar_fallback_window(GtkWindow* window) {
@@ -412,7 +410,6 @@ static void update_notification_popup_geometry(AliceApplication* self,
                                                AliceNotificationPopup* popup) {
   GtkWindow* win = GTK_WINDOW(popup->gtk_window);
   AliceSurfacePlacementFFI popup_placement = alice_layer_shell_notification_popup_placement();
-  AliceSurfacePlacementFFI bar_placement = alice_layer_shell_bar_placement();
 
   GdkDisplay* display = gdk_display_get_default();
   GdkMonitor* monitor = display == nullptr ? nullptr : gdk_display_get_primary_monitor(display);
@@ -426,7 +423,10 @@ static void update_notification_popup_geometry(AliceApplication* self,
     gtk_layer_set_monitor(win, monitor);
   }
 
-  const gint margin_top = static_cast<gint>(bar_placement.height) + popup->panel_top_gap_px;
+  // The popup Flutter view already pads its card list on all sides. Keep the
+  // native surface flush with the screen edges so the first card's top margin
+  // matches its right margin.
+  const gint margin_top = 0;
   const gint popup_height = MAX(1, monitor_height - margin_top);
   if (self->layer_shell_supported && gtk_layer_is_supported()) {
     gtk_layer_set_margin(win, GTK_LAYER_SHELL_EDGE_TOP, margin_top);
@@ -650,9 +650,6 @@ static void platform_method_call_cb(FlMethodChannel* channel,
             ? static_cast<gint>(fl_value_get_int(gap_value))
             : 0;
 
-        g_message("alice showPanel id=%s width=%.1f height=%.1f anchor=(%.1f,%.1f)",
-                  panel_id_str, width, height, anchor_x, anchor_y);
-
         // Reusing/resizing the notifications panel's secondary FlView across
         // dynamic height changes can wedge Flutter's Linux multi-view renderer.
         // Recreate that native panel view only when its requested size changes.
@@ -661,9 +658,6 @@ static void platform_method_call_cb(FlMethodChannel* channel,
               g_hash_table_lookup(self->panels, panel_id_str));
           if (existing != nullptr &&
               (existing->width != width || existing->height != height)) {
-            g_message("alice showPanel recreating notifications panel view_id=%ld old=%.1fx%.1f new=%.1fx%.1f",
-                      static_cast<long>(existing->view_id), existing->width,
-                      existing->height, width, height);
             gtk_widget_destroy(GTK_WIDGET(existing->gtk_window));
             g_hash_table_remove(self->panels, panel_id_str);
           }
@@ -722,12 +716,8 @@ static void platform_method_call_cb(FlMethodChannel* channel,
         }
 
         // Notify Dart — engine renders into an already-visible, correctly-sized view.
-        g_message("alice showPanel notify Dart id=%s view_id=%ld", panel_id_str,
-                  static_cast<long>(panel->view_id));
         alice_notify_panel_show(panel_id_str, panel->view_id, include_bytes != FALSE,
                                 anchor_x, anchor_y, width, height);
-        g_message("alice showPanel native complete id=%s", panel_id_str);
-
         ok = TRUE;
       }
     }
@@ -776,15 +766,9 @@ static void platform_method_call_cb(FlMethodChannel* channel,
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }
 
-  if (strcmp(method, "showPanel") == 0) {
-    g_message("alice showPanel sending method response");
-  }
   g_autoptr(GError) error = nullptr;
   if (!fl_method_call_respond(method_call, response, &error)) {
     g_warning("Failed to send method response: %s", error->message);
-  }
-  if (strcmp(method, "showPanel") == 0) {
-    g_message("alice showPanel method response sent");
   }
 }
 
@@ -846,7 +830,6 @@ static void create_main_window(AliceApplication* self) {
     configure_bar_fallback_window(window);
     use_header_bar = FALSE;
   } else {
-    g_message("Layer-shell support not detected; using GTK window fallback");
     gtk_window_set_default_size(window, 1280, 720);
   }
 

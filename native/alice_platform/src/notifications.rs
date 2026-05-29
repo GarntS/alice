@@ -206,11 +206,7 @@ impl NotificationServer {
 
     /// Close a notification on behalf of the sending application.
     async fn close_notification(&self, id: u32) {
-        let removed = self
-            .store
-            .lock()
-            .map(|mut s| s.remove(id))
-            .unwrap_or(false);
+        let removed = self.store.lock().map(|mut s| s.remove(id)).unwrap_or(false);
         if removed {
             // reason 3 = closed by CloseNotification D-Bus call
             emit_notification_closed(&self.connection, id, 3).await;
@@ -253,8 +249,7 @@ async fn emit_notification_closed(conn: &Arc<zbus::Connection>, id: u32, reason:
         .interface::<_, NotificationServer>("/org/freedesktop/Notifications")
         .await
     {
-        let _ =
-            NotificationServer::notification_closed(iface.signal_emitter(), id, reason).await;
+        let _ = NotificationServer::notification_closed(iface.signal_emitter(), id, reason).await;
     }
 }
 
@@ -269,9 +264,7 @@ pub async fn run_notification_server(
     let store = Arc::new(Mutex::new(NotificationStore::default()));
     let next_id = Arc::new(AtomicU32::new(1));
 
-    let conn = zbus::connection::Builder::session()?
-        .build()
-        .await?;
+    let conn = zbus::connection::Builder::session()?.build().await?;
     let connection = Arc::new(conn);
 
     let server = NotificationServer {
@@ -346,7 +339,6 @@ pub fn mark_notification_read_impl(id: u32) {
 
 /// Emit the `ActionInvoked` signal for the given notification and action key.
 pub fn invoke_action_impl(id: u32, action_key: String) {
-    eprintln!("alice: invoke notification action id={id} key={action_key}");
     if let Some(conn) = NOTIFICATION_CONNECTION.get().cloned() {
         if let Some(handle) = crate::runtime::tokio_handle() {
             handle.spawn(async move {
@@ -355,19 +347,16 @@ pub fn invoke_action_impl(id: u32, action_key: String) {
                     .interface::<_, NotificationServer>("/org/freedesktop/Notifications")
                     .await
                 {
-                    match NotificationServer::action_invoked(
+                    if let Err(error) = NotificationServer::action_invoked(
                         iface.signal_emitter(),
                         id,
                         &action_key,
                     )
                     .await
                     {
-                        Ok(()) => eprintln!(
-                            "alice: emitted notification action id={id} key={action_key}"
-                        ),
-                        Err(error) => eprintln!(
+                        eprintln!(
                             "alice: failed to emit notification action id={id} key={action_key}: {error}"
-                        ),
+                        );
                     }
                 } else {
                     eprintln!("alice: notification interface unavailable for action id={id}");
@@ -431,9 +420,7 @@ fn parse_image_path(hints: &HashMap<String, OwnedValue>) -> Option<String> {
 }
 
 fn parse_image_data(hints: &HashMap<String, OwnedValue>) -> Option<Vec<u8>> {
-    let v = hints
-        .get("image-data")
-        .or_else(|| hints.get("icon_data"))?;
+    let v = hints.get("image-data").or_else(|| hints.get("icon_data"))?;
     match &**v {
         Value::Structure(s) => encode_image_data_to_png(s),
         _ => None,
@@ -498,11 +485,8 @@ fn encode_image_data_to_png(s: &zbus::zvariant::Structure<'_>) -> Option<Vec<u8>
     );
 
     let mut buf = Vec::new();
-    img.write_to(
-        &mut std::io::Cursor::new(&mut buf),
-        image::ImageFormat::Png,
-    )
-    .ok()?;
+    img.write_to(&mut std::io::Cursor::new(&mut buf), image::ImageFormat::Png)
+        .ok()?;
     Some(buf)
 }
 

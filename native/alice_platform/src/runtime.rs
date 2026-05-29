@@ -96,8 +96,7 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
         // --- 1 s stats timer ---
         let tx_stats = tx.clone();
         tokio::spawn(async move {
-            let mut interval =
-                tokio::time::interval(tokio::time::Duration::from_secs(1));
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
             loop {
                 interval.tick().await;
                 if tx_stats.send(Trigger::Event).await.is_err() {
@@ -109,8 +108,7 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
         // --- 30 s clock timer ---
         let tx_clock = tx.clone();
         tokio::spawn(async move {
-            let mut interval =
-                tokio::time::interval(tokio::time::Duration::from_secs(30));
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
             loop {
                 interval.tick().await;
                 if tx_clock.send(Trigger::Event).await.is_err() {
@@ -155,7 +153,9 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
         let tx_mpris = tx.clone();
         let mpris_watcher_cache = mpris_cache.clone();
         tokio::spawn(async move {
-            if let Err(error) = crate::mpris::run_mpris_runtime_service(mpris_watcher_cache, tx_mpris).await {
+            if let Err(error) =
+                crate::mpris::run_mpris_runtime_service(mpris_watcher_cache, tx_mpris).await
+            {
                 eprintln!("alice: MPRIS watcher error: {error:?}");
             }
         });
@@ -202,9 +202,7 @@ fn build_snapshot(mpris_cache: Arc<crate::mpris::MprisCache>) -> BarSnapshot {
 }
 
 fn notification_snapshots() -> Vec<crate::state::NotificationSnapshot> {
-    use crate::state::{
-        NotificationActionSnapshot, NotificationSnapshot, NotificationUrgency,
-    };
+    use crate::state::{NotificationActionSnapshot, NotificationSnapshot, NotificationUrgency};
 
     crate::notifications::get_notifications()
         .into_iter()
@@ -263,12 +261,10 @@ where
             memory_usage_percent: 0.0,
             cpu_usage_cores: 0.0,
         });
-    let network = network_provider
-        .read_network()
-        .unwrap_or(NetworkSnapshot {
-            kind: NetworkKind::Disconnected,
-            label: "Disconnected".into(),
-        });
+    let network = network_provider.read_network().unwrap_or(NetworkSnapshot {
+        kind: NetworkKind::Disconnected,
+        label: "Disconnected".into(),
+    });
     let clock = clock_provider.read_clock().unwrap_or(ClockSnapshot {
         time_zone_code: "UTC".into(),
         date_label: "-- ---".into(),
@@ -291,9 +287,7 @@ where
 fn sway_event_watcher(tx: mpsc::Sender<Trigger>) {
     use swayipc::{Connection, EventType};
 
-    let events = match Connection::new()
-        .and_then(|conn| conn.subscribe(&[EventType::Workspace]))
-    {
+    let events = match Connection::new().and_then(|conn| conn.subscribe(&[EventType::Workspace])) {
         Ok(events) => events,
         Err(error) => {
             eprintln!("alice: sway event subscription failed: {error}");
@@ -311,6 +305,7 @@ fn sway_event_watcher(tx: mpsc::Sender<Trigger>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::PlatformError;
     use crate::providers::{
         ClockProvider, MediaProvider, NetworkProvider, Stats, StatsProvider, TrayProvider,
         WorkspaceProvider,
@@ -319,7 +314,6 @@ mod tests {
         ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot, NotificationSnapshot,
         NotificationUrgency, TrayItemSnapshot, WorkspaceSnapshot,
     };
-    use crate::PlatformError;
 
     struct FakeWorkspaceProvider(Result<Vec<WorkspaceSnapshot>, PlatformError>);
     struct FakeMediaProvider(Result<Option<MediaSnapshot>, PlatformError>);
@@ -481,9 +475,7 @@ fn network_watcher(tx: mpsc::Sender<Trigger>) {
         }
     };
 
-    if let Err(error) =
-        watcher.watch(Path::new("/sys/class/net"), RecursiveMode::NonRecursive)
-    {
+    if let Err(error) = watcher.watch(Path::new("/sys/class/net"), RecursiveMode::NonRecursive) {
         eprintln!("alice: failed to watch /sys/class/net: {error}");
         return;
     }

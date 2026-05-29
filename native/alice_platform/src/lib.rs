@@ -94,7 +94,15 @@ pub unsafe extern "C" fn alice_notify_panel_show(
         Ok(s) => s.to_string(),
         Err(_) => return,
     };
-    runtime::push_panel_show(id, view_id, include_icon_bytes, anchor_x, anchor_y, width, height);
+    runtime::push_panel_show(
+        id,
+        view_id,
+        include_icon_bytes,
+        anchor_x,
+        anchor_y,
+        width,
+        height,
+    );
 }
 
 /// Notify the Dart panel that it should hide.

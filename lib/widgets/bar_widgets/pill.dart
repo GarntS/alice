@@ -23,7 +23,7 @@ class TopBarPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: highlighted
-            ? theme.colorScheme.primary.withValues(alpha: 0.18)
+            ? theme.colorScheme.primary.withValues(alpha: 0.75)
             : theme.colorScheme.secondary.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(10),
         border: highlighted

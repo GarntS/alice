@@ -87,7 +87,11 @@ impl MprisCache {
     pub fn upsert_player(&self, player: CachedMprisPlayer) -> bool {
         let before = self.project();
         let mut guard = self.inner.write().unwrap_or_else(|e| e.into_inner());
-        if let Some(existing) = guard.players.iter_mut().find(|p| p.bus_name == player.bus_name) {
+        if let Some(existing) = guard
+            .players
+            .iter_mut()
+            .find(|p| p.bus_name == player.bus_name)
+        {
             *existing = player;
         } else {
             guard.players.push(player);
@@ -137,7 +141,8 @@ impl MprisCache {
     }
 
     pub fn project(&self) -> Option<MediaSnapshot> {
-        self.selected_player().and_then(|player| project_player(&player, Instant::now()))
+        self.selected_player()
+            .and_then(|player| project_player(&player, Instant::now()))
     }
 }
 
@@ -208,9 +213,9 @@ pub async fn run_mpris_runtime_service(
     cache: Arc<MprisCache>,
     tx: mpsc::Sender<Trigger>,
 ) -> Result<(), PlatformError> {
-    let connection = zbus::Connection::session()
-        .await
-        .map_err(|error| PlatformError::new(format!("failed to connect to session bus: {error}")))?;
+    let connection = zbus::Connection::session().await.map_err(|error| {
+        PlatformError::new(format!("failed to connect to session bus: {error}"))
+    })?;
 
     refresh_cache_from_connection(&connection, &cache).await?;
     let _ = tx.send(Trigger::Event).await;
@@ -234,7 +239,9 @@ pub async fn run_mpris_runtime_service(
         .build();
     let mut props = zbus::MessageStream::for_match_rule(props_rule, &connection, None)
         .await
-        .map_err(|error| PlatformError::new(format!("failed to watch MPRIS properties: {error}")))?;
+        .map_err(|error| {
+            PlatformError::new(format!("failed to watch MPRIS properties: {error}"))
+        })?;
 
     loop {
         tokio::select! {
@@ -316,7 +323,9 @@ async fn refresh_known_players(
     refresh_cache_from_connection(connection, cache).await
 }
 
-async fn list_player_names_async(connection: &zbus::Connection) -> Result<Vec<String>, PlatformError> {
+async fn list_player_names_async(
+    connection: &zbus::Connection,
+) -> Result<Vec<String>, PlatformError> {
     let proxy = DBusProxy::new(connection)
         .await
         .map_err(|error| PlatformError::new(format!("failed to create DBus proxy: {error}")))?;
@@ -347,7 +356,12 @@ async fn read_player_cached_async(
         .await
         .map_err(|error| PlatformError::new(format!("failed to read Metadata: {error}")))?;
     let position_micros: i64 = proxy.get_property("Position").await.unwrap_or(0_i64);
-    Ok(cached_player_from_parts(bus_name, playback_status, metadata, position_micros))
+    Ok(cached_player_from_parts(
+        bus_name,
+        playback_status,
+        metadata,
+        position_micros,
+    ))
 }
 
 fn cached_player_from_parts(
@@ -368,7 +382,8 @@ fn cached_player_from_parts(
         album_title: metadata_string(&metadata, "xesam:album").unwrap_or_default(),
         art_url: metadata_string(&metadata, "mpris:artUrl").unwrap_or_default(),
         playback_state: PlaybackState::from_status(playback_status),
-        track_id: metadata_object_path(&metadata, "mpris:trackid").unwrap_or_else(|| NO_TRACK_PATH.into()),
+        track_id: metadata_object_path(&metadata, "mpris:trackid")
+            .unwrap_or_else(|| NO_TRACK_PATH.into()),
         base_position_micros: position_micros,
         observed_at: Instant::now(),
         length_micros: metadata_i64(&metadata, "mpris:length").unwrap_or(0),
@@ -381,11 +396,15 @@ fn project_player(player: &CachedMprisPlayer, now: Instant) -> Option<MediaSnaps
     }
 
     let elapsed_micros = if player.playback_state.is_playing() {
-        now.saturating_duration_since(player.observed_at).as_micros() as i64
+        now.saturating_duration_since(player.observed_at)
+            .as_micros() as i64
     } else {
         0
     };
-    let mut position_micros = player.base_position_micros.saturating_add(elapsed_micros).max(0);
+    let mut position_micros = player
+        .base_position_micros
+        .saturating_add(elapsed_micros)
+        .max(0);
     if player.length_micros > 0 {
         position_micros = position_micros.min(player.length_micros);
     }
@@ -410,18 +429,30 @@ pub fn send_media_action(action: MediaControlAction) -> Result<(), PlatformError
         MediaControlAction::Next => "Next",
     };
     with_control_target(|connection, target| {
-        let proxy = BlockingProxy::new(connection, target.as_str(), MPRIS_PATH, MPRIS_PLAYER_INTERFACE)
-            .map_err(|error| PlatformError::new(format!("failed to create MPRIS proxy: {error}")))?;
+        let proxy = BlockingProxy::new(
+            connection,
+            target.as_str(),
+            MPRIS_PATH,
+            MPRIS_PLAYER_INTERFACE,
+        )
+        .map_err(|error| PlatformError::new(format!("failed to create MPRIS proxy: {error}")))?;
         proxy.call_noreply(method_name, &()).map_err(|error| {
-            PlatformError::new(format!("failed to send MPRIS command '{method_name}': {error}"))
+            PlatformError::new(format!(
+                "failed to send MPRIS command '{method_name}': {error}"
+            ))
         })
     })
 }
 
 pub fn seek_to_position(position_micros: i64) -> Result<(), PlatformError> {
     with_control_target(|connection, target| {
-        let proxy = BlockingProxy::new(connection, target.as_str(), MPRIS_PATH, MPRIS_PLAYER_INTERFACE)
-            .map_err(|error| PlatformError::new(format!("failed to create MPRIS proxy: {error}")))?;
+        let proxy = BlockingProxy::new(
+            connection,
+            target.as_str(),
+            MPRIS_PATH,
+            MPRIS_PLAYER_INTERFACE,
+        )
+        .map_err(|error| PlatformError::new(format!("failed to create MPRIS proxy: {error}")))?;
         let track_id = MprisCache::global()
             .and_then(|cache| cache.selected_track_id())
             .and_then(|path| zbus::zvariant::OwnedObjectPath::try_from(path).ok())
@@ -429,7 +460,9 @@ pub fn seek_to_position(position_micros: i64) -> Result<(), PlatformError> {
 
         proxy
             .call::<_, _, ()>("SetPosition", &(track_id, position_micros))
-            .map_err(|error| PlatformError::new(format!("failed to send MPRIS SetPosition: {error}")))
+            .map_err(|error| {
+                PlatformError::new(format!("failed to send MPRIS SetPosition: {error}"))
+            })
     })
 }
 
@@ -444,7 +477,9 @@ where
     if let Some(target) = cached_control_target(&connection) {
         match operation(&connection, target.clone()) {
             Ok(()) => return Ok(()),
-            Err(error) => eprintln!("alice: cached MPRIS target {target} failed, falling back: {error:?}"),
+            Err(error) => {
+                eprintln!("alice: cached MPRIS target {target} failed, falling back: {error:?}")
+            }
         }
     }
 
@@ -478,8 +513,13 @@ fn choose_control_target(
     let mut fallback = None;
 
     for name in player_names {
-        let proxy = BlockingProxy::new(connection, name.as_str(), MPRIS_PATH, MPRIS_PLAYER_INTERFACE)
-            .map_err(|error| PlatformError::new(format!("failed to create MPRIS proxy: {error}")))?;
+        let proxy = BlockingProxy::new(
+            connection,
+            name.as_str(),
+            MPRIS_PATH,
+            MPRIS_PLAYER_INTERFACE,
+        )
+        .map_err(|error| PlatformError::new(format!("failed to create MPRIS proxy: {error}")))?;
         let playback_status: String = proxy.get_property("PlaybackStatus").map_err(|error| {
             PlatformError::new(format!("failed to read PlaybackStatus: {error}"))
         })?;
@@ -524,8 +564,10 @@ fn read_player_snapshot(
         .map_err(|error| PlatformError::new(format!("failed to read Metadata: {error}")))?;
 
     let position_micros: i64 = proxy.get_property("Position").unwrap_or(0_i64);
-    Ok(cached_player_from_parts(bus_name, playback_status, metadata, position_micros)
-        .and_then(|player| project_player(&player, player.observed_at)))
+    Ok(
+        cached_player_from_parts(bus_name, playback_status, metadata, position_micros)
+            .and_then(|player| project_player(&player, player.observed_at)),
+    )
 }
 
 fn metadata_string(metadata: &HashMap<String, OwnedValue>, key: &str) -> Option<String> {
@@ -566,13 +608,17 @@ fn format_duration(microseconds: i64) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        CachedMprisMediaProvider, CachedMprisPlayer, MediaControlAction, MprisCache,
-        PlaybackState, format_duration, project_player,
+        CachedMprisMediaProvider, CachedMprisPlayer, MediaControlAction, MprisCache, PlaybackState,
+        format_duration, project_player,
     };
     use crate::providers::MediaProvider;
     use std::time::{Duration, Instant};
 
-    fn cached_player(bus_name: &str, title: &str, playback_state: PlaybackState) -> CachedMprisPlayer {
+    fn cached_player(
+        bus_name: &str,
+        title: &str,
+        playback_state: PlaybackState,
+    ) -> CachedMprisPlayer {
         CachedMprisPlayer {
             bus_name: bus_name.into(),
             title: title.into(),
@@ -596,7 +642,8 @@ mod tests {
 
     #[test]
     fn projection_advances_playing_position() {
-        let mut player = cached_player("org.mpris.MediaPlayer2.one", "Song", PlaybackState::Playing);
+        let mut player =
+            cached_player("org.mpris.MediaPlayer2.one", "Song", PlaybackState::Playing);
         player.observed_at = Instant::now() - Duration::from_secs(2);
         let snapshot = project_player(&player, Instant::now()).unwrap();
         assert!(snapshot.position_micros >= 3_000_000);
@@ -623,17 +670,32 @@ mod tests {
     #[test]
     fn cache_prefers_playing_player_over_first_fallback() {
         let cache = MprisCache::new();
-        cache.upsert_player(cached_player("org.mpris.MediaPlayer2.first", "Paused", PlaybackState::Paused));
-        cache.upsert_player(cached_player("org.mpris.MediaPlayer2.second", "Playing", PlaybackState::Playing));
+        cache.upsert_player(cached_player(
+            "org.mpris.MediaPlayer2.first",
+            "Paused",
+            PlaybackState::Paused,
+        ));
+        cache.upsert_player(cached_player(
+            "org.mpris.MediaPlayer2.second",
+            "Playing",
+            PlaybackState::Playing,
+        ));
         let snapshot = cache.project().unwrap();
         assert_eq!(snapshot.title, "Playing");
-        assert_eq!(cache.selected_player_bus_name().as_deref(), Some("org.mpris.MediaPlayer2.second"));
+        assert_eq!(
+            cache.selected_player_bus_name().as_deref(),
+            Some("org.mpris.MediaPlayer2.second")
+        );
     }
 
     #[test]
     fn cached_provider_reads_without_dbus() {
         let cache = MprisCache::new();
-        cache.upsert_player(cached_player("org.mpris.MediaPlayer2.one", "Song", PlaybackState::Paused));
+        cache.upsert_player(cached_player(
+            "org.mpris.MediaPlayer2.one",
+            "Song",
+            PlaybackState::Paused,
+        ));
         let provider = CachedMprisMediaProvider::new(cache);
         let snapshot = provider.read_media().unwrap().unwrap();
         assert_eq!(snapshot.title, "Song");
