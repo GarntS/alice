@@ -85,6 +85,7 @@ jobs:
         run: |
           mkdir -p rpms srpms
           rpmbuild -ba packaging/fedora/alicebar.spec \
+            --define "alicebar_version $BARE" \
             --define "_sourcedir $PWD" \
             --define "_rpmdir $PWD/rpms" \
             --define "_srcrpmdir $PWD/srpms"

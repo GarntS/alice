@@ -139,6 +139,7 @@ tar -czf /rpmbuild/alicebar-${ver}.tar.gz \
   --transform "s|^\./|alicebar-${ver}/|" \
   -C /src .
 rpmbuild -ba /src/packaging/fedora/alicebar.spec \
+  --define "alicebar_version ${ver}" \
   --define "_sourcedir /rpmbuild" \
   --define "_rpmdir /rpms" \
   --define "_srcrpmdir /srpms" \
