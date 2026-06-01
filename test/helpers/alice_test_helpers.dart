@@ -14,6 +14,16 @@ AliceConfig testConfig({
   bool showNetworkLabel = true,
   bool transparentTopBar = false,
   CalendarConfig? calendar,
+  WeatherConfig weather = const WeatherConfig(
+    enable: true,
+    pirateWeatherKey: null,
+    forecastLat: null,
+    forecastLong: null,
+    forecastLanguage: 'en',
+    forecastUnits: 'us',
+    refreshInterval: 3600,
+    locationLabel: null,
+  ),
   NotificationConfig notifications = const NotificationConfig(
     defaultTimeoutMs: 5000,
     showNotificationPopup: true,
@@ -40,6 +50,7 @@ AliceConfig testConfig({
     ),
     panelTopGapPx: 8,
     notifications: notifications,
+    weather: weather,
     calendar: calendar,
   );
 }
@@ -55,6 +66,7 @@ BarSnapshot testSnapshot({
     dateLabel: '09 Mar',
     timeLabel: '13:37',
   ),
+  WeatherSnapshot? weather,
   double memoryUsagePercent = 82,
   double cpuUsageCores = 2.7,
 }) {
@@ -70,6 +82,7 @@ BarSnapshot testSnapshot({
         network ??
         const NetworkSnapshot(kind: NetworkKind.wifi, label: 'alice-net'),
     clock: clock,
+    weather: weather,
     trayItems: trayItems ?? testTrayItems(5),
     notifications: notifications ?? testNotifications(2),
   );
@@ -83,6 +96,7 @@ BarSnapshot copyTestSnapshot(
   double? cpuUsageCores,
   NetworkSnapshot? network,
   ClockSnapshot? clock,
+  WeatherSnapshot? weather,
   List<TrayItemSnapshot>? trayItems,
   List<NotificationSnapshot>? notifications,
 }) {
@@ -95,6 +109,7 @@ BarSnapshot copyTestSnapshot(
     cpuUsageCores: cpuUsageCores ?? snapshot.cpuUsageCores,
     network: network ?? snapshot.network,
     clock: clock ?? snapshot.clock,
+    weather: weather ?? snapshot.weather,
     trayItems: trayItems ?? snapshot.trayItems,
     notifications: notifications ?? snapshot.notifications,
   );
@@ -122,6 +137,77 @@ MediaSnapshot testMedia({
     positionMicros: positionMicros,
     lengthMicros: lengthMicros,
     isPlaying: true,
+  );
+}
+
+WeatherSnapshot testWeather() {
+  const now = 1780183620;
+  return const WeatherSnapshot(
+    latitude: 43.407,
+    longitude: -70.996,
+    timezone: 'America/New_York',
+    offset: -4,
+    units: 'us',
+    lastUpdatedUnixSecs: now,
+    currently: WeatherPoint(
+      time: now,
+      summary: 'Clear',
+      icon: 'clear-day',
+      temperature: 50.25,
+      humidity: 0.72,
+      precipProbability: 0.32,
+      windSpeed: 4.52,
+      windBearing: 48,
+    ),
+    hourly: [
+      WeatherPoint(
+        time: now - 3600,
+        summary: 'Partly Cloudy',
+        icon: 'partly-cloudy-day',
+        temperature: 50.09,
+        humidity: 0.65,
+        precipProbability: 0,
+        windSpeed: 5.58,
+        windBearing: 40,
+      ),
+      WeatherPoint(
+        time: now + 3600,
+        summary: 'Mostly Clear',
+        icon: 'clear-day',
+        temperature: 48.29,
+        humidity: 0.72,
+        precipProbability: 0,
+        windSpeed: 2.46,
+        windBearing: 20,
+      ),
+    ],
+    daily: [
+      WeatherDay(
+        time: now,
+        summary: 'Windy in the morning.',
+        icon: 'wind',
+        moonPhase: 0.48,
+        temperatureHigh: 50.45,
+        temperatureLow: 40.37,
+        humidity: 0.87,
+        precipProbability: 0,
+        windSpeed: 14.28,
+        windBearing: 84,
+      ),
+      WeatherDay(
+        time: now + 86400,
+        summary: 'Light rain.',
+        icon: 'rain',
+        moonPhase: 0.5,
+        temperatureHigh: 61.43,
+        temperatureLow: 46.67,
+        humidity: 0.74,
+        precipProbability: 0.36,
+        windSpeed: 5.19,
+        windBearing: 299,
+      ),
+    ],
+    alerts: [],
   );
 }
 

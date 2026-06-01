@@ -5,6 +5,7 @@ void main() {
   test('maps known panel ids and ignores unknown ids', () {
     expect(alicePanelFromId('media'), AlicePanel.media);
     expect(alicePanelFromId('clock'), AlicePanel.clock);
+    expect(alicePanelFromId('weather'), AlicePanel.weather);
     expect(alicePanelFromId('trayOverflow'), AlicePanel.trayOverflow);
     expect(alicePanelFromId('power'), AlicePanel.power);
     expect(alicePanelFromId('notifications'), AlicePanel.notifications);
@@ -58,6 +59,10 @@ void main() {
       globalPosition: const Offset(30, 40),
       alignment: PanelAlignment.right,
     );
+    final weatherAnchor = PanelAnchor(
+      globalPosition: const Offset(50, 60),
+      alignment: PanelAlignment.right,
+    );
     final counts = <AlicePanel, int>{};
     for (final panel in AlicePanel.values) {
       controller.openListenable(panel).addListener(() {
@@ -69,6 +74,7 @@ void main() {
     expect(counts, {AlicePanel.media: 1});
     expect(controller.mediaOpen.value, isTrue);
     expect(controller.clockOpen.value, isFalse);
+    expect(controller.weatherOpen.value, isFalse);
 
     controller.toggle(AlicePanel.clock, clockAnchor);
     expect(counts[AlicePanel.media], 2);
@@ -76,11 +82,18 @@ void main() {
     expect(counts.length, 2);
     expect(controller.mediaOpen.value, isFalse);
     expect(controller.clockOpen.value, isTrue);
+    expect(controller.weatherOpen.value, isFalse);
 
-    controller.toggle(AlicePanel.clock, clockAnchor);
+    controller.toggle(AlicePanel.weather, weatherAnchor);
     expect(counts[AlicePanel.clock], 2);
-    expect(counts.length, 2);
+    expect(counts[AlicePanel.weather], 1);
     expect(controller.clockOpen.value, isFalse);
+    expect(controller.weatherOpen.value, isTrue);
+
+    controller.toggle(AlicePanel.weather, weatherAnchor);
+    expect(counts[AlicePanel.weather], 2);
+    expect(counts.length, 3);
+    expect(controller.weatherOpen.value, isFalse);
 
     controller.dispose();
   });

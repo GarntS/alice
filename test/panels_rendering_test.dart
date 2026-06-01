@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:alicebar/alice_config.dart';
 import 'package:alicebar/widgets/panels/clock_panel.dart';
 import 'package:alicebar/panel_controller.dart';
 import 'package:alicebar/widgets/panels/media_panel.dart';
@@ -8,6 +9,7 @@ import 'package:alicebar/widgets/panels/panel_spec.dart';
 import 'package:alicebar/widgets/panels/notification_panel.dart';
 import 'package:alicebar/widgets/panels/power_panel.dart';
 import 'package:alicebar/widgets/panels/tray_panel.dart';
+import 'package:alicebar/widgets/panels/weather_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -193,6 +195,64 @@ void main() {
     await tester.tap(find.text('Lock'));
     await tester.pump();
     expect(powerActions, contains('lock'));
+  });
+
+  testWidgets('weather panel renders no-data and populated states', (
+    tester,
+  ) async {
+    await pumpAliceWidget(
+      tester,
+      SizedBox(
+        width: 340,
+        height: 420,
+        child: WeatherPanel(config: testConfig(), weather: null),
+      ),
+    );
+    expectNoFlutterErrors();
+    expect(find.text('Weather data unavailable.'), findsOneWidget);
+
+    await pumpAliceWidget(
+      tester,
+      SizedBox(
+        width: 340,
+        height: 520,
+        child: WeatherPanel(config: testConfig(), weather: testWeather()),
+      ),
+    );
+    expectNoFlutterErrors();
+    expect(find.text('Hourly'), findsOneWidget);
+    expect(find.text('Daily'), findsOneWidget);
+    expect(find.text('Precip.'), findsOneWidget);
+    expect(find.text('NE 5 mph'), findsOneWidget);
+  });
+
+  testWidgets('weather panel renders configured location label', (
+    tester,
+  ) async {
+    await pumpAliceWidget(
+      tester,
+      SizedBox(
+        width: 340,
+        height: 520,
+        child: WeatherPanel(
+          config: testConfig(
+            weather: const WeatherConfig(
+              enable: true,
+              pirateWeatherKey: null,
+              forecastLat: null,
+              forecastLong: null,
+              forecastLanguage: 'en',
+              forecastUnits: 'us',
+              refreshInterval: 3600,
+              locationLabel: 'Farmington',
+            ),
+          ),
+          weather: testWeather(),
+        ),
+      ),
+    );
+    expectNoFlutterErrors();
+    expect(find.text('Farmington'), findsOneWidget);
   });
 
   testWidgets('calendar widget changes dates without native calendar calls', (

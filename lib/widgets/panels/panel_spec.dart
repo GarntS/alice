@@ -31,11 +31,12 @@ Size alicePanelSizeFromSlices(
   return switch (panel) {
     AlicePanel.media => Size(360, _mediaHeight(media)),
     AlicePanel.clock => Size(320, _clockHeight(config, screenHeight)),
+    AlicePanel.weather => Size(320, _weatherHeight(screenHeight)),
     AlicePanel.trayOverflow => Size(
       320,
       (92 + (trayOverflowCount * 52)).clamp(120, 320).toDouble(),
     ),
-    AlicePanel.power => const Size(280, 292),
+    AlicePanel.power => const Size(280, 300),
     AlicePanel.notifications => const Size(380, 880),
   };
 }
@@ -47,6 +48,10 @@ double _mediaHeight(MediaSnapshot? media) {
 
 double _clockHeight(AliceConfig config, double screenHeight) {
   return screenHeight / 2;
+}
+
+double _weatherHeight(double screenHeight) {
+  return math.max(260, screenHeight / 2);
 }
 
 int _trayOverflowCount(AliceConfig config, BarSnapshot snapshot) {

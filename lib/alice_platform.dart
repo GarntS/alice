@@ -170,6 +170,7 @@ class AlicePlatform {
       cpuUsageCores: snapshot.cpuUsageCores,
       network: snapshot.network,
       clock: snapshot.clock,
+      weather: snapshot.weather,
       trayItems: stableItems,
       notifications: snapshot.notifications,
     );
@@ -206,6 +207,16 @@ class AlicePlatform {
         notificationDisplayTimeMs: r.notifications.notificationDisplayTimeMs,
         expireCriticalNotifications:
             r.notifications.expireCriticalNotifications,
+      ),
+      weather: WeatherConfig(
+        enable: r.weather.enable,
+        pirateWeatherKey: r.weather.pirateWeatherKey,
+        forecastLat: r.weather.forecastLat,
+        forecastLong: r.weather.forecastLong,
+        forecastLanguage: r.weather.forecastLanguage,
+        forecastUnits: r.weather.forecastUnits,
+        refreshInterval: r.weather.refreshInterval,
+        locationLabel: r.weather.locationLabel,
       ),
       calendar: r.calendar == null
           ? null

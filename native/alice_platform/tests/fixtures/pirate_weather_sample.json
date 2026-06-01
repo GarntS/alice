@@ -1,0 +1,76 @@
+{
+  "latitude": 43.4,
+  "longitude": -70.9,
+  "timezone": "America/New_York",
+  "offset": -4,
+  "currently": {
+    "time": 1780183620,
+    "summary": "Clear",
+    "icon": "clear-day",
+    "temperature": 50.25,
+    "humidity": 0.72,
+    "precipProbability": 0,
+    "windSpeed": 4.52,
+    "windBearing": 48
+  },
+  "hourly": {
+    "summary": "Light rain starting tomorrow afternoon.",
+    "icon": "rain",
+    "data": [
+      {
+        "time": 1780182000,
+        "summary": "Partly Cloudy",
+        "icon": "partly-cloudy-day",
+        "temperature": 50.09,
+        "humidity": 0.65,
+        "precipProbability": 0,
+        "windSpeed": 5.58,
+        "windBearing": 40
+      },
+      {
+        "time": 1780185600,
+        "summary": "Mostly Clear",
+        "icon": "clear-day",
+        "temperature": 48.29,
+        "humidity": 0.72,
+        "precipProbability": 0,
+        "windSpeed": 2.46,
+        "windBearing": 20
+      }
+    ]
+  },
+  "daily": {
+    "summary": "Light rain tomorrow, with highs climbing to 79°F on Friday.",
+    "icon": "rain",
+    "data": [
+      {
+        "time": 1780113600,
+        "summary": "Windy in the morning.",
+        "icon": "wind",
+        "moonPhase": 0.48,
+        "precipProbability": 0,
+        "temperatureHigh": 50.45,
+        "temperatureLow": 40.37,
+        "humidity": 0.87,
+        "windSpeed": 14.28,
+        "windBearing": 84
+      },
+      {
+        "time": 1780200000,
+        "summary": "Light rain from afternoon until night.",
+        "icon": "rain",
+        "moonPhase": 0.5,
+        "precipProbability": 0.36,
+        "temperatureHigh": 61.43,
+        "temperatureLow": 46.67,
+        "humidity": 0.74,
+        "windSpeed": 5.19,
+        "windBearing": 299
+      }
+    ]
+  },
+  "alerts": [],
+  "flags": {
+    "units": "us"
+  }
+}

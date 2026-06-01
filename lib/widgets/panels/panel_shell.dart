@@ -32,6 +32,7 @@ class PanelShell extends StatelessWidget {
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: theme.colorScheme.primary,
+                fontSize: 20,
               ),
               textAlign: titleAlign,
             ),

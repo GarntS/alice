@@ -13,6 +13,7 @@ class BarSnapshot {
   final double cpuUsageCores;
   final NetworkSnapshot network;
   final ClockSnapshot clock;
+  final WeatherSnapshot? weather;
   final List<TrayItemSnapshot> trayItems;
   final List<NotificationSnapshot> notifications;
 
@@ -23,6 +24,7 @@ class BarSnapshot {
     required this.cpuUsageCores,
     required this.network,
     required this.clock,
+    this.weather,
     required this.trayItems,
     required this.notifications,
   });
@@ -35,6 +37,7 @@ class BarSnapshot {
       cpuUsageCores.hashCode ^
       network.hashCode ^
       clock.hashCode ^
+      weather.hashCode ^
       trayItems.hashCode ^
       notifications.hashCode;
 
@@ -49,6 +52,7 @@ class BarSnapshot {
           cpuUsageCores == other.cpuUsageCores &&
           network == other.network &&
           clock == other.clock &&
+          weather == other.weather &&
           trayItems == other.trayItems &&
           notifications == other.notifications;
 }
@@ -360,6 +364,198 @@ class TrayItemSnapshot {
           serviceName == other.serviceName &&
           objectPath == other.objectPath &&
           iconPngBytes == other.iconPngBytes;
+}
+
+class WeatherAlert {
+  final String title;
+  final String description;
+  final String severity;
+  final PlatformInt64? time;
+  final PlatformInt64? expires;
+
+  const WeatherAlert({
+    required this.title,
+    required this.description,
+    required this.severity,
+    this.time,
+    this.expires,
+  });
+
+  @override
+  int get hashCode =>
+      title.hashCode ^
+      description.hashCode ^
+      severity.hashCode ^
+      time.hashCode ^
+      expires.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WeatherAlert &&
+          runtimeType == other.runtimeType &&
+          title == other.title &&
+          description == other.description &&
+          severity == other.severity &&
+          time == other.time &&
+          expires == other.expires;
+}
+
+class WeatherDay {
+  final PlatformInt64 time;
+  final String summary;
+  final String icon;
+  final double? moonPhase;
+  final double? temperatureHigh;
+  final double? temperatureLow;
+  final double? humidity;
+  final double? precipProbability;
+  final double? windSpeed;
+  final double? windBearing;
+
+  const WeatherDay({
+    required this.time,
+    required this.summary,
+    required this.icon,
+    this.moonPhase,
+    this.temperatureHigh,
+    this.temperatureLow,
+    this.humidity,
+    this.precipProbability,
+    this.windSpeed,
+    this.windBearing,
+  });
+
+  @override
+  int get hashCode =>
+      time.hashCode ^
+      summary.hashCode ^
+      icon.hashCode ^
+      moonPhase.hashCode ^
+      temperatureHigh.hashCode ^
+      temperatureLow.hashCode ^
+      humidity.hashCode ^
+      precipProbability.hashCode ^
+      windSpeed.hashCode ^
+      windBearing.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WeatherDay &&
+          runtimeType == other.runtimeType &&
+          time == other.time &&
+          summary == other.summary &&
+          icon == other.icon &&
+          moonPhase == other.moonPhase &&
+          temperatureHigh == other.temperatureHigh &&
+          temperatureLow == other.temperatureLow &&
+          humidity == other.humidity &&
+          precipProbability == other.precipProbability &&
+          windSpeed == other.windSpeed &&
+          windBearing == other.windBearing;
+}
+
+class WeatherPoint {
+  final PlatformInt64 time;
+  final String summary;
+  final String icon;
+  final double? temperature;
+  final double? humidity;
+  final double? precipProbability;
+  final double? windSpeed;
+  final double? windBearing;
+
+  const WeatherPoint({
+    required this.time,
+    required this.summary,
+    required this.icon,
+    this.temperature,
+    this.humidity,
+    this.precipProbability,
+    this.windSpeed,
+    this.windBearing,
+  });
+
+  @override
+  int get hashCode =>
+      time.hashCode ^
+      summary.hashCode ^
+      icon.hashCode ^
+      temperature.hashCode ^
+      humidity.hashCode ^
+      precipProbability.hashCode ^
+      windSpeed.hashCode ^
+      windBearing.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WeatherPoint &&
+          runtimeType == other.runtimeType &&
+          time == other.time &&
+          summary == other.summary &&
+          icon == other.icon &&
+          temperature == other.temperature &&
+          humidity == other.humidity &&
+          precipProbability == other.precipProbability &&
+          windSpeed == other.windSpeed &&
+          windBearing == other.windBearing;
+}
+
+class WeatherSnapshot {
+  final double latitude;
+  final double longitude;
+  final String timezone;
+  final double offset;
+  final String units;
+  final PlatformInt64 lastUpdatedUnixSecs;
+  final WeatherPoint currently;
+  final List<WeatherPoint> hourly;
+  final List<WeatherDay> daily;
+  final List<WeatherAlert> alerts;
+
+  const WeatherSnapshot({
+    required this.latitude,
+    required this.longitude,
+    required this.timezone,
+    required this.offset,
+    required this.units,
+    required this.lastUpdatedUnixSecs,
+    required this.currently,
+    required this.hourly,
+    required this.daily,
+    required this.alerts,
+  });
+
+  @override
+  int get hashCode =>
+      latitude.hashCode ^
+      longitude.hashCode ^
+      timezone.hashCode ^
+      offset.hashCode ^
+      units.hashCode ^
+      lastUpdatedUnixSecs.hashCode ^
+      currently.hashCode ^
+      hourly.hashCode ^
+      daily.hashCode ^
+      alerts.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WeatherSnapshot &&
+          runtimeType == other.runtimeType &&
+          latitude == other.latitude &&
+          longitude == other.longitude &&
+          timezone == other.timezone &&
+          offset == other.offset &&
+          units == other.units &&
+          lastUpdatedUnixSecs == other.lastUpdatedUnixSecs &&
+          currently == other.currently &&
+          hourly == other.hourly &&
+          daily == other.daily &&
+          alerts == other.alerts;
 }
 
 class WorkspaceSnapshot {

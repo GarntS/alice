@@ -22,6 +22,7 @@ pub mod state;
 pub mod stats;
 pub mod sway;
 pub mod tray;
+pub mod weather;
 
 // frb_generated.rs is produced by `flutter_rust_bridge_codegen generate`.
 mod frb_generated;

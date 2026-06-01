@@ -6,6 +6,7 @@ pub struct BarSnapshot {
     pub cpu_usage_cores: f64,
     pub network: NetworkSnapshot,
     pub clock: ClockSnapshot,
+    pub weather: Option<WeatherSnapshot>,
     pub tray_items: Vec<TrayItemSnapshot>,
     pub notifications: Vec<NotificationSnapshot>,
 }
@@ -48,6 +49,55 @@ pub struct ClockSnapshot {
     pub time_zone_code: String,
     pub date_label: String,
     pub time_label: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WeatherSnapshot {
+    pub latitude: f64,
+    pub longitude: f64,
+    pub timezone: String,
+    pub offset: f64,
+    pub units: String,
+    pub last_updated_unix_secs: i64,
+    pub currently: WeatherPoint,
+    pub hourly: Vec<WeatherPoint>,
+    pub daily: Vec<WeatherDay>,
+    pub alerts: Vec<WeatherAlert>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WeatherPoint {
+    pub time: i64,
+    pub summary: String,
+    pub icon: String,
+    pub temperature: Option<f64>,
+    pub humidity: Option<f64>,
+    pub precip_probability: Option<f64>,
+    pub wind_speed: Option<f64>,
+    pub wind_bearing: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WeatherDay {
+    pub time: i64,
+    pub summary: String,
+    pub icon: String,
+    pub moon_phase: Option<f64>,
+    pub temperature_high: Option<f64>,
+    pub temperature_low: Option<f64>,
+    pub humidity: Option<f64>,
+    pub precip_probability: Option<f64>,
+    pub wind_speed: Option<f64>,
+    pub wind_bearing: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WeatherAlert {
+    pub title: String,
+    pub description: String,
+    pub severity: String,
+    pub time: Option<i64>,
+    pub expires: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

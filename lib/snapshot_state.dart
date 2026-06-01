@@ -31,6 +31,7 @@ class AliceSnapshotState {
       timeLabel: '--:--',
     ),
   );
+  final ValueNotifier<WeatherSnapshot?> _weather = ValueNotifier(null);
   final ValueNotifier<List<TrayItemSnapshot>> _trayItems = ValueNotifier(
     const [],
   );
@@ -53,6 +54,7 @@ class AliceSnapshotState {
   ValueListenable<double> get cpuUsageCores => _cpuUsageCores;
   ValueListenable<NetworkSnapshot> get network => _network;
   ValueListenable<ClockSnapshot> get clock => _clock;
+  ValueListenable<WeatherSnapshot?> get weather => _weather;
   ValueListenable<List<TrayItemSnapshot>> get trayItems => _trayItems;
   ValueListenable<List<NotificationSnapshot>> get notifications =>
       _notifications;
@@ -69,6 +71,7 @@ class AliceSnapshotState {
   double get currentCpuUsageCores => _cpuUsageCores.value;
   NetworkSnapshot get currentNetwork => _network.value;
   ClockSnapshot get currentClock => _clock.value;
+  WeatherSnapshot? get currentWeather => _weather.value;
   List<TrayItemSnapshot> get currentTrayItems => _trayItems.value;
   List<NotificationSnapshot> get currentNotifications => _notifications.value;
   List<TrayItemSnapshot> get currentVisibleTrayItems => _visibleTrayItems.value;
@@ -81,6 +84,7 @@ class AliceSnapshotState {
     cpuUsageCores: currentCpuUsageCores,
     network: currentNetwork,
     clock: currentClock,
+    weather: currentWeather,
     trayItems: currentTrayItems,
     notifications: currentNotifications,
   );
@@ -107,6 +111,9 @@ class AliceSnapshotState {
     }
     if (!clockSnapshotsEqual(_clock.value, next.clock)) {
       _clock.value = next.clock;
+    }
+    if (!weatherSnapshotsEqual(_weather.value, next.weather)) {
+      _weather.value = next.weather;
     }
     if (!listEqualsBy(
       _trayItems.value,
@@ -196,6 +203,7 @@ class AliceSnapshotState {
     _cpuUsageCores.dispose();
     _network.dispose();
     _clock.dispose();
+    _weather.dispose();
     _trayItems.dispose();
     _notifications.dispose();
     _visibleTrayItems.dispose();
@@ -240,6 +248,49 @@ bool clockSnapshotsEqual(ClockSnapshot a, ClockSnapshot b) =>
     a.timeZoneCode == b.timeZoneCode &&
     a.dateLabel == b.dateLabel &&
     a.timeLabel == b.timeLabel;
+
+bool weatherSnapshotsEqual(WeatherSnapshot? a, WeatherSnapshot? b) {
+  if (identical(a, b)) return true;
+  if (a == null || b == null) return false;
+  return a.latitude == b.latitude &&
+      a.longitude == b.longitude &&
+      a.timezone == b.timezone &&
+      a.units == b.units &&
+      a.lastUpdatedUnixSecs == b.lastUpdatedUnixSecs &&
+      weatherPointsEqual(a.currently, b.currently) &&
+      listEqualsBy(a.hourly, b.hourly, weatherPointsEqual) &&
+      listEqualsBy(a.daily, b.daily, weatherDaysEqual) &&
+      listEqualsBy(a.alerts, b.alerts, weatherAlertsEqual);
+}
+
+bool weatherPointsEqual(WeatherPoint a, WeatherPoint b) =>
+    a.time == b.time &&
+    a.summary == b.summary &&
+    a.icon == b.icon &&
+    a.temperature == b.temperature &&
+    a.humidity == b.humidity &&
+    a.precipProbability == b.precipProbability &&
+    a.windSpeed == b.windSpeed &&
+    a.windBearing == b.windBearing;
+
+bool weatherDaysEqual(WeatherDay a, WeatherDay b) =>
+    a.time == b.time &&
+    a.summary == b.summary &&
+    a.icon == b.icon &&
+    a.moonPhase == b.moonPhase &&
+    a.temperatureHigh == b.temperatureHigh &&
+    a.temperatureLow == b.temperatureLow &&
+    a.humidity == b.humidity &&
+    a.precipProbability == b.precipProbability &&
+    a.windSpeed == b.windSpeed &&
+    a.windBearing == b.windBearing;
+
+bool weatherAlertsEqual(WeatherAlert a, WeatherAlert b) =>
+    a.title == b.title &&
+    a.description == b.description &&
+    a.severity == b.severity &&
+    a.time == b.time &&
+    a.expires == b.expires;
 
 bool trayItemSnapshotsEqual(TrayItemSnapshot a, TrayItemSnapshot b) =>
     a.id == b.id &&

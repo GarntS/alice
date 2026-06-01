@@ -10,6 +10,7 @@ import 'clock_panel.dart';
 import 'tray_panel.dart';
 import 'power_panel.dart';
 import 'notification_panel.dart';
+import 'weather_panel.dart';
 
 class AlicePanelCard extends StatefulWidget {
   const AlicePanelCard({
@@ -81,6 +82,11 @@ class _AlicePanelCardState extends State<AlicePanelCard> {
               builder: (context, clock, _) =>
                   ClockPanel(config: widget.config, snapshot: clock),
             ),
+            AlicePanel.weather => ValueListenableBuilder<WeatherSnapshot?>(
+              valueListenable: widget.snapshotState.weather,
+              builder: (context, weather, _) =>
+                  WeatherPanel(config: widget.config, weather: weather),
+            ),
             AlicePanel.trayOverflow =>
               ValueListenableBuilder<List<TrayItemSnapshot>>(
                 valueListenable: widget.snapshotState.trayItems,
@@ -108,6 +114,7 @@ class _AlicePanelCardState extends State<AlicePanelCard> {
           final hasDynamicHeight =
               widget.panel == AlicePanel.clock ||
               widget.panel == AlicePanel.media ||
+              widget.panel == AlicePanel.weather ||
               widget.panel == AlicePanel.notifications;
           return Material(
             color: Colors.transparent,

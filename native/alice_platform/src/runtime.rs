@@ -92,6 +92,7 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
         let (tx, mut rx) = mpsc::channel::<Trigger>(32);
         let mpris_cache = crate::mpris::MprisCache::new();
         crate::mpris::MprisCache::install_global(mpris_cache.clone());
+        let weather_cache = crate::weather::WeatherCache::new();
 
         // --- 1 s stats timer ---
         let tx_stats = tx.clone();
@@ -149,6 +150,19 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
             }
         });
 
+        // --- Weather refresh watcher ---
+        match config.weather.validated_for_runtime() {
+            Ok(Some(weather_config)) => {
+                let tx_weather = tx.clone();
+                let cache = weather_cache.clone();
+                tokio::spawn(async move {
+                    weather_refresh_watcher(weather_config, cache, tx_weather).await;
+                });
+            }
+            Ok(None) => {}
+            Err(error) => eprintln!("alice: weather config error: {error}"),
+        }
+
         // --- MPRIS lifecycle/property watcher and position refresh ---
         let tx_mpris = tx.clone();
         let mpris_watcher_cache = mpris_cache.clone();
@@ -174,7 +188,7 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
             while rx.try_recv().is_ok() {}
 
-            let snapshot = build_snapshot(mpris_cache.clone());
+            let snapshot = build_snapshot(mpris_cache.clone(), weather_cache.clone());
             if sink.add(snapshot).is_err() {
                 break;
             }
@@ -182,7 +196,46 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
     });
 }
 
-fn build_snapshot(mpris_cache: Arc<crate::mpris::MprisCache>) -> BarSnapshot {
+async fn weather_refresh_watcher(
+    config: crate::config::ValidatedWeatherConfig,
+    cache: crate::weather::WeatherCache,
+    tx: mpsc::Sender<Trigger>,
+) {
+    loop {
+        match crate::weather::fetch_weather(&config).await {
+            Ok(snapshot) => {
+                if cache.set(snapshot) {
+                    let _ = tx.send(Trigger::Event).await;
+                }
+            }
+            Err(error) => {
+                let message =
+                    crate::weather::redact_key(&error.log_message(), &config.pirate_weather_key);
+                eprintln!("alice: {message}");
+            }
+        }
+
+        let jitter = weather_jitter_secs();
+        tokio::time::sleep(tokio::time::Duration::from_secs(
+            config.refresh_interval as u64 + jitter,
+        ))
+        .await;
+    }
+}
+
+fn weather_jitter_secs() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs() % 6)
+        .unwrap_or(0)
+}
+
+fn build_snapshot(
+    mpris_cache: Arc<crate::mpris::MprisCache>,
+    weather_cache: crate::weather::WeatherCache,
+) -> BarSnapshot {
     use crate::clock::LocalClockProvider;
     use crate::mpris::CachedMprisMediaProvider;
     use crate::network::SysNetworkProvider;
@@ -196,6 +249,7 @@ fn build_snapshot(mpris_cache: Arc<crate::mpris::MprisCache>) -> BarSnapshot {
         &ProcStatsProvider::new(),
         &SysNetworkProvider::new(),
         &LocalClockProvider::new(),
+        &crate::weather::CachedWeatherProvider::new(weather_cache),
         &StatusNotifierTrayProvider::new(),
         notification_snapshots(),
     )
@@ -234,12 +288,13 @@ fn notification_snapshots() -> Vec<crate::state::NotificationSnapshot> {
         .collect()
 }
 
-pub(crate) fn build_snapshot_from_providers<W, M, S, N, C, T>(
+pub(crate) fn build_snapshot_from_providers<W, M, S, N, C, WP, T>(
     workspace_provider: &W,
     media_provider: &M,
     stats_provider: &S,
     network_provider: &N,
     clock_provider: &C,
+    weather_provider: &WP,
     tray_provider: &T,
     notifications: Vec<crate::state::NotificationSnapshot>,
 ) -> BarSnapshot
@@ -249,6 +304,7 @@ where
     S: crate::providers::StatsProvider,
     N: crate::providers::NetworkProvider,
     C: crate::providers::ClockProvider,
+    WP: crate::providers::WeatherProvider,
     T: crate::providers::TrayProvider,
 {
     use crate::state::{ClockSnapshot, NetworkKind, NetworkSnapshot};
@@ -270,6 +326,7 @@ where
         date_label: "-- ---".into(),
         time_label: "--:--".into(),
     });
+    let weather = weather_provider.read_weather().unwrap_or(None);
     let tray_items = tray_provider.read_tray_items().unwrap_or_default();
 
     BarSnapshot {
@@ -279,6 +336,7 @@ where
         cpu_usage_cores: stats.cpu_usage_cores,
         network,
         clock,
+        weather,
         tray_items,
         notifications,
     }
@@ -308,11 +366,11 @@ mod tests {
     use crate::PlatformError;
     use crate::providers::{
         ClockProvider, MediaProvider, NetworkProvider, Stats, StatsProvider, TrayProvider,
-        WorkspaceProvider,
+        WeatherProvider, WorkspaceProvider,
     };
     use crate::state::{
         ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot, NotificationSnapshot,
-        NotificationUrgency, TrayItemSnapshot, WorkspaceSnapshot,
+        NotificationUrgency, TrayItemSnapshot, WeatherPoint, WeatherSnapshot, WorkspaceSnapshot,
     };
 
     struct FakeWorkspaceProvider(Result<Vec<WorkspaceSnapshot>, PlatformError>);
@@ -320,6 +378,7 @@ mod tests {
     struct FakeStatsProvider(Result<Stats, PlatformError>);
     struct FakeNetworkProvider(Result<NetworkSnapshot, PlatformError>);
     struct FakeClockProvider(Result<ClockSnapshot, PlatformError>);
+    struct FakeWeatherProvider(Result<Option<WeatherSnapshot>, PlatformError>);
     struct FakeTrayProvider(Result<Vec<TrayItemSnapshot>, PlatformError>);
 
     impl WorkspaceProvider for FakeWorkspaceProvider {
@@ -352,6 +411,12 @@ mod tests {
         }
     }
 
+    impl WeatherProvider for FakeWeatherProvider {
+        fn read_weather(&self) -> Result<Option<WeatherSnapshot>, PlatformError> {
+            self.0.clone()
+        }
+    }
+
     impl TrayProvider for FakeTrayProvider {
         fn read_tray_items(&self) -> Result<Vec<TrayItemSnapshot>, PlatformError> {
             self.0.clone()
@@ -373,6 +438,30 @@ mod tests {
             position_micros: 1_000_000,
             length_micros: 2_000_000,
             is_playing: true,
+        }
+    }
+
+    fn weather() -> WeatherSnapshot {
+        WeatherSnapshot {
+            latitude: 1.0,
+            longitude: 2.0,
+            timezone: "UTC".into(),
+            offset: 0.0,
+            units: "us".into(),
+            last_updated_unix_secs: 42,
+            currently: WeatherPoint {
+                time: 42,
+                summary: "Clear".into(),
+                icon: "clear-day".into(),
+                temperature: Some(70.0),
+                humidity: Some(0.5),
+                precip_probability: Some(0.1),
+                wind_speed: Some(5.0),
+                wind_bearing: Some(90.0),
+            },
+            hourly: vec![],
+            daily: vec![],
+            alerts: vec![],
         }
     }
 
@@ -413,6 +502,7 @@ mod tests {
                 date_label: "16 May".into(),
                 time_label: "12:34".into(),
             })),
+            &FakeWeatherProvider(Ok(Some(weather()))),
             &FakeTrayProvider(Ok(vec![TrayItemSnapshot {
                 id: "tray".into(),
                 label: "Tray".into(),
@@ -429,6 +519,7 @@ mod tests {
         assert_eq!(snapshot.cpu_usage_cores, 1.25);
         assert_eq!(snapshot.network.label, "testnet");
         assert_eq!(snapshot.clock.time_label, "12:34");
+        assert_eq!(snapshot.weather, Some(weather()));
         assert_eq!(snapshot.tray_items.len(), 1);
         assert_eq!(snapshot.notifications, notifications);
     }
@@ -441,6 +532,7 @@ mod tests {
             &FakeStatsProvider(err()),
             &FakeNetworkProvider(err()),
             &FakeClockProvider(err()),
+            &FakeWeatherProvider(err()),
             &FakeTrayProvider(err()),
             vec![],
         );
@@ -454,6 +546,7 @@ mod tests {
         assert_eq!(snapshot.clock.time_zone_code, "UTC");
         assert_eq!(snapshot.clock.date_label, "-- ---");
         assert_eq!(snapshot.clock.time_label, "--:--");
+        assert_eq!(snapshot.weather, None);
         assert!(snapshot.tray_items.is_empty());
         assert!(snapshot.notifications.is_empty());
     }

@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-enum AlicePanel { media, clock, trayOverflow, power, notifications }
+enum AlicePanel { media, clock, weather, trayOverflow, power, notifications }
 
 AlicePanel? alicePanelFromId(String? panelId) {
   return switch (panelId) {
     'media' => AlicePanel.media,
     'clock' => AlicePanel.clock,
+    'weather' => AlicePanel.weather,
     'trayOverflow' => AlicePanel.trayOverflow,
     'power' => AlicePanel.power,
     'notifications' => AlicePanel.notifications,
@@ -29,6 +30,7 @@ class PanelController extends ChangeNotifier {
 
   final ValueNotifier<bool> _mediaOpen = ValueNotifier(false);
   final ValueNotifier<bool> _clockOpen = ValueNotifier(false);
+  final ValueNotifier<bool> _weatherOpen = ValueNotifier(false);
   final ValueNotifier<bool> _trayOverflowOpen = ValueNotifier(false);
   final ValueNotifier<bool> _notificationsOpen = ValueNotifier(false);
   final ValueNotifier<bool> _powerOpen = ValueNotifier(false);
@@ -38,6 +40,7 @@ class PanelController extends ChangeNotifier {
 
   ValueListenable<bool> get mediaOpen => _mediaOpen;
   ValueListenable<bool> get clockOpen => _clockOpen;
+  ValueListenable<bool> get weatherOpen => _weatherOpen;
   ValueListenable<bool> get trayOverflowOpen => _trayOverflowOpen;
   ValueListenable<bool> get notificationsOpen => _notificationsOpen;
   ValueListenable<bool> get powerOpen => _powerOpen;
@@ -46,6 +49,7 @@ class PanelController extends ChangeNotifier {
     return switch (panel) {
       AlicePanel.media => _mediaOpen,
       AlicePanel.clock => _clockOpen,
+      AlicePanel.weather => _weatherOpen,
       AlicePanel.trayOverflow => _trayOverflowOpen,
       AlicePanel.notifications => _notificationsOpen,
       AlicePanel.power => _powerOpen,
@@ -89,6 +93,7 @@ class PanelController extends ChangeNotifier {
     final notifier = switch (panel) {
       AlicePanel.media => _mediaOpen,
       AlicePanel.clock => _clockOpen,
+      AlicePanel.weather => _weatherOpen,
       AlicePanel.trayOverflow => _trayOverflowOpen,
       AlicePanel.notifications => _notificationsOpen,
       AlicePanel.power => _powerOpen,
@@ -100,6 +105,7 @@ class PanelController extends ChangeNotifier {
   void dispose() {
     _mediaOpen.dispose();
     _clockOpen.dispose();
+    _weatherOpen.dispose();
     _trayOverflowOpen.dispose();
     _notificationsOpen.dispose();
     _powerOpen.dispose();

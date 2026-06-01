@@ -50,10 +50,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CalendarConfig dco_decode_box_autoadd_calendar_config(dynamic raw);
 
   @protected
+  double dco_decode_box_autoadd_f_64(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
   MediaSnapshot dco_decode_box_autoadd_media_snapshot(dynamic raw);
 
   @protected
   PanelCommand dco_decode_box_autoadd_panel_command(dynamic raw);
+
+  @protected
+  WeatherSnapshot dco_decode_box_autoadd_weather_snapshot(dynamic raw);
 
   @protected
   CalendarConfig dco_decode_calendar_config(dynamic raw);
@@ -97,6 +106,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<TrayItemSnapshot> dco_decode_list_tray_item_snapshot(dynamic raw);
 
   @protected
+  List<WeatherAlert> dco_decode_list_weather_alert(dynamic raw);
+
+  @protected
+  List<WeatherDay> dco_decode_list_weather_day(dynamic raw);
+
+  @protected
+  List<WeatherPoint> dco_decode_list_weather_point(dynamic raw);
+
+  @protected
   List<WorkspaceSnapshot> dco_decode_list_workspace_snapshot(dynamic raw);
 
   @protected
@@ -129,10 +147,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CalendarConfig? dco_decode_opt_box_autoadd_calendar_config(dynamic raw);
 
   @protected
+  double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
+
+  @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
   MediaSnapshot? dco_decode_opt_box_autoadd_media_snapshot(dynamic raw);
 
   @protected
   PanelCommand? dco_decode_opt_box_autoadd_panel_command(dynamic raw);
+
+  @protected
+  WeatherSnapshot? dco_decode_opt_box_autoadd_weather_snapshot(dynamic raw);
 
   @protected
   Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw);
@@ -163,6 +190,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void dco_decode_unit(dynamic raw);
+
+  @protected
+  WeatherAlert dco_decode_weather_alert(dynamic raw);
+
+  @protected
+  WeatherConfig dco_decode_weather_config(dynamic raw);
+
+  @protected
+  WeatherDay dco_decode_weather_day(dynamic raw);
+
+  @protected
+  WeatherPoint dco_decode_weather_point(dynamic raw);
+
+  @protected
+  WeatherSnapshot dco_decode_weather_snapshot(dynamic raw);
 
   @protected
   WorkspaceSnapshot dco_decode_workspace_snapshot(dynamic raw);
@@ -199,12 +241,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  double sse_decode_box_autoadd_f_64(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   MediaSnapshot sse_decode_box_autoadd_media_snapshot(
     SseDeserializer deserializer,
   );
 
   @protected
   PanelCommand sse_decode_box_autoadd_panel_command(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  WeatherSnapshot sse_decode_box_autoadd_weather_snapshot(
     SseDeserializer deserializer,
   );
 
@@ -260,6 +313,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<WeatherAlert> sse_decode_list_weather_alert(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<WeatherDay> sse_decode_list_weather_day(SseDeserializer deserializer);
+
+  @protected
+  List<WeatherPoint> sse_decode_list_weather_point(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<WorkspaceSnapshot> sse_decode_list_workspace_snapshot(
     SseDeserializer deserializer,
   );
@@ -302,12 +368,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   MediaSnapshot? sse_decode_opt_box_autoadd_media_snapshot(
     SseDeserializer deserializer,
   );
 
   @protected
   PanelCommand? sse_decode_opt_box_autoadd_panel_command(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  WeatherSnapshot? sse_decode_opt_box_autoadd_weather_snapshot(
     SseDeserializer deserializer,
   );
 
@@ -342,6 +419,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
+
+  @protected
+  WeatherAlert sse_decode_weather_alert(SseDeserializer deserializer);
+
+  @protected
+  WeatherConfig sse_decode_weather_config(SseDeserializer deserializer);
+
+  @protected
+  WeatherDay sse_decode_weather_day(SseDeserializer deserializer);
+
+  @protected
+  WeatherPoint sse_decode_weather_point(SseDeserializer deserializer);
+
+  @protected
+  WeatherSnapshot sse_decode_weather_snapshot(SseDeserializer deserializer);
 
   @protected
   WorkspaceSnapshot sse_decode_workspace_snapshot(SseDeserializer deserializer);
@@ -383,6 +475,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_media_snapshot(
     MediaSnapshot self,
     SseSerializer serializer,
@@ -391,6 +492,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_panel_command(
     PanelCommand self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_weather_snapshot(
+    WeatherSnapshot self,
     SseSerializer serializer,
   );
 
@@ -458,6 +565,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_weather_alert(
+    List<WeatherAlert> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_weather_day(
+    List<WeatherDay> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_weather_point(
+    List<WeatherPoint> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_workspace_snapshot(
     List<WorkspaceSnapshot> self,
     SseSerializer serializer,
@@ -509,6 +634,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_media_snapshot(
     MediaSnapshot? self,
     SseSerializer serializer,
@@ -517,6 +651,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_panel_command(
     PanelCommand? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_weather_snapshot(
+    WeatherSnapshot? self,
     SseSerializer serializer,
   );
 
@@ -561,6 +701,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_weather_alert(WeatherAlert self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_weather_config(WeatherConfig self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_weather_day(WeatherDay self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_weather_point(WeatherPoint self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_weather_snapshot(
+    WeatherSnapshot self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_workspace_snapshot(

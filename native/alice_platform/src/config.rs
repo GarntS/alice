@@ -11,7 +11,7 @@ use serde::Deserialize;
 pub const DEFAULT_CONFIG_TEMPLATE: &str =
     include_str!("../../../assets/config/default_config.yaml");
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AliceConfig {
     pub theme_mode: ThemeMode,
     pub accent_color: String,
@@ -24,6 +24,7 @@ pub struct AliceConfig {
     pub panel_top_gap_px: u32,
     pub calendar: Option<CalendarConfig>,
     pub notifications: NotificationConfig,
+    pub weather: WeatherConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,6 +45,70 @@ pub struct CalendarConfig {
     pub google_client_secret: String,
     /// How often (in seconds) to poll for calendar changes via incremental sync.
     pub poll_interval_secs: u32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WeatherConfig {
+    pub enable: bool,
+    pub pirate_weather_key: Option<String>,
+    pub forecast_lat: Option<f64>,
+    pub forecast_long: Option<f64>,
+    pub forecast_language: String,
+    pub forecast_units: String,
+    pub refresh_interval: u32,
+    pub location_label: Option<String>,
+}
+
+impl WeatherConfig {
+    pub fn validated_for_runtime(&self) -> Result<Option<ValidatedWeatherConfig>, String> {
+        if !self.enable {
+            return Ok(None);
+        }
+
+        let key = self
+            .pirate_weather_key
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| {
+                "weather.pirate_weather_key is required when weather is enabled".to_string()
+            })?;
+        let forecast_lat = self.forecast_lat.ok_or_else(|| {
+            "weather.forecast_lat is required when weather is enabled".to_string()
+        })?;
+        let forecast_long = self.forecast_long.ok_or_else(|| {
+            "weather.forecast_long is required when weather is enabled".to_string()
+        })?;
+
+        if !(-90.0..=90.0).contains(&forecast_lat) {
+            return Err("weather.forecast_lat must be between -90 and 90".into());
+        }
+        if !(-180.0..=180.0).contains(&forecast_long) {
+            return Err("weather.forecast_long must be between -180 and 180".into());
+        }
+
+        Ok(Some(ValidatedWeatherConfig {
+            pirate_weather_key: key.to_string(),
+            forecast_lat,
+            forecast_long,
+            forecast_language: non_empty_or_default(
+                Some(self.forecast_language.clone()),
+                "en".into(),
+            ),
+            forecast_units: non_empty_or_default(Some(self.forecast_units.clone()), "us".into()),
+            refresh_interval: self.refresh_interval.max(300),
+        }))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ValidatedWeatherConfig {
+    pub pirate_weather_key: String,
+    pub forecast_lat: f64,
+    pub forecast_long: f64,
+    pub forecast_language: String,
+    pub forecast_units: String,
+    pub refresh_interval: u32,
 }
 
 impl Default for AliceConfig {
@@ -78,6 +143,16 @@ impl Default for AliceConfig {
                 show_notification_popup: true,
                 notification_display_time_ms: 5000,
                 expire_critical_notifications: false,
+            },
+            weather: WeatherConfig {
+                enable: true,
+                pirate_weather_key: None,
+                forecast_lat: None,
+                forecast_long: None,
+                forecast_language: "en".into(),
+                forecast_units: "us".into(),
+                refresh_interval: 3600,
+                location_label: None,
             },
         }
     }
@@ -183,6 +258,8 @@ struct RawConfig {
     calendar: Option<RawCalendarConfig>,
     #[serde(default)]
     notifications: RawNotificationConfig,
+    #[serde(default)]
+    weather: RawWeatherConfig,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -199,6 +276,18 @@ struct RawCalendarConfig {
     google_client_secret: String,
     #[serde(default)]
     poll_interval_secs: Option<u32>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct RawWeatherConfig {
+    enable: Option<bool>,
+    pirate_weather_key: Option<String>,
+    forecast_lat: Option<f64>,
+    forecast_long: Option<f64>,
+    forecast_language: Option<String>,
+    forecast_units: Option<String>,
+    refresh_interval: Option<u32>,
+    location_label: Option<String>,
 }
 
 impl RawConfig {
@@ -263,6 +352,26 @@ impl RawConfig {
                     .notifications
                     .expire_critical_notifications
                     .unwrap_or(defaults.notifications.expire_critical_notifications),
+            },
+            weather: WeatherConfig {
+                enable: self.weather.enable.unwrap_or(defaults.weather.enable),
+                pirate_weather_key: normalize_optional_label(self.weather.pirate_weather_key),
+                forecast_lat: self.weather.forecast_lat,
+                forecast_long: self.weather.forecast_long,
+                forecast_language: non_empty_or_default(
+                    self.weather.forecast_language,
+                    defaults.weather.forecast_language,
+                ),
+                forecast_units: non_empty_or_default(
+                    self.weather.forecast_units,
+                    defaults.weather.forecast_units,
+                ),
+                refresh_interval: self
+                    .weather
+                    .refresh_interval
+                    .unwrap_or(defaults.weather.refresh_interval)
+                    .max(300),
+                location_label: normalize_optional_label(self.weather.location_label),
             },
         }
     }
@@ -463,6 +572,14 @@ mod tests {
         assert!(config.notifications.show_notification_popup);
         assert_eq!(config.notifications.notification_display_time_ms, 5000);
         assert!(!config.notifications.expire_critical_notifications);
+        assert!(config.weather.enable);
+        assert_eq!(config.weather.pirate_weather_key, None);
+        assert_eq!(config.weather.forecast_lat, None);
+        assert_eq!(config.weather.forecast_long, None);
+        assert_eq!(config.weather.forecast_language, "en");
+        assert_eq!(config.weather.forecast_units, "us");
+        assert_eq!(config.weather.refresh_interval, 3600);
+        assert_eq!(config.weather.location_label, None);
     }
 
     #[test]
@@ -493,6 +610,67 @@ notifications:
         assert!(!config.notifications.show_notification_popup);
         assert_eq!(config.notifications.notification_display_time_ms, 0);
         assert!(config.notifications.expire_critical_notifications);
+    }
+
+    #[test]
+    fn parses_weather_config_defaults_and_validation() {
+        let omitted = AliceConfig::from_yaml_str("").expect("empty yaml should parse");
+        assert!(omitted.weather.enable);
+        assert!(omitted.weather.validated_for_runtime().is_err());
+
+        let disabled = AliceConfig::from_yaml_str(
+            r##"
+weather:
+  enable: false
+"##,
+        )
+        .expect("disabled weather should parse");
+        assert!(!disabled.weather.enable);
+        assert_eq!(disabled.weather.validated_for_runtime().unwrap(), None);
+
+        let valid = AliceConfig::from_yaml_str(
+            r##"
+weather:
+  pirate_weather_key: "abc123"
+  forecast_lat: 43.407
+  forecast_long: -70.996
+  forecast_language: fr
+  forecast_units: ca
+  refresh_interval: 120
+  location_label: Farmington
+"##,
+        )
+        .expect("valid weather config should parse");
+        assert_eq!(valid.weather.refresh_interval, 300);
+        assert_eq!(valid.weather.location_label, Some("Farmington".into()));
+        let runtime = valid
+            .weather
+            .validated_for_runtime()
+            .expect("valid weather runtime config")
+            .expect("weather enabled");
+        assert_eq!(runtime.pirate_weather_key, "abc123");
+        assert_eq!(runtime.forecast_lat, 43.407);
+        assert_eq!(runtime.forecast_long, -70.996);
+        assert_eq!(runtime.forecast_language, "fr");
+        assert_eq!(runtime.forecast_units, "ca");
+        assert_eq!(runtime.refresh_interval, 300);
+
+        let invalid_lat = AliceConfig::from_yaml_str(
+            r##"
+weather:
+  pirate_weather_key: "abc123"
+  forecast_lat: 91
+  forecast_long: 0
+"##,
+        )
+        .expect("invalid coordinate config should still parse");
+        assert!(
+            invalid_lat
+                .weather
+                .validated_for_runtime()
+                .expect_err("invalid lat should be rejected")
+                .contains("forecast_lat")
+        );
     }
 
     #[test]

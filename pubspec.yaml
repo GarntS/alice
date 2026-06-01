@@ -10,10 +10,22 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_rust_bridge: 2.11.1
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
 flutter:
+  fonts:
+    - family: NimbusSansDOT
+      fonts:
+        - asset: fonts/NimbusSans-Regular.ttf
+        - asset: fonts/NimbusSans-Italic.ttf
+          style: italic
+        - asset: fonts/NimbusSans-Bold.ttf
+          weight: 700
+        - asset: fonts/NimbusSans-BoldItalic.ttf
+          weight: 700
+          style: italic
   uses-material-design: true

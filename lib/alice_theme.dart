@@ -21,6 +21,7 @@ ThemeData buildAliceTheme(AliceConfig config, Brightness brightness) {
     scaffoldBackgroundColor: Colors.transparent,
     textTheme: ThemeData(
       brightness: brightness,
+      fontFamily: 'NimbusSansDOT',
     ).textTheme.apply(bodyColor: foreground, displayColor: foreground),
   );
 }

@@ -18,6 +18,7 @@ class AliceConfig {
   final int panelTopGapPx;
   final CalendarConfig? calendar;
   final NotificationConfig notifications;
+  final WeatherConfig weather;
 
   const AliceConfig({
     required this.themeMode,
@@ -31,6 +32,7 @@ class AliceConfig {
     required this.panelTopGapPx,
     this.calendar,
     required this.notifications,
+    required this.weather,
   });
 
   @override
@@ -45,7 +47,8 @@ class AliceConfig {
       powerCommands.hashCode ^
       panelTopGapPx.hashCode ^
       calendar.hashCode ^
-      notifications.hashCode;
+      notifications.hashCode ^
+      weather.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -62,7 +65,8 @@ class AliceConfig {
           powerCommands == other.powerCommands &&
           panelTopGapPx == other.panelTopGapPx &&
           calendar == other.calendar &&
-          notifications == other.notifications;
+          notifications == other.notifications &&
+          weather == other.weather;
 }
 
 class CalendarConfig {
@@ -181,4 +185,51 @@ class TimeZoneConfig {
           runtimeType == other.runtimeType &&
           label == other.label &&
           offsetHours == other.offsetHours;
+}
+
+class WeatherConfig {
+  final bool enable;
+  final String? pirateWeatherKey;
+  final double? forecastLat;
+  final double? forecastLong;
+  final String forecastLanguage;
+  final String forecastUnits;
+  final int refreshInterval;
+  final String? locationLabel;
+
+  const WeatherConfig({
+    required this.enable,
+    this.pirateWeatherKey,
+    this.forecastLat,
+    this.forecastLong,
+    required this.forecastLanguage,
+    required this.forecastUnits,
+    required this.refreshInterval,
+    this.locationLabel,
+  });
+
+  @override
+  int get hashCode =>
+      enable.hashCode ^
+      pirateWeatherKey.hashCode ^
+      forecastLat.hashCode ^
+      forecastLong.hashCode ^
+      forecastLanguage.hashCode ^
+      forecastUnits.hashCode ^
+      refreshInterval.hashCode ^
+      locationLabel.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WeatherConfig &&
+          runtimeType == other.runtimeType &&
+          enable == other.enable &&
+          pirateWeatherKey == other.pirateWeatherKey &&
+          forecastLat == other.forecastLat &&
+          forecastLong == other.forecastLong &&
+          forecastLanguage == other.forecastLanguage &&
+          forecastUnits == other.forecastUnits &&
+          refreshInterval == other.refreshInterval &&
+          locationLabel == other.locationLabel;
 }

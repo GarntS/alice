@@ -13,6 +13,7 @@ import 'bar_widgets/network_module.dart';
 import 'bar_widgets/notification_module.dart';
 import 'bar_widgets/power_module.dart';
 import 'bar_widgets/tray_module.dart';
+import 'bar_widgets/weather_module.dart';
 import 'bar_widgets/workspace_module.dart';
 
 class TopBar extends StatefulWidget {
@@ -161,6 +162,24 @@ class _TopBarState extends State<TopBar> {
                             ),
                           ),
                     ),
+                    if (widget.config.weather.enable)
+                      ValueListenableBuilder<WeatherSnapshot?>(
+                        valueListenable: widget.snapshotState.weather,
+                        builder: (context, weather, _) =>
+                            ValueListenableBuilder<bool>(
+                              valueListenable:
+                                  widget.panelController.weatherOpen,
+                              builder: (context, highlighted, _) => _probe(
+                                'weather',
+                                TopBarWeatherModule(
+                                  weather: weather,
+                                  highlighted: highlighted,
+                                  onToggle: (anchor) => widget.panelController
+                                      .toggle(AlicePanel.weather, anchor),
+                                ),
+                              ),
+                            ),
+                      ),
                     _TrayCluster(
                       visibleTrayItems: widget.snapshotState.visibleTrayItems,
                       trayOverflowCount: widget.snapshotState.trayOverflowCount,

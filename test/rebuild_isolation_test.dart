@@ -96,7 +96,7 @@ void main() {
       snapshot = copyTestSnapshot(snapshot, trayItems: testTrayItems(6));
       state.ingest(snapshot);
       await tester.pump();
-      expect(counts, {'trayOverflow': 1});
+      expect(counts, {'tray': 1, 'trayOverflow': 1});
 
       counts.clear();
       final notifications = [

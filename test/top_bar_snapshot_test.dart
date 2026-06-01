@@ -1,3 +1,4 @@
+import 'package:alicebar/alice_config.dart';
 import 'package:alicebar/panel_controller.dart';
 import 'package:alicebar/rust_gen/state.dart';
 import 'package:alicebar/widgets/top_bar.dart';
@@ -17,10 +18,22 @@ void main() {
     await pumpAliceWidget(
       tester,
       SizedBox(
-        width: 1200,
+        width: 1600,
         height: 80,
         child: TopBar(
-          config: testConfig(maxVisibleTrayItems: 3),
+          config: testConfig(
+            maxVisibleTrayItems: 3,
+            weather: const WeatherConfig(
+              enable: false,
+              pirateWeatherKey: null,
+              forecastLat: null,
+              forecastLong: null,
+              forecastLanguage: 'en',
+              forecastUnits: 'us',
+              refreshInterval: 3600,
+              locationLabel: null,
+            ),
+          ),
           snapshotState: testSnapshotState(snapshot: testSnapshot()),
           panelController: controller,
           onWorkspaceTap: tappedWorkspaces.add,
@@ -28,7 +41,7 @@ void main() {
           onBackgroundTap: () {},
         ),
       ),
-      size: const Size(1300, 120),
+      size: const Size(1700, 120),
     );
 
     expectNoFlutterErrors();
@@ -103,6 +116,53 @@ void main() {
     expect(decoration.border, isNull);
 
     controller.dispose();
+  });
+
+  testWidgets('top bar renders weather data and no-data placeholder', (
+    tester,
+  ) async {
+    final controller = PanelController();
+    addTearDown(controller.dispose);
+
+    await pumpAliceWidget(
+      tester,
+      SizedBox(
+        width: 1300,
+        height: 80,
+        child: TopBar(
+          config: testConfig(),
+          snapshotState: testSnapshotState(
+            snapshot: testSnapshot(weather: testWeather()),
+          ),
+          panelController: controller,
+          onWorkspaceTap: (_) {},
+          onTrayItemTap: (_) {},
+          onBackgroundTap: () {},
+        ),
+      ),
+      size: const Size(1500, 140),
+    );
+    expectNoFlutterErrors();
+    expect(find.text('50°F'), findsOneWidget);
+
+    await pumpAliceWidget(
+      tester,
+      SizedBox(
+        width: 1300,
+        height: 80,
+        child: TopBar(
+          config: testConfig(),
+          snapshotState: testSnapshotState(snapshot: testSnapshot()),
+          panelController: controller,
+          onWorkspaceTap: (_) {},
+          onTrayItemTap: (_) {},
+          onBackgroundTap: () {},
+        ),
+      ),
+      size: const Size(1500, 140),
+    );
+    expectNoFlutterErrors();
+    expect(find.text('-'), findsOneWidget);
   });
 
   testWidgets('top bar tolerates hidden network label and no media', (

@@ -6,12 +6,14 @@ class TopBarPill extends StatelessWidget {
     this.icon,
     this.leading,
     required this.label,
+    this.labelWidget,
     this.highlighted = false,
   }) : assert(icon != null || leading != null);
 
   final IconData? icon;
   final Widget? leading;
   final String label;
+  final Widget? labelWidget;
   final bool highlighted;
 
   @override
@@ -38,15 +40,17 @@ class TopBarPill extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             leading ?? Icon(icon, size: 16),
-            if (label.isNotEmpty) ...[
+            if (labelWidget != null || label.isNotEmpty) ...[
               const SizedBox(width: 6),
               Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child:
+                    labelWidget ??
+                    Text(
+                      label,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                    ),
               ),
             ],
           ],

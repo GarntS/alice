@@ -591,8 +591,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AliceConfig dco_decode_alice_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return AliceConfig(
       themeMode: dco_decode_theme_mode(arr[0]),
       accentColor: dco_decode_String(arr[1]),
@@ -605,6 +605,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       panelTopGapPx: dco_decode_u_32(arr[8]),
       calendar: dco_decode_opt_box_autoadd_calendar_config(arr[9]),
       notifications: dco_decode_notification_config(arr[10]),
+      weather: dco_decode_weather_config(arr[11]),
     );
   }
 
@@ -612,8 +613,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BarSnapshot dco_decode_bar_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return BarSnapshot(
       workspaces: dco_decode_list_workspace_snapshot(arr[0]),
       media: dco_decode_opt_box_autoadd_media_snapshot(arr[1]),
@@ -621,8 +622,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       cpuUsageCores: dco_decode_f_64(arr[3]),
       network: dco_decode_network_snapshot(arr[4]),
       clock: dco_decode_clock_snapshot(arr[5]),
-      trayItems: dco_decode_list_tray_item_snapshot(arr[6]),
-      notifications: dco_decode_list_notification_snapshot(arr[7]),
+      weather: dco_decode_opt_box_autoadd_weather_snapshot(arr[6]),
+      trayItems: dco_decode_list_tray_item_snapshot(arr[7]),
+      notifications: dco_decode_list_notification_snapshot(arr[8]),
     );
   }
 
@@ -639,6 +641,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double dco_decode_box_autoadd_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_i_64(raw);
+  }
+
+  @protected
   MediaSnapshot dco_decode_box_autoadd_media_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_media_snapshot(raw);
@@ -648,6 +662,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PanelCommand dco_decode_box_autoadd_panel_command(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_panel_command(raw);
+  }
+
+  @protected
+  WeatherSnapshot dco_decode_box_autoadd_weather_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_weather_snapshot(raw);
   }
 
   @protected
@@ -771,6 +791,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<WeatherAlert> dco_decode_list_weather_alert(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_weather_alert).toList();
+  }
+
+  @protected
+  List<WeatherDay> dco_decode_list_weather_day(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_weather_day).toList();
+  }
+
+  @protected
+  List<WeatherPoint> dco_decode_list_weather_point(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_weather_point).toList();
+  }
+
+  @protected
   List<WorkspaceSnapshot> dco_decode_list_workspace_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_workspace_snapshot).toList();
@@ -882,6 +920,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double? dco_decode_opt_box_autoadd_f_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_f_64(raw);
+  }
+
+  @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_i_64(raw);
+  }
+
+  @protected
   MediaSnapshot? dco_decode_opt_box_autoadd_media_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_media_snapshot(raw);
@@ -891,6 +941,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PanelCommand? dco_decode_opt_box_autoadd_panel_command(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_panel_command(raw);
+  }
+
+  @protected
+  WeatherSnapshot? dco_decode_opt_box_autoadd_weather_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_weather_snapshot(raw);
   }
 
   @protected
@@ -988,6 +1044,97 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  WeatherAlert dco_decode_weather_alert(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return WeatherAlert(
+      title: dco_decode_String(arr[0]),
+      description: dco_decode_String(arr[1]),
+      severity: dco_decode_String(arr[2]),
+      time: dco_decode_opt_box_autoadd_i_64(arr[3]),
+      expires: dco_decode_opt_box_autoadd_i_64(arr[4]),
+    );
+  }
+
+  @protected
+  WeatherConfig dco_decode_weather_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return WeatherConfig(
+      enable: dco_decode_bool(arr[0]),
+      pirateWeatherKey: dco_decode_opt_String(arr[1]),
+      forecastLat: dco_decode_opt_box_autoadd_f_64(arr[2]),
+      forecastLong: dco_decode_opt_box_autoadd_f_64(arr[3]),
+      forecastLanguage: dco_decode_String(arr[4]),
+      forecastUnits: dco_decode_String(arr[5]),
+      refreshInterval: dco_decode_u_32(arr[6]),
+      locationLabel: dco_decode_opt_String(arr[7]),
+    );
+  }
+
+  @protected
+  WeatherDay dco_decode_weather_day(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return WeatherDay(
+      time: dco_decode_i_64(arr[0]),
+      summary: dco_decode_String(arr[1]),
+      icon: dco_decode_String(arr[2]),
+      moonPhase: dco_decode_opt_box_autoadd_f_64(arr[3]),
+      temperatureHigh: dco_decode_opt_box_autoadd_f_64(arr[4]),
+      temperatureLow: dco_decode_opt_box_autoadd_f_64(arr[5]),
+      humidity: dco_decode_opt_box_autoadd_f_64(arr[6]),
+      precipProbability: dco_decode_opt_box_autoadd_f_64(arr[7]),
+      windSpeed: dco_decode_opt_box_autoadd_f_64(arr[8]),
+      windBearing: dco_decode_opt_box_autoadd_f_64(arr[9]),
+    );
+  }
+
+  @protected
+  WeatherPoint dco_decode_weather_point(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return WeatherPoint(
+      time: dco_decode_i_64(arr[0]),
+      summary: dco_decode_String(arr[1]),
+      icon: dco_decode_String(arr[2]),
+      temperature: dco_decode_opt_box_autoadd_f_64(arr[3]),
+      humidity: dco_decode_opt_box_autoadd_f_64(arr[4]),
+      precipProbability: dco_decode_opt_box_autoadd_f_64(arr[5]),
+      windSpeed: dco_decode_opt_box_autoadd_f_64(arr[6]),
+      windBearing: dco_decode_opt_box_autoadd_f_64(arr[7]),
+    );
+  }
+
+  @protected
+  WeatherSnapshot dco_decode_weather_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return WeatherSnapshot(
+      latitude: dco_decode_f_64(arr[0]),
+      longitude: dco_decode_f_64(arr[1]),
+      timezone: dco_decode_String(arr[2]),
+      offset: dco_decode_f_64(arr[3]),
+      units: dco_decode_String(arr[4]),
+      lastUpdatedUnixSecs: dco_decode_i_64(arr[5]),
+      currently: dco_decode_weather_point(arr[6]),
+      hourly: dco_decode_list_weather_point(arr[7]),
+      daily: dco_decode_list_weather_day(arr[8]),
+      alerts: dco_decode_list_weather_alert(arr[9]),
+    );
+  }
+
+  @protected
   WorkspaceSnapshot dco_decode_workspace_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -1045,6 +1192,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_panelTopGapPx = sse_decode_u_32(deserializer);
     var var_calendar = sse_decode_opt_box_autoadd_calendar_config(deserializer);
     var var_notifications = sse_decode_notification_config(deserializer);
+    var var_weather = sse_decode_weather_config(deserializer);
     return AliceConfig(
       themeMode: var_themeMode,
       accentColor: var_accentColor,
@@ -1057,6 +1205,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       panelTopGapPx: var_panelTopGapPx,
       calendar: var_calendar,
       notifications: var_notifications,
+      weather: var_weather,
     );
   }
 
@@ -1069,6 +1218,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_cpuUsageCores = sse_decode_f_64(deserializer);
     var var_network = sse_decode_network_snapshot(deserializer);
     var var_clock = sse_decode_clock_snapshot(deserializer);
+    var var_weather = sse_decode_opt_box_autoadd_weather_snapshot(deserializer);
     var var_trayItems = sse_decode_list_tray_item_snapshot(deserializer);
     var var_notifications = sse_decode_list_notification_snapshot(deserializer);
     return BarSnapshot(
@@ -1078,6 +1228,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       cpuUsageCores: var_cpuUsageCores,
       network: var_network,
       clock: var_clock,
+      weather: var_weather,
       trayItems: var_trayItems,
       notifications: var_notifications,
     );
@@ -1098,6 +1249,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double sse_decode_box_autoadd_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_f_64(deserializer));
+  }
+
+  @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_i_64(deserializer));
+  }
+
+  @protected
   MediaSnapshot sse_decode_box_autoadd_media_snapshot(
     SseDeserializer deserializer,
   ) {
@@ -1111,6 +1274,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_panel_command(deserializer));
+  }
+
+  @protected
+  WeatherSnapshot sse_decode_box_autoadd_weather_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_weather_snapshot(deserializer));
   }
 
   @protected
@@ -1275,6 +1446,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<WeatherAlert> sse_decode_list_weather_alert(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <WeatherAlert>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_weather_alert(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<WeatherDay> sse_decode_list_weather_day(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <WeatherDay>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_weather_day(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<WeatherPoint> sse_decode_list_weather_point(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <WeatherPoint>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_weather_point(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<WorkspaceSnapshot> sse_decode_list_workspace_snapshot(
     SseDeserializer deserializer,
   ) {
@@ -1424,6 +1635,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_f_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_i_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   MediaSnapshot? sse_decode_opt_box_autoadd_media_snapshot(
     SseDeserializer deserializer,
   ) {
@@ -1444,6 +1677,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_panel_command(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  WeatherSnapshot? sse_decode_opt_box_autoadd_weather_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_weather_snapshot(deserializer));
     } else {
       return null;
     }
@@ -1554,6 +1800,123 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  WeatherAlert sse_decode_weather_alert(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_title = sse_decode_String(deserializer);
+    var var_description = sse_decode_String(deserializer);
+    var var_severity = sse_decode_String(deserializer);
+    var var_time = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_expires = sse_decode_opt_box_autoadd_i_64(deserializer);
+    return WeatherAlert(
+      title: var_title,
+      description: var_description,
+      severity: var_severity,
+      time: var_time,
+      expires: var_expires,
+    );
+  }
+
+  @protected
+  WeatherConfig sse_decode_weather_config(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_enable = sse_decode_bool(deserializer);
+    var var_pirateWeatherKey = sse_decode_opt_String(deserializer);
+    var var_forecastLat = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_forecastLong = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_forecastLanguage = sse_decode_String(deserializer);
+    var var_forecastUnits = sse_decode_String(deserializer);
+    var var_refreshInterval = sse_decode_u_32(deserializer);
+    var var_locationLabel = sse_decode_opt_String(deserializer);
+    return WeatherConfig(
+      enable: var_enable,
+      pirateWeatherKey: var_pirateWeatherKey,
+      forecastLat: var_forecastLat,
+      forecastLong: var_forecastLong,
+      forecastLanguage: var_forecastLanguage,
+      forecastUnits: var_forecastUnits,
+      refreshInterval: var_refreshInterval,
+      locationLabel: var_locationLabel,
+    );
+  }
+
+  @protected
+  WeatherDay sse_decode_weather_day(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_time = sse_decode_i_64(deserializer);
+    var var_summary = sse_decode_String(deserializer);
+    var var_icon = sse_decode_String(deserializer);
+    var var_moonPhase = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_temperatureHigh = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_temperatureLow = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_humidity = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_precipProbability = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_windSpeed = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_windBearing = sse_decode_opt_box_autoadd_f_64(deserializer);
+    return WeatherDay(
+      time: var_time,
+      summary: var_summary,
+      icon: var_icon,
+      moonPhase: var_moonPhase,
+      temperatureHigh: var_temperatureHigh,
+      temperatureLow: var_temperatureLow,
+      humidity: var_humidity,
+      precipProbability: var_precipProbability,
+      windSpeed: var_windSpeed,
+      windBearing: var_windBearing,
+    );
+  }
+
+  @protected
+  WeatherPoint sse_decode_weather_point(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_time = sse_decode_i_64(deserializer);
+    var var_summary = sse_decode_String(deserializer);
+    var var_icon = sse_decode_String(deserializer);
+    var var_temperature = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_humidity = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_precipProbability = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_windSpeed = sse_decode_opt_box_autoadd_f_64(deserializer);
+    var var_windBearing = sse_decode_opt_box_autoadd_f_64(deserializer);
+    return WeatherPoint(
+      time: var_time,
+      summary: var_summary,
+      icon: var_icon,
+      temperature: var_temperature,
+      humidity: var_humidity,
+      precipProbability: var_precipProbability,
+      windSpeed: var_windSpeed,
+      windBearing: var_windBearing,
+    );
+  }
+
+  @protected
+  WeatherSnapshot sse_decode_weather_snapshot(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_latitude = sse_decode_f_64(deserializer);
+    var var_longitude = sse_decode_f_64(deserializer);
+    var var_timezone = sse_decode_String(deserializer);
+    var var_offset = sse_decode_f_64(deserializer);
+    var var_units = sse_decode_String(deserializer);
+    var var_lastUpdatedUnixSecs = sse_decode_i_64(deserializer);
+    var var_currently = sse_decode_weather_point(deserializer);
+    var var_hourly = sse_decode_list_weather_point(deserializer);
+    var var_daily = sse_decode_list_weather_day(deserializer);
+    var var_alerts = sse_decode_list_weather_alert(deserializer);
+    return WeatherSnapshot(
+      latitude: var_latitude,
+      longitude: var_longitude,
+      timezone: var_timezone,
+      offset: var_offset,
+      units: var_units,
+      lastUpdatedUnixSecs: var_lastUpdatedUnixSecs,
+      currently: var_currently,
+      hourly: var_hourly,
+      daily: var_daily,
+      alerts: var_alerts,
+    );
+  }
+
+  @protected
   WorkspaceSnapshot sse_decode_workspace_snapshot(
     SseDeserializer deserializer,
   ) {
@@ -1631,6 +1994,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_32(self.panelTopGapPx, serializer);
     sse_encode_opt_box_autoadd_calendar_config(self.calendar, serializer);
     sse_encode_notification_config(self.notifications, serializer);
+    sse_encode_weather_config(self.weather, serializer);
   }
 
   @protected
@@ -1642,6 +2006,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_f_64(self.cpuUsageCores, serializer);
     sse_encode_network_snapshot(self.network, serializer);
     sse_encode_clock_snapshot(self.clock, serializer);
+    sse_encode_opt_box_autoadd_weather_snapshot(self.weather, serializer);
     sse_encode_list_tray_item_snapshot(self.trayItems, serializer);
     sse_encode_list_notification_snapshot(self.notifications, serializer);
   }
@@ -1662,6 +2027,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_64(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_media_snapshot(
     MediaSnapshot self,
     SseSerializer serializer,
@@ -1677,6 +2057,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_panel_command(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_weather_snapshot(
+    WeatherSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_weather_snapshot(self, serializer);
   }
 
   @protected
@@ -1812,6 +2201,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_weather_alert(
+    List<WeatherAlert> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_weather_alert(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_weather_day(
+    List<WeatherDay> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_weather_day(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_weather_point(
+    List<WeatherPoint> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_weather_point(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_workspace_snapshot(
     List<WorkspaceSnapshot> self,
     SseSerializer serializer,
@@ -1928,6 +2353,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_f_64(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_i_64(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_media_snapshot(
     MediaSnapshot? self,
     SseSerializer serializer,
@@ -1950,6 +2398,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_panel_command(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_weather_snapshot(
+    WeatherSnapshot? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_weather_snapshot(self, serializer);
     }
   }
 
@@ -2040,6 +2501,75 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_unit(void self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+  }
+
+  @protected
+  void sse_encode_weather_alert(WeatherAlert self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.description, serializer);
+    sse_encode_String(self.severity, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.time, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.expires, serializer);
+  }
+
+  @protected
+  void sse_encode_weather_config(WeatherConfig self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.enable, serializer);
+    sse_encode_opt_String(self.pirateWeatherKey, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.forecastLat, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.forecastLong, serializer);
+    sse_encode_String(self.forecastLanguage, serializer);
+    sse_encode_String(self.forecastUnits, serializer);
+    sse_encode_u_32(self.refreshInterval, serializer);
+    sse_encode_opt_String(self.locationLabel, serializer);
+  }
+
+  @protected
+  void sse_encode_weather_day(WeatherDay self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.time, serializer);
+    sse_encode_String(self.summary, serializer);
+    sse_encode_String(self.icon, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.moonPhase, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.temperatureHigh, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.temperatureLow, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.humidity, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.precipProbability, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.windSpeed, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.windBearing, serializer);
+  }
+
+  @protected
+  void sse_encode_weather_point(WeatherPoint self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.time, serializer);
+    sse_encode_String(self.summary, serializer);
+    sse_encode_String(self.icon, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.temperature, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.humidity, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.precipProbability, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.windSpeed, serializer);
+    sse_encode_opt_box_autoadd_f_64(self.windBearing, serializer);
+  }
+
+  @protected
+  void sse_encode_weather_snapshot(
+    WeatherSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_64(self.latitude, serializer);
+    sse_encode_f_64(self.longitude, serializer);
+    sse_encode_String(self.timezone, serializer);
+    sse_encode_f_64(self.offset, serializer);
+    sse_encode_String(self.units, serializer);
+    sse_encode_i_64(self.lastUpdatedUnixSecs, serializer);
+    sse_encode_weather_point(self.currently, serializer);
+    sse_encode_list_weather_point(self.hourly, serializer);
+    sse_encode_list_weather_day(self.daily, serializer);
+    sse_encode_list_weather_alert(self.alerts, serializer);
   }
 
   @protected

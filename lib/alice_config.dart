@@ -12,6 +12,7 @@ class AliceConfig {
     required this.powerCommands,
     required this.panelTopGapPx,
     required this.notifications,
+    required this.weather,
     this.calendar,
   });
 
@@ -25,6 +26,7 @@ class AliceConfig {
   final PowerCommandConfig powerCommands;
   final int panelTopGapPx;
   final NotificationConfig notifications;
+  final WeatherConfig weather;
   final CalendarConfig? calendar;
 
   factory AliceConfig.fallback() {
@@ -52,8 +54,40 @@ class AliceConfig {
         notificationDisplayTimeMs: 5000,
         expireCriticalNotifications: false,
       ),
+      weather: WeatherConfig(
+        enable: true,
+        pirateWeatherKey: null,
+        forecastLat: null,
+        forecastLong: null,
+        forecastLanguage: 'en',
+        forecastUnits: 'us',
+        refreshInterval: 3600,
+        locationLabel: null,
+      ),
     );
   }
+}
+
+class WeatherConfig {
+  const WeatherConfig({
+    required this.enable,
+    required this.pirateWeatherKey,
+    required this.forecastLat,
+    required this.forecastLong,
+    required this.forecastLanguage,
+    required this.forecastUnits,
+    required this.refreshInterval,
+    required this.locationLabel,
+  });
+
+  final bool enable;
+  final String? pirateWeatherKey;
+  final double? forecastLat;
+  final double? forecastLong;
+  final String forecastLanguage;
+  final String forecastUnits;
+  final int refreshInterval;
+  final String? locationLabel;
 }
 
 class NotificationConfig {

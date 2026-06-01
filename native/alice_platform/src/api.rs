@@ -5,11 +5,12 @@
 
 pub use crate::config::{
     AliceConfig, CalendarConfig, NotificationConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig,
+    WeatherConfig,
 };
 pub use crate::state::{
     BarSnapshot, CalendarEvent, CalendarFetchResult, ClockSnapshot, MediaSnapshot, NetworkKind,
     NetworkSnapshot, NotificationActionSnapshot, NotificationSnapshot, NotificationUrgency,
-    TrayItemSnapshot, WorkspaceSnapshot,
+    TrayItemSnapshot, WeatherAlert, WeatherDay, WeatherPoint, WeatherSnapshot, WorkspaceSnapshot,
 };
 
 /// Called once at process startup via FRB's `executeRustInitializers`.

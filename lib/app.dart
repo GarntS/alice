@@ -287,6 +287,7 @@ class _AliceAppState extends State<AliceApp> {
     return switch (panel) {
       AlicePanel.media => 'media',
       AlicePanel.clock => 'clock',
+      AlicePanel.weather => 'weather',
       AlicePanel.trayOverflow => 'trayOverflow',
       AlicePanel.power => 'power',
       AlicePanel.notifications => 'notifications',

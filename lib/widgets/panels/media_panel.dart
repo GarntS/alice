@@ -114,8 +114,10 @@ class _MediaPanelState extends State<MediaPanel> {
 
     final canSeek = media.lengthMicros > 0;
     final sliderValue = canSeek
-        ? (_dragValue ?? (media.positionMicros / media.lengthMicros))
-              .clamp(0.0, 1.0)
+        ? (_dragValue ?? (media.positionMicros / media.lengthMicros)).clamp(
+            0.0,
+            1.0,
+          )
         : 0.0;
     final positionLabel = _dragValue != null && canSeek
         ? _formatMicros((_dragValue! * media.lengthMicros).round())
@@ -149,9 +151,7 @@ class _MediaPanelState extends State<MediaPanel> {
             ),
             child: Slider(
               value: sliderValue,
-              onChanged: canSeek
-                  ? (v) => setState(() => _dragValue = v)
-                  : null,
+              onChanged: canSeek ? (v) => setState(() => _dragValue = v) : null,
               onChangeEnd: canSeek
                   ? (v) {
                       widget.onSeek((v * media.lengthMicros).round());
@@ -345,8 +345,10 @@ class _ScrollingTextState extends State<_ScrollingText>
                 final t = _controller.value;
                 final offset = t * overflow;
                 final leftAlpha = (offset / fadeWidth).clamp(0.0, 1.0);
-                final rightAlpha =
-                    ((overflow - offset) / fadeWidth).clamp(0.0, 1.0);
+                final rightAlpha = ((overflow - offset) / fadeWidth).clamp(
+                  0.0,
+                  1.0,
+                );
                 return ShaderMask(
                   shaderCallback: (bounds) => LinearGradient(
                     colors: [
