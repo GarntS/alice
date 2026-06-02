@@ -11,7 +11,7 @@ import 'notification_popup_state.dart';
 import 'snapshot_state.dart';
 import 'widgets/notification_popups.dart';
 import 'widgets/panels/panel_host.dart';
-import 'widgets/panels/panel_spec.dart';
+import 'widgets/panels/panel_sizes.dart';
 import 'widgets/top_bar.dart';
 
 // frb-generated bindings — used directly for watchPanelCommands.
@@ -131,13 +131,7 @@ class _AliceAppState extends State<AliceApp> {
       final anchor = _panelController.anchor;
       if (anchor == null) return;
 
-      final panelSize = alicePanelSizeFromSlices(
-        openPanel,
-        config: _config,
-        media: _snapshotState.currentMedia,
-        trayOverflowCount: _snapshotState.currentTrayOverflowCount,
-        screenHeight: _screenHeight,
-      );
+      final panelSize = alicePanelSize(openPanel);
       final panelId = _panelId(openPanel);
       await _platform
           .showPanel(
@@ -294,15 +288,6 @@ class _AliceAppState extends State<AliceApp> {
     };
   }
 
-  double get _screenHeight {
-    try {
-      final view = WidgetsBinding.instance.platformDispatcher.views.first;
-      return view.display.size.height;
-    } catch (_) {
-      return 1080;
-    }
-  }
-
   @override
   void dispose() {
     _panelCommandSubscription.cancel();
@@ -363,7 +348,6 @@ class _AliceAppState extends State<AliceApp> {
                   onDismissAllNotifications: _handleDismissAllNotifications,
                   onMarkAllNotificationsRead: _handleMarkAllNotificationsRead,
                   onInvokeNotificationAction: _handleInvokeNotificationAction,
-                  screenHeight: _screenHeight,
                 ),
         ),
       ),

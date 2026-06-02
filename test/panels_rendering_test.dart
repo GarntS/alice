@@ -5,7 +5,7 @@ import 'package:alicebar/widgets/panels/clock_panel.dart';
 import 'package:alicebar/panel_controller.dart';
 import 'package:alicebar/widgets/panels/media_panel.dart';
 import 'package:alicebar/widgets/panels/panel_host.dart';
-import 'package:alicebar/widgets/panels/panel_spec.dart';
+import 'package:alicebar/widgets/panels/panel_sizes.dart';
 import 'package:alicebar/widgets/panels/notification_panel.dart';
 import 'package:alicebar/widgets/panels/power_panel.dart';
 import 'package:alicebar/widgets/panels/tray_panel.dart';
@@ -16,35 +16,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'helpers/alice_test_helpers.dart';
 
 void main() {
-  test('media panel size follows available content', () {
-    final config = testConfig();
-
-    expect(
-      alicePanelSize(
-        AlicePanel.media,
-        config: config,
-        snapshot: testSnapshot(media: null),
-      ).height,
-      84,
-    );
-    expect(
-      alicePanelSize(
-        AlicePanel.media,
-        config: config,
-        snapshot: testSnapshot(media: testMedia(artUrl: '')),
-      ).height,
-      228,
-    );
-    expect(
-      alicePanelSize(
-        AlicePanel.media,
-        config: config,
-        snapshot: testSnapshot(media: testMedia(artUrl: 'file:///tmp/art.png')),
-      ).height,
-      268,
-    );
-  });
-
   testWidgets(
     'media panel card keeps fixed width but sizes height to content',
     (tester) async {
@@ -77,13 +48,7 @@ void main() {
       expect(cardSize.width, 360);
       expect(
         cardSize.height,
-        lessThan(
-          alicePanelSize(
-            AlicePanel.media,
-            config: testConfig(),
-            snapshot: snapshot,
-          ).height,
-        ),
+        lessThan(alicePanelSize(AlicePanel.media).height),
       );
       expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
     },

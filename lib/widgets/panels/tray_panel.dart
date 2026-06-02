@@ -27,36 +27,38 @@ class TrayPanel extends StatelessWidget {
       title: 'Tray Overflow',
       child: items.isEmpty
           ? const Text('No overflow tray items.')
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: items
-                  .map(
-                    (item) => InkWell(
-                      onTap: () => onTrayAction(item),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.secondary.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            _TrayItemIcon(iconPngBytes: item.iconPngBytes),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(item.label)),
-                          ],
+          : SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: items
+                    .map(
+                      (item) => InkWell(
+                        onTap: () => onTrayAction(item),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.secondary.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              _TrayItemIcon(iconPngBytes: item.iconPngBytes),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(item.label)),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  )
-                  .toList(),
+                    )
+                    .toList(),
+              ),
             ),
     );
   }
