@@ -168,47 +168,6 @@ pub enum MediaControlAction {
     Next,
 }
 
-pub struct MprisMediaProvider;
-
-impl MprisMediaProvider {
-    pub fn new() -> Self {
-        Self
-    }
-
-    fn read_from_connection(
-        connection: &BlockingConnection,
-    ) -> Result<Option<MediaSnapshot>, PlatformError> {
-        let player_names = list_player_names(connection)?;
-        let mut fallback = None;
-
-        for name in player_names {
-            let snapshot = read_player_snapshot(connection, &name)?;
-            let Some(snapshot) = snapshot else {
-                continue;
-            };
-
-            if snapshot.is_playing {
-                return Ok(Some(snapshot));
-            }
-
-            if fallback.is_none() {
-                fallback = Some(snapshot);
-            }
-        }
-
-        Ok(fallback)
-    }
-}
-
-impl MediaProvider for MprisMediaProvider {
-    fn read_media(&self) -> Result<Option<MediaSnapshot>, PlatformError> {
-        let connection = BlockingConnection::session().map_err(|error| {
-            PlatformError::new(format!("failed to connect to session bus: {error}"))
-        })?;
-        Self::read_from_connection(&connection)
-    }
-}
-
 pub async fn run_mpris_runtime_service(
     cache: Arc<MprisCache>,
     tx: mpsc::Sender<Trigger>,
@@ -546,28 +505,6 @@ fn list_player_names(connection: &BlockingConnection) -> Result<Vec<String>, Pla
         .into_iter()
         .filter(|name| name.starts_with(MPRIS_PREFIX))
         .collect())
-}
-
-fn read_player_snapshot(
-    connection: &BlockingConnection,
-    bus_name: &str,
-) -> Result<Option<MediaSnapshot>, PlatformError> {
-    let proxy = BlockingProxy::new(connection, bus_name, MPRIS_PATH, MPRIS_PLAYER_INTERFACE)
-        .map_err(|error| PlatformError::new(format!("failed to create MPRIS proxy: {error}")))?;
-
-    let playback_status: String = proxy
-        .get_property("PlaybackStatus")
-        .map_err(|error| PlatformError::new(format!("failed to read PlaybackStatus: {error}")))?;
-
-    let metadata: HashMap<String, OwnedValue> = proxy
-        .get_property("Metadata")
-        .map_err(|error| PlatformError::new(format!("failed to read Metadata: {error}")))?;
-
-    let position_micros: i64 = proxy.get_property("Position").unwrap_or(0_i64);
-    Ok(
-        cached_player_from_parts(bus_name, playback_status, metadata, position_micros)
-            .and_then(|player| project_player(&player, player.observed_at)),
-    )
 }
 
 fn metadata_string(metadata: &HashMap<String, OwnedValue>, key: &str) -> Option<String> {

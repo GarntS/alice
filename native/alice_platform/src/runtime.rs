@@ -256,36 +256,7 @@ fn build_snapshot(
 }
 
 fn notification_snapshots() -> Vec<crate::state::NotificationSnapshot> {
-    use crate::state::{NotificationActionSnapshot, NotificationSnapshot, NotificationUrgency};
-
     crate::notifications::get_notifications()
-        .into_iter()
-        .map(|n| NotificationSnapshot {
-            id: n.id,
-            app_name: n.app_name,
-            app_icon: n.app_icon,
-            summary: n.summary,
-            body: n.body,
-            urgency: match n.urgency {
-                crate::notifications::Urgency::Low => NotificationUrgency::Low,
-                crate::notifications::Urgency::Normal => NotificationUrgency::Normal,
-                crate::notifications::Urgency::Critical => NotificationUrgency::Critical,
-            },
-            actions: n
-                .actions
-                .into_iter()
-                .map(|a| NotificationActionSnapshot {
-                    key: a.key,
-                    label: a.label,
-                })
-                .collect(),
-            category: n.category,
-            is_read: n.is_read,
-            received_at_unix_secs: n.received_at_unix_secs,
-            image_data: n.image_data,
-            image_path: n.image_path,
-        })
-        .collect()
 }
 
 pub(crate) fn build_snapshot_from_providers<W, M, S, N, C, WP, T>(

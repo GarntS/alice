@@ -15,47 +15,19 @@ use std::{
 use tokio::sync::mpsc;
 use zbus::zvariant::{OwnedValue, Value};
 
-use crate::runtime::Trigger;
+use crate::{
+    runtime::Trigger,
+    state::{NotificationActionSnapshot, NotificationSnapshot, NotificationUrgency},
+};
 
 const MAX_NOTIFICATION_IMAGE_DIMENSION: u32 = 2048;
 const MAX_NOTIFICATION_IMAGE_BYTES: usize = 16 * 1024 * 1024;
 const NOTIFICATION_ICON_THUMBNAIL_PX: u32 = 96;
 
-// ---------------------------------------------------------------------------
-// Public data types
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Urgency {
-    Low,
-    Normal,
-    Critical,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NotificationAction {
-    pub key: String,
-    pub label: String,
-}
-
 #[derive(Debug, Clone)]
-pub struct StoredNotification {
-    pub id: u32,
-    pub app_name: String,
-    /// Icon name or file path from the D-Bus call; may be empty.
-    pub app_icon: String,
-    pub summary: String,
-    pub body: String,
-    pub urgency: Urgency,
-    pub actions: Vec<NotificationAction>,
-    pub category: Option<String>,
-    pub is_read: bool,
-    pub received_at: std::time::Instant,
-    pub received_at_unix_secs: u64,
-    /// PNG-encoded image bytes from the `image-data` hint, if present.
-    pub image_data: Option<Vec<u8>>,
-    /// File path or `file://` URI from the `image-path` hint, if present.
-    pub image_path: Option<String>,
+struct StoredNotification {
+    snapshot: NotificationSnapshot,
+    received_at: std::time::Instant,
 }
 
 // ---------------------------------------------------------------------------
@@ -68,18 +40,26 @@ pub struct NotificationStore {
 }
 
 impl NotificationStore {
-    fn add_or_replace(&mut self, n: StoredNotification) -> u32 {
-        let id = n.id;
-        if let Some(pos) = self.notifications.iter().position(|x| x.id == id) {
-            self.notifications[pos] = n;
+    fn add_or_replace(&mut self, notification: StoredNotification) -> u32 {
+        let id = notification.snapshot.id;
+        if let Some(pos) = self
+            .notifications
+            .iter()
+            .position(|record| record.snapshot.id == id)
+        {
+            self.notifications[pos] = notification;
         } else {
-            self.notifications.push(n);
+            self.notifications.push(notification);
         }
         id
     }
 
     fn remove(&mut self, id: u32) -> bool {
-        if let Some(pos) = self.notifications.iter().position(|x| x.id == id) {
+        if let Some(pos) = self
+            .notifications
+            .iter()
+            .position(|record| record.snapshot.id == id)
+        {
             self.notifications.remove(pos);
             true
         } else {
@@ -91,13 +71,20 @@ impl NotificationStore {
         self.notifications.clear();
     }
 
-    pub fn get_all(&self) -> Vec<StoredNotification> {
-        self.notifications.clone()
+    pub fn get_all(&self) -> Vec<NotificationSnapshot> {
+        self.notifications
+            .iter()
+            .map(|record| record.snapshot.clone())
+            .collect()
     }
 
     pub fn mark_read(&mut self, id: u32) {
-        if let Some(n) = self.notifications.iter_mut().find(|x| x.id == id) {
-            n.is_read = true;
+        if let Some(record) = self
+            .notifications
+            .iter_mut()
+            .find(|record| record.snapshot.id == id)
+        {
+            record.snapshot.is_read = true;
         }
     }
 }
@@ -144,10 +131,10 @@ impl NotificationServer {
         let image_path = parse_image_path(&hints);
 
         // actions vec is [key, label, key, label, ...]
-        let parsed_actions: Vec<NotificationAction> = actions
+        let parsed_actions: Vec<NotificationActionSnapshot> = actions
             .chunks(2)
             .filter(|c| c.len() == 2)
-            .map(|c| NotificationAction {
+            .map(|c| NotificationActionSnapshot {
                 key: c[0].clone(),
                 label: c[1].clone(),
             })
@@ -158,7 +145,7 @@ impl NotificationServer {
             let exists = self
                 .store
                 .lock()
-                .map(|s| s.notifications.iter().any(|n| n.id == replaces_id))
+                .map(|s| s.notifications.iter().any(|n| n.snapshot.id == replaces_id))
                 .unwrap_or(false);
             if exists {
                 replaces_id
@@ -175,19 +162,21 @@ impl NotificationServer {
             .as_secs();
 
         let notification = StoredNotification {
-            id,
-            app_name: app_name.to_string(),
-            app_icon: app_icon.to_string(),
-            summary: summary.to_string(),
-            body: body.to_string(),
-            urgency,
-            actions: parsed_actions,
-            category,
-            is_read: false,
+            snapshot: NotificationSnapshot {
+                id,
+                app_name: app_name.to_string(),
+                app_icon: app_icon.to_string(),
+                summary: summary.to_string(),
+                body: body.to_string(),
+                urgency,
+                actions: parsed_actions,
+                category,
+                is_read: false,
+                received_at_unix_secs,
+                image_data,
+                image_path,
+            },
             received_at: std::time::Instant::now(),
-            received_at_unix_secs,
-            image_data,
-            image_path,
         };
 
         let _effective_timeout_ms = if expire_timeout < 0 {
@@ -297,7 +286,7 @@ pub async fn run_notification_server(
 // Public helpers — called from api.rs and runtime.rs
 // ---------------------------------------------------------------------------
 
-pub fn get_notifications() -> Vec<StoredNotification> {
+pub fn get_notifications() -> Vec<NotificationSnapshot> {
     NOTIFICATION_STORE
         .get()
         .and_then(|s| s.lock().ok())
@@ -390,16 +379,16 @@ fn send_trigger() {
 // Hint parsing
 // ---------------------------------------------------------------------------
 
-fn parse_urgency(hints: &HashMap<String, OwnedValue>) -> Urgency {
+fn parse_urgency(hints: &HashMap<String, OwnedValue>) -> NotificationUrgency {
     hints
         .get("urgency")
         .and_then(|v| match &**v {
-            Value::U8(0) => Some(Urgency::Low),
-            Value::U8(2) => Some(Urgency::Critical),
-            Value::U8(_) => Some(Urgency::Normal),
+            Value::U8(0) => Some(NotificationUrgency::Low),
+            Value::U8(2) => Some(NotificationUrgency::Critical),
+            Value::U8(_) => Some(NotificationUrgency::Normal),
             _ => None,
         })
-        .unwrap_or(Urgency::Normal)
+        .unwrap_or(NotificationUrgency::Normal)
 }
 
 fn parse_category(hints: &HashMap<String, OwnedValue>) -> Option<String> {
@@ -514,5 +503,87 @@ fn extract_bytes(val: &Value<'_>) -> Option<Vec<u8>> {
             .collect()
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn snapshot(id: u32, summary: &str) -> NotificationSnapshot {
+        NotificationSnapshot {
+            id,
+            app_name: "test-app".into(),
+            app_icon: "test-icon".into(),
+            summary: summary.into(),
+            body: "test body".into(),
+            urgency: NotificationUrgency::Critical,
+            actions: vec![NotificationActionSnapshot {
+                key: "open".into(),
+                label: "Open".into(),
+            }],
+            category: Some("email".into()),
+            is_read: false,
+            received_at_unix_secs: 1_234_567,
+            image_data: Some(vec![1, 2, 3]),
+            image_path: Some("file:///tmp/test.png".into()),
+        }
+    }
+
+    #[test]
+    fn store_add_replace_mark_read_remove_and_extract_exact_snapshot() {
+        let mut store = NotificationStore::default();
+        let initial = snapshot(7, "initial");
+
+        assert_eq!(
+            store.add_or_replace(StoredNotification {
+                snapshot: initial.clone(),
+                received_at: std::time::Instant::now(),
+            }),
+            7
+        );
+        assert_eq!(store.get_all(), vec![initial]);
+
+        let replacement = snapshot(7, "replacement");
+        store.add_or_replace(StoredNotification {
+            snapshot: replacement.clone(),
+            received_at: std::time::Instant::now(),
+        });
+        assert_eq!(store.get_all(), vec![replacement.clone()]);
+
+        store.mark_read(7);
+        let mut expected_read = replacement;
+        expected_read.is_read = true;
+        assert_eq!(store.get_all(), vec![expected_read]);
+
+        assert!(store.remove(7));
+        assert!(store.get_all().is_empty());
+        assert!(!store.remove(7));
+    }
+
+    #[test]
+    fn store_only_received_at_does_not_change_snapshot_payload() {
+        let payload = snapshot(9, "same payload");
+        let recent = std::time::Instant::now();
+        let earlier = recent
+            .checked_sub(std::time::Duration::from_secs(60))
+            .expect("recent instant should support a one-minute subtraction");
+        let earlier_record = StoredNotification {
+            snapshot: payload.clone(),
+            received_at: earlier,
+        };
+        let recent_record = StoredNotification {
+            snapshot: payload.clone(),
+            received_at: recent,
+        };
+        assert_ne!(earlier_record.received_at, recent_record.received_at);
+
+        let mut earlier_store = NotificationStore::default();
+        earlier_store.add_or_replace(earlier_record);
+        let mut recent_store = NotificationStore::default();
+        recent_store.add_or_replace(recent_record);
+
+        assert_eq!(earlier_store.get_all(), vec![payload]);
+        assert_eq!(earlier_store.get_all(), recent_store.get_all());
     }
 }

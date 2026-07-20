@@ -71,22 +71,50 @@ struct FreedesktopSniWatcher {
     connection: Arc<zbus::Connection>,
 }
 
-fn canonical_sni_item_id(sender: Option<&str>, service_or_path: &str) -> Option<String> {
-    let s = service_or_path.trim();
-    if s.is_empty() {
-        return None;
-    }
-    if s.starts_with('/') {
-        let sender = sender?.trim();
-        if sender.is_empty() {
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct StatusNotifierItemRef {
+    service_name: String,
+    object_path: String,
+}
+
+impl StatusNotifierItemRef {
+    fn parse(identifier: &str, sender_service: Option<&str>) -> Option<Self> {
+        let identifier = identifier.trim();
+        if identifier.is_empty() {
             return None;
         }
-        return Some(format!("{sender}{s}"));
+
+        if identifier.starts_with('/') {
+            let sender = sender_service?.trim();
+            if sender.is_empty() {
+                return None;
+            }
+            return Some(Self {
+                service_name: sender.to_string(),
+                object_path: identifier.to_string(),
+            });
+        }
+
+        if let Some(slash_index) = identifier.find('/') {
+            let service_name = identifier[..slash_index].trim();
+            let object_path = &identifier[slash_index..];
+            if !service_name.is_empty() && !object_path.is_empty() {
+                return Some(Self {
+                    service_name: service_name.to_string(),
+                    object_path: object_path.to_string(),
+                });
+            }
+        }
+
+        Some(Self {
+            service_name: identifier.to_string(),
+            object_path: DEFAULT_ITEM_PATH.to_string(),
+        })
     }
-    if s.contains('/') {
-        return Some(s.to_string());
+
+    fn canonical_id(&self) -> String {
+        format!("{}{}", self.service_name, self.object_path)
     }
-    Some(format!("{s}{DEFAULT_ITEM_PATH}"))
 }
 
 fn register_sni_item(
@@ -94,7 +122,7 @@ fn register_sni_item(
     sender: Option<&str>,
     service_or_path: &str,
 ) -> Option<String> {
-    let id = canonical_sni_item_id(sender, service_or_path)?;
+    let id = StatusNotifierItemRef::parse(service_or_path, sender)?.canonical_id();
     let added = state
         .lock()
         .map(|mut s| s.registered_items.insert(id.clone()))
@@ -378,12 +406,6 @@ pub async fn run_status_notifier_watcher(
 // Tray item ref & cache
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct StatusNotifierItemRef {
-    service_name: String,
-    object_path: String,
-}
-
 pub struct StatusNotifierTrayProvider;
 
 impl StatusNotifierTrayProvider {
@@ -523,7 +545,7 @@ fn registered_items_from_single_watcher(
 
     let mut parsed = Vec::new();
     for item in registered {
-        if let Some(item_ref) = parse_item_identifier(&item, None) {
+        if let Some(item_ref) = StatusNotifierItemRef::parse(&item, None) {
             parsed.push(item_ref);
         }
     }
@@ -805,7 +827,7 @@ fn tray_item_cache() -> &'static Mutex<HashMap<String, TrayItemSnapshot>> {
 }
 
 fn tray_item_cache_key(item_ref: &StatusNotifierItemRef) -> String {
-    format!("{}{}", item_ref.service_name, item_ref.object_path)
+    item_ref.canonical_id()
 }
 
 fn cached_tray_item(cache_key: &str) -> Option<TrayItemSnapshot> {
@@ -849,45 +871,6 @@ fn select_icon_name(
         return attention_icon_name;
     }
     icon_name.unwrap_or_default()
-}
-
-fn parse_item_identifier(
-    identifier: &str,
-    sender_service: Option<&str>,
-) -> Option<StatusNotifierItemRef> {
-    let identifier = identifier.trim();
-    if identifier.is_empty() {
-        return None;
-    }
-
-    if identifier.starts_with('/') {
-        let sender = sender_service?.trim();
-        if sender.is_empty() {
-            return None;
-        }
-        return Some(StatusNotifierItemRef {
-            service_name: sender.to_string(),
-            object_path: identifier.to_string(),
-        });
-    }
-
-    if let Some(slash_index) = identifier.find('/') {
-        if slash_index > 0 {
-            let service_name = identifier[..slash_index].trim();
-            let object_path = &identifier[slash_index..];
-            if !service_name.is_empty() && !object_path.is_empty() {
-                return Some(StatusNotifierItemRef {
-                    service_name: service_name.to_string(),
-                    object_path: object_path.to_string(),
-                });
-            }
-        }
-    }
-
-    Some(StatusNotifierItemRef {
-        service_name: identifier.to_string(),
-        object_path: DEFAULT_ITEM_PATH.to_string(),
-    })
 }
 
 fn filter_status_notifier_names(names: &[String]) -> Vec<String> {
@@ -987,9 +970,9 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use super::{
-        DEFAULT_ITEM_PATH, TrayItemAction, WatcherState, argb_pixmap_to_png,
-        filter_status_notifier_names, humanize_status_notifier_identifier, parse_item_identifier,
-        register_sni_host, register_sni_item, select_icon_name, simplify_status_notifier_label,
+        DEFAULT_ITEM_PATH, StatusNotifierItemRef, TrayItemAction, WatcherState, argb_pixmap_to_png,
+        filter_status_notifier_names, humanize_status_notifier_identifier, register_sni_host,
+        register_sni_item, select_icon_name, simplify_status_notifier_label,
     };
 
     #[test]
@@ -1019,31 +1002,52 @@ mod tests {
     }
 
     #[test]
-    fn parses_registered_item_identifier_with_path() {
-        let parsed =
-            parse_item_identifier("org.kde.StatusNotifierItem-2-1/StatusNotifierItem", None)
-                .expect("item should parse");
+    fn parses_and_canonicalizes_item_identifiers() {
+        let cases = [
+            ("empty input", "", None, None),
+            ("whitespace input", " \t ", Some(":1.42"), None),
+            ("missing sender", "/StatusNotifierItem", None, None),
+            ("empty sender", "/StatusNotifierItem", Some("  "), None),
+            (
+                "service only",
+                " org.kde.StatusNotifierItem-2-1 ",
+                None,
+                Some((
+                    "org.kde.StatusNotifierItem-2-1",
+                    DEFAULT_ITEM_PATH,
+                    "org.kde.StatusNotifierItem-2-1/StatusNotifierItem",
+                )),
+            ),
+            (
+                "service and path",
+                " org.kde.StatusNotifierItem-2-1/CustomPath ",
+                None,
+                Some((
+                    "org.kde.StatusNotifierItem-2-1",
+                    "/CustomPath",
+                    "org.kde.StatusNotifierItem-2-1/CustomPath",
+                )),
+            ),
+            (
+                "relative path with sender",
+                " /StatusNotifierItem ",
+                Some(" :1.42 "),
+                Some((":1.42", "/StatusNotifierItem", ":1.42/StatusNotifierItem")),
+            ),
+        ];
 
-        assert_eq!(parsed.service_name, "org.kde.StatusNotifierItem-2-1");
-        assert_eq!(parsed.object_path, "/StatusNotifierItem");
-    }
-
-    #[test]
-    fn parses_registered_item_identifier_without_path() {
-        let parsed = parse_item_identifier("org.kde.StatusNotifierItem-2-1", None)
-            .expect("item should parse");
-
-        assert_eq!(parsed.service_name, "org.kde.StatusNotifierItem-2-1");
-        assert_eq!(parsed.object_path, DEFAULT_ITEM_PATH);
-    }
-
-    #[test]
-    fn parses_registered_item_identifier_as_object_path() {
-        let parsed =
-            parse_item_identifier("/StatusNotifierItem", Some(":1.42")).expect("item should parse");
-
-        assert_eq!(parsed.service_name, ":1.42");
-        assert_eq!(parsed.object_path, "/StatusNotifierItem");
+        for (name, identifier, sender, expected) in cases {
+            let parsed = StatusNotifierItemRef::parse(identifier, sender);
+            match expected {
+                Some((service_name, object_path, canonical_id)) => {
+                    let parsed = parsed.unwrap_or_else(|| panic!("{name} should parse"));
+                    assert_eq!(parsed.service_name, service_name, "{name}");
+                    assert_eq!(parsed.object_path, object_path, "{name}");
+                    assert_eq!(parsed.canonical_id(), canonical_id, "{name}");
+                }
+                None => assert!(parsed.is_none(), "{name} should not parse"),
+            }
+        }
     }
 
     #[test]

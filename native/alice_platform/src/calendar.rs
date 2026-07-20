@@ -459,23 +459,8 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
             }
 
             for event in event_list.items.unwrap_or_default() {
-                let id = event.id.clone().unwrap_or_default();
-                let title = event.summary.clone().unwrap_or_else(|| "(No title)".into());
-                let (is_all_day, start_label, end_label) = extract_time_labels(&event);
-
-                if let Some(event_date) = extract_event_date(&event) {
-                    entries.push((
-                        event_date,
-                        CalendarEvent {
-                            id,
-                            title,
-                            is_all_day,
-                            start_label,
-                            end_label,
-                            calendar_name: cal_name.clone(),
-                            calendar_color: cal_color.clone(),
-                        },
-                    ));
+                if let Some(mapped_event) = map_event(&event, &cal_name, &cal_color) {
+                    entries.push(mapped_event);
                 }
             }
         }
@@ -564,7 +549,9 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
                     for event in event_list.items.unwrap_or_default() {
                         let event_id = event.id.clone().unwrap_or_default();
 
-                        // Remove any existing cache entry for this event.
+                        // Keep removal before cancellation so cancelled events disappear and
+                        // cannot reach the mapper below. Exercising this network-bound loop in
+                        // a unit test would require coupling tests to the hub and global cache.
                         cache.entries.retain(|(_, e)| e.id != event_id);
 
                         let is_cancelled = event
@@ -574,25 +561,10 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
                             .unwrap_or(false);
 
                         if !is_cancelled {
-                            if let Some(event_date) = extract_event_date(&event) {
-                                let title =
-                                    event.summary.clone().unwrap_or_else(|| "(No title)".into());
-                                let (is_all_day, start_label, end_label) =
-                                    extract_time_labels(&event);
-                                let (cal_name, cal_color) =
-                                    cache.cal_meta.get(&cal_id).cloned().unwrap_or_default();
-                                cache.entries.push((
-                                    event_date,
-                                    CalendarEvent {
-                                        id: event_id,
-                                        title,
-                                        is_all_day,
-                                        start_label,
-                                        end_label,
-                                        calendar_name: cal_name,
-                                        calendar_color: cal_color,
-                                    },
-                                ));
+                            let (cal_name, cal_color) =
+                                cache.cal_meta.get(&cal_id).cloned().unwrap_or_default();
+                            if let Some(mapped_event) = map_event(&event, &cal_name, &cal_color) {
+                                cache.entries.push(mapped_event);
                             }
                         }
                     }
@@ -620,6 +592,28 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+fn map_event(
+    event: &google_calendar3::api::Event,
+    calendar_name: &str,
+    calendar_color: &str,
+) -> Option<(chrono::NaiveDate, CalendarEvent)> {
+    let event_date = extract_event_date(event)?;
+    let (is_all_day, start_label, end_label) = extract_time_labels(event);
+
+    Some((
+        event_date,
+        CalendarEvent {
+            id: event.id.clone().unwrap_or_default(),
+            title: event.summary.clone().unwrap_or_else(|| "(No title)".into()),
+            is_all_day,
+            start_label,
+            end_label,
+            calendar_name: calendar_name.to_owned(),
+            calendar_color: calendar_color.to_owned(),
+        },
+    ))
+}
 
 fn make_app_secret(config: &CalendarConfig) -> yup_oauth2::ApplicationSecret {
     yup_oauth2::ApplicationSecret {
@@ -703,4 +697,115 @@ fn fmt_dt(dt: &chrono::DateTime<chrono::Utc>) -> String {
     use chrono::Timelike as _;
     let local = dt.with_timezone(&chrono::Local);
     format!("{:02}:{:02}", local.hour(), local.minute())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{TimeZone as _, Timelike as _};
+    use google_calendar3::api::{Event, EventDateTime};
+
+    fn utc_datetime(
+        year: i32,
+        month: u32,
+        day: u32,
+        hour: u32,
+        minute: u32,
+    ) -> chrono::DateTime<chrono::Utc> {
+        chrono::Utc
+            .with_ymd_and_hms(year, month, day, hour, minute, 0)
+            .single()
+            .unwrap()
+    }
+
+    fn local_label(datetime: chrono::DateTime<chrono::Utc>) -> String {
+        let local = datetime.with_timezone(&chrono::Local);
+        format!("{:02}:{:02}", local.hour(), local.minute())
+    }
+
+    #[test]
+    fn maps_timed_event() {
+        let start = utc_datetime(2026, 7, 20, 14, 5);
+        let end = utc_datetime(2026, 7, 20, 15, 45);
+        let event = Event {
+            id: Some("timed-id".into()),
+            summary: Some("Timed event".into()),
+            start: Some(EventDateTime {
+                date_time: Some(start),
+                ..Default::default()
+            }),
+            end: Some(EventDateTime {
+                date_time: Some(end),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            map_event(&event, "Work", "#123456"),
+            Some((
+                chrono::NaiveDate::from_ymd_opt(2026, 7, 20).unwrap(),
+                CalendarEvent {
+                    id: "timed-id".into(),
+                    title: "Timed event".into(),
+                    is_all_day: false,
+                    start_label: local_label(start),
+                    end_label: local_label(end),
+                    calendar_name: "Work".into(),
+                    calendar_color: "#123456".into(),
+                },
+            ))
+        );
+    }
+
+    #[test]
+    fn maps_all_day_event() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 7, 21).unwrap();
+        let event = Event {
+            id: Some("all-day-id".into()),
+            summary: Some("All day event".into()),
+            start: Some(EventDateTime {
+                date: Some(date),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            map_event(&event, "Personal", "#abcdef"),
+            Some((
+                date,
+                CalendarEvent {
+                    id: "all-day-id".into(),
+                    title: "All day event".into(),
+                    is_all_day: true,
+                    start_label: String::new(),
+                    end_label: String::new(),
+                    calendar_name: "Personal".into(),
+                    calendar_color: "#abcdef".into(),
+                },
+            ))
+        );
+    }
+
+    #[test]
+    fn uses_missing_title_fallback() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 7, 22).unwrap();
+        let event = Event {
+            start: Some(EventDateTime {
+                date: Some(date),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        let (_, mapped_event) = map_event(&event, "", "").unwrap();
+        assert_eq!(mapped_event.id, "");
+        assert_eq!(mapped_event.title, "(No title)");
+    }
+
+    #[test]
+    fn rejects_event_without_start() {
+        assert_eq!(map_event(&Event::default(), "Work", "#123456"), None);
+    }
 }

@@ -236,7 +236,7 @@ void main() {
             '2026-05-16': [Colors.green, Colors.blue],
           },
           onDateSelected: selected.add,
-          onMonthChanged: (_, __) {},
+          onMonthChanged: (_) {},
         ),
       ),
     );

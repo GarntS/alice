@@ -39,37 +39,26 @@ const _monthNames = [
 ];
 
 const _weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const _monthLengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 class _CalendarDay {
-  const _CalendarDay(this.year, this.month, this.day, this.key);
+  const _CalendarDay(this.date);
 
-  final int year;
-  final int month;
-  final int day;
-  final String key;
+  final DateTime date;
 
-  DateTime toDateTime() => DateTime(year, month, day);
+  String get key => _dateKey(date);
 }
 
-bool _isLeapYear(int year) =>
-    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
-int _daysInMonth(int year, int month) =>
-    month == 2 && _isLeapYear(year) ? 29 : _monthLengths[month - 1];
+DateTime _monthOnly(DateTime date) => DateTime(date.year, date.month);
 
-int _weekdaySundayZero(int year, int month, int day) {
-  // Tomohiko Sakamoto's algorithm. Avoids DateTime construction during
-  // calendar builds, which otherwise repeatedly asks the OS for local timezone
-  // offsets.
-  const offsets = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
-  var y = year;
-  if (month < 3) y--;
-  return (y + y ~/ 4 - y ~/ 100 + y ~/ 400 + offsets[month - 1] + day) % 7;
-}
+bool _sameMonth(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month;
 
-String _dateKey(int year, int month, int day) =>
-    '$year-${_pad(month)}-${_pad(day)}';
+bool _sameDate(DateTime a, DateTime b) => _sameMonth(a, b) && a.day == b.day;
+
+String _dateKey(DateTime date) =>
+    '${date.year}-${_pad(date.month)}-${_pad(date.day)}';
 
 // ---------------------------------------------------------------------------
 // ClockPanel — stateful so it tracks the selected calendar date + events
@@ -92,8 +81,7 @@ class _ClockPanelState extends State<ClockPanel> {
   Timer? _pollTimer;
 
   Map<String, List<Color>> _indicators = {};
-  int _calYear = DateTime.now().year;
-  int _calMonth = DateTime.now().month;
+  DateTime _calendarMonth = _monthOnly(DateTime.now());
 
   @override
   void initState() {
@@ -109,11 +97,8 @@ class _ClockPanelState extends State<ClockPanel> {
   }
 
   Future<void> _fetchEvents(DateTime date) async {
-    final dateStr =
-        '${date.year}-${date.month.toString().padLeft(2, '0')}-'
-        '${date.day.toString().padLeft(2, '0')}';
     setState(() => _loading = true);
-    final result = await fetchCalendarEvents(date: dateStr);
+    final result = await fetchCalendarEvents(date: _dateKey(date));
     if (!mounted) return;
     setState(() {
       _fetchResult = result;
@@ -121,7 +106,7 @@ class _ClockPanelState extends State<ClockPanel> {
     });
     _updatePollTimer(result, date);
     if (result.status == 'ready') {
-      _refreshIndicators(_calYear, _calMonth);
+      _refreshIndicators(_calendarMonth);
     }
   }
 
@@ -141,13 +126,16 @@ class _ClockPanelState extends State<ClockPanel> {
     _fetchEvents(date);
   }
 
-  Future<void> _refreshIndicators(int year, int month) async {
-    final daysInMonth = DateTime(year, month + 1, 0).day;
+  Future<void> _refreshIndicators(DateTime month) async {
+    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
 
-    final futures = List.generate(daysInMonth, (i) {
-      final dateStr = '$year-${_pad(month)}-${_pad(i + 1)}';
-      return fetchCalendarEvents(date: dateStr);
-    });
+    final dates = List.generate(
+      daysInMonth,
+      (i) => DateTime(month.year, month.month, i + 1),
+    );
+    final futures = dates.map(
+      (date) => fetchCalendarEvents(date: _dateKey(date)),
+    );
     final results = await Future.wait(futures);
     if (!mounted) return;
 
@@ -157,7 +145,7 @@ class _ClockPanelState extends State<ClockPanel> {
       if (result.status != 'ready' || result.events.isEmpty) continue;
       final colors = _extractUniqueColors(result.events);
       if (colors.isNotEmpty) {
-        newIndicators['$year-${_pad(month)}-${_pad(i + 1)}'] = colors;
+        newIndicators[_dateKey(dates[i])] = colors;
       }
     }
     setState(() => _indicators = newIndicators);
@@ -210,10 +198,9 @@ class _ClockPanelState extends State<ClockPanel> {
             selectedDate: _selectedDate,
             onDateSelected: _onDateSelected,
             indicators: _indicators,
-            onMonthChanged: (y, m) {
-              _calYear = y;
-              _calMonth = m;
-              _refreshIndicators(y, m);
+            onMonthChanged: (month) {
+              _calendarMonth = month;
+              _refreshIndicators(month);
             },
           ),
           const SizedBox(height: 16),
@@ -303,100 +290,54 @@ class AliceCalendar extends StatefulWidget {
   final DateTime selectedDate;
   final ValueChanged<DateTime> onDateSelected;
   final Map<String, List<Color>> indicators;
-  final void Function(int year, int month)? onMonthChanged;
+  final ValueChanged<DateTime>? onMonthChanged;
 
   @override
   State<AliceCalendar> createState() => _AliceCalendarState();
 }
 
 class _AliceCalendarState extends State<AliceCalendar> {
-  late int _displayedYear;
-  late int _displayedMonth;
-  late int _todayYear;
-  late int _todayMonth;
-  late int _todayDay;
+  late DateTime _displayedMonth;
+  late DateTime _today;
   late List<List<_CalendarDay>> _rows;
 
   @override
   void initState() {
     super.initState();
-    _displayedYear = widget.selectedDate.year;
-    _displayedMonth = widget.selectedDate.month;
-    _cacheToday();
-    _rows = _buildMonthRows(_displayedYear, _displayedMonth);
-  }
-
-  void _cacheToday() {
-    final today = DateTime.now();
-    _todayYear = today.year;
-    _todayMonth = today.month;
-    _todayDay = today.day;
+    _displayedMonth = _monthOnly(widget.selectedDate);
+    _today = _dateOnly(DateTime.now());
+    _rows = _buildMonthRows(_displayedMonth);
   }
 
   void _prevMonth() {
     setState(() {
-      if (_displayedMonth == 1) {
-        _displayedYear--;
-        _displayedMonth = 12;
-      } else {
-        _displayedMonth--;
-      }
-      _rows = _buildMonthRows(_displayedYear, _displayedMonth);
+      _displayedMonth = DateTime(
+        _displayedMonth.year,
+        _displayedMonth.month - 1,
+      );
+      _rows = _buildMonthRows(_displayedMonth);
     });
-    widget.onMonthChanged?.call(_displayedYear, _displayedMonth);
+    widget.onMonthChanged?.call(_displayedMonth);
   }
 
   void _nextMonth() {
     setState(() {
-      if (_displayedMonth == 12) {
-        _displayedYear++;
-        _displayedMonth = 1;
-      } else {
-        _displayedMonth++;
-      }
-      _rows = _buildMonthRows(_displayedYear, _displayedMonth);
+      _displayedMonth = DateTime(
+        _displayedMonth.year,
+        _displayedMonth.month + 1,
+      );
+      _rows = _buildMonthRows(_displayedMonth);
     });
-    widget.onMonthChanged?.call(_displayedYear, _displayedMonth);
+    widget.onMonthChanged?.call(_displayedMonth);
   }
 
-  List<List<_CalendarDay>> _buildMonthRows(int year, int month) {
-    final leadingBlanks = _weekdaySundayZero(year, month, 1);
-    final daysInMonth = _daysInMonth(year, month);
-    final daysInPreviousMonth = month == 1
-        ? _daysInMonth(year - 1, 12)
-        : _daysInMonth(year, month - 1);
-
-    final cells = <_CalendarDay>[];
-    for (var i = leadingBlanks; i > 0; i--) {
-      final day = daysInPreviousMonth - i + 1;
-      final cellYear = month == 1 ? year - 1 : year;
-      final cellMonth = month == 1 ? 12 : month - 1;
-      cells.add(
-        _CalendarDay(
-          cellYear,
-          cellMonth,
-          day,
-          _dateKey(cellYear, cellMonth, day),
-        ),
-      );
-    }
-    for (var day = 1; day <= daysInMonth; day++) {
-      cells.add(_CalendarDay(year, month, day, _dateKey(year, month, day)));
-    }
-    var nextDay = 1;
-    while (cells.length < 42) {
-      final cellYear = month == 12 ? year + 1 : year;
-      final cellMonth = month == 12 ? 1 : month + 1;
-      cells.add(
-        _CalendarDay(
-          cellYear,
-          cellMonth,
-          nextDay,
-          _dateKey(cellYear, cellMonth, nextDay),
-        ),
-      );
-      nextDay++;
-    }
+  List<List<_CalendarDay>> _buildMonthRows(DateTime month) {
+    final firstDay = _monthOnly(month);
+    final firstCell = firstDay.subtract(Duration(days: firstDay.weekday % 7));
+    final cells = List.generate(
+      42,
+      (i) => _CalendarDay(firstCell.add(Duration(days: i))),
+    );
 
     return List.generate(6, (row) => cells.sublist(row * 7, row * 7 + 7));
   }
@@ -404,15 +345,11 @@ class _AliceCalendarState extends State<AliceCalendar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final year = _displayedYear;
     final month = _displayedMonth;
     final rows = _rows;
 
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.4);
-    final selectedIsToday =
-        widget.selectedDate.year == _todayYear &&
-        widget.selectedDate.month == _todayMonth &&
-        widget.selectedDate.day == _todayDay;
+    final selectedIsToday = _sameDate(widget.selectedDate, _today);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -426,10 +363,10 @@ class _AliceCalendarState extends State<AliceCalendar> {
                   TextSpan(
                     children: [
                       TextSpan(
-                        text: '${_monthNames[month - 1]} ',
+                        text: '${_monthNames[month.month - 1]} ',
                         style: TextStyle(color: theme.colorScheme.primary),
                       ),
-                      TextSpan(text: '$year'),
+                      TextSpan(text: '${month.year}'),
                     ],
                   ),
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -484,16 +421,10 @@ class _AliceCalendarState extends State<AliceCalendar> {
                       .map(
                         (date) => _DayCell(
                           date: date,
-                          isCurrentMonth: date.month == month,
-                          isSelected:
-                              date.year == widget.selectedDate.year &&
-                              date.month == widget.selectedDate.month &&
-                              date.day == widget.selectedDate.day,
+                          isCurrentMonth: _sameMonth(date.date, month),
+                          isSelected: _sameDate(date.date, widget.selectedDate),
                           isToday:
-                              !selectedIsToday &&
-                              date.year == _todayYear &&
-                              date.month == _todayMonth &&
-                              date.day == _todayDay,
+                              !selectedIsToday && _sameDate(date.date, _today),
                           onTap: widget.onDateSelected,
                           dotColors: widget.indicators[date.key] ?? const [],
                         ),
@@ -538,7 +469,7 @@ class _DayCell extends StatelessWidget {
 
     return Expanded(
       child: InkWell(
-        onTap: () => onTap(date.toDateTime()),
+        onTap: () => onTap(date.date),
         borderRadius: BorderRadius.circular(999),
         child: Center(
           child: Container(
@@ -559,7 +490,7 @@ class _DayCell extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '${date.day}',
+                  '${date.date.day}',
                   style: theme.textTheme.bodySmall?.copyWith(color: textColor),
                 ),
                 if (dotColors.isNotEmpty) ...[

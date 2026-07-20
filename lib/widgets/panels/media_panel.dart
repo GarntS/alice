@@ -294,22 +294,6 @@ class _ScrollingTextState extends State<_ScrollingText>
     super.dispose();
   }
 
-  void _onEnter(double overflow) {
-    if (overflow <= 0) return;
-    _controller.duration = Duration(
-      milliseconds: (overflow * 20).round().clamp(2000, 8000),
-    );
-    _controller.forward();
-  }
-
-  void _onExit() {
-    _controller.animateTo(
-      0.0,
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOut,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -335,8 +319,20 @@ class _ScrollingTextState extends State<_ScrollingText>
         final rightStop = (1.0 - fadeWidth / maxWidth).clamp(0.51, 1.0);
 
         return MouseRegion(
-          onEnter: (_) => _onEnter(overflow),
-          onExit: (_) => _onExit(),
+          onEnter: (_) {
+            if (overflow <= 0) return;
+            _controller.duration = Duration(
+              milliseconds: (overflow * 20).round().clamp(2000, 8000),
+            );
+            _controller.forward();
+          },
+          onExit: (_) {
+            _controller.animateTo(
+              0.0,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOut,
+            );
+          },
           child: SizedBox(
             height: tp.height,
             child: AnimatedBuilder(

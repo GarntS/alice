@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use chrono::{Offset, Utc};
+use chrono::{DateTime, Offset, Utc};
 use chrono_tz::Tz;
 use serde::Deserialize;
 
@@ -113,6 +113,12 @@ pub struct ValidatedWeatherConfig {
 
 impl Default for AliceConfig {
     fn default() -> Self {
+        Self::default_at(Utc::now())
+    }
+}
+
+impl AliceConfig {
+    fn default_at(now: DateTime<Utc>) -> Self {
         Self {
             theme_mode: ThemeMode::System,
             accent_color: "#4C956C".into(),
@@ -125,10 +131,8 @@ impl Default for AliceConfig {
                     label: "UTC".into(),
                     offset_hours: 0,
                 },
-                TimeZoneConfig {
-                    label: "AEST".into(),
-                    offset_hours: 10,
-                },
+                resolve_iana_time_zone("Australia/Sydney", now)
+                    .expect("Australia/Sydney must be a valid IANA time zone"),
             ],
             power_commands: PowerCommandConfig {
                 lock: "loginctl lock-session".into(),
@@ -156,9 +160,7 @@ impl Default for AliceConfig {
             },
         }
     }
-}
 
-impl AliceConfig {
     pub fn load_or_create_default(path: &Path) -> Result<Self, ConfigError> {
         ensure_default_config(path)?;
         let contents = fs::read_to_string(path)?;
@@ -166,9 +168,13 @@ impl AliceConfig {
     }
 
     pub fn from_yaml_str(yaml: &str) -> Result<Self, ConfigError> {
+        Self::from_yaml_str_at(yaml, Utc::now())
+    }
+
+    fn from_yaml_str_at(yaml: &str, now: DateTime<Utc>) -> Result<Self, ConfigError> {
         let raw: RawConfig = serde_yaml::from_str(yaml)
             .map_err(|error| ConfigError::new(format!("failed to parse config: {error}")))?;
-        Ok(raw.into_config())
+        Ok(raw.into_config_at(now))
     }
 }
 
@@ -291,20 +297,24 @@ struct RawWeatherConfig {
 }
 
 impl RawConfig {
-    fn into_config(self) -> AliceConfig {
-        let defaults = AliceConfig::default();
-        let max_visible_tray_items = self.tray.max_visible_items.unwrap_or(5).max(1);
+    fn into_config_at(self, now: DateTime<Utc>) -> AliceConfig {
+        let defaults = AliceConfig::default_at(now);
+        let max_visible_tray_items = self
+            .tray
+            .max_visible_items
+            .unwrap_or(defaults.max_visible_tray_items)
+            .max(1);
         let local_time_zone_label = normalize_optional_label(self.clock.local_time_zone_label);
         let time_zones = match self.clock.additional_time_zones {
             Some(time_zones) if !time_zones.is_empty() => time_zones
                 .into_iter()
-                .map(resolve_time_zone_config)
+                .map(|zone| resolve_time_zone_config_at(zone, now))
                 .collect(),
             _ => defaults.time_zones,
         };
 
         AliceConfig {
-            theme_mode: self.theme.mode.unwrap_or(ThemeMode::System),
+            theme_mode: self.theme.mode.unwrap_or(defaults.theme_mode),
             accent_color: normalize_hex_color(
                 self.theme
                     .accent
@@ -312,8 +322,14 @@ impl RawConfig {
                     .unwrap_or(&defaults.accent_color),
             )
             .unwrap_or(defaults.accent_color),
-            transparent_top_bar: self.theme.transparent_top_bar.unwrap_or(false),
-            show_network_label: self.network.show_label.unwrap_or(true),
+            transparent_top_bar: self
+                .theme
+                .transparent_top_bar
+                .unwrap_or(defaults.transparent_top_bar),
+            show_network_label: self
+                .network
+                .show_label
+                .unwrap_or(defaults.show_network_label),
             max_visible_tray_items,
             local_time_zone_label,
             time_zones,
@@ -329,10 +345,14 @@ impl RawConfig {
                     defaults.power_commands.poweroff,
                 ),
             },
-            panel_top_gap_px: self.theme.panel_top_gap_px.unwrap_or(8),
+            panel_top_gap_px: self
+                .theme
+                .panel_top_gap_px
+                .unwrap_or(defaults.panel_top_gap_px),
             calendar: self.calendar.map(|c| CalendarConfig {
                 google_client_id: c.google_client_id,
                 google_client_secret: c.google_client_secret,
+                // Calendar is optional, so AliceConfig has no CalendarConfig default to own this.
                 poll_interval_secs: c.poll_interval_secs.unwrap_or(30).max(1),
             }),
             notifications: NotificationConfig {
@@ -355,9 +375,13 @@ impl RawConfig {
             },
             weather: WeatherConfig {
                 enable: self.weather.enable.unwrap_or(defaults.weather.enable),
-                pirate_weather_key: normalize_optional_label(self.weather.pirate_weather_key),
-                forecast_lat: self.weather.forecast_lat,
-                forecast_long: self.weather.forecast_long,
+                pirate_weather_key: normalize_optional_label(self.weather.pirate_weather_key)
+                    .or(defaults.weather.pirate_weather_key),
+                forecast_lat: self.weather.forecast_lat.or(defaults.weather.forecast_lat),
+                forecast_long: self
+                    .weather
+                    .forecast_long
+                    .or(defaults.weather.forecast_long),
                 forecast_language: non_empty_or_default(
                     self.weather.forecast_language,
                     defaults.weather.forecast_language,
@@ -371,7 +395,8 @@ impl RawConfig {
                     .refresh_interval
                     .unwrap_or(defaults.weather.refresh_interval)
                     .max(300),
-                location_label: normalize_optional_label(self.weather.location_label),
+                location_label: normalize_optional_label(self.weather.location_label)
+                    .or(defaults.weather.location_label),
             },
         }
     }
@@ -465,7 +490,7 @@ fn normalize_hex_color(value: &str) -> Option<String> {
     }
 }
 
-fn resolve_time_zone_config(zone: RawTimeZoneConfig) -> TimeZoneConfig {
+fn resolve_time_zone_config_at(zone: RawTimeZoneConfig, now: DateTime<Utc>) -> TimeZoneConfig {
     let label_override = zone
         .label
         .as_deref()
@@ -489,10 +514,9 @@ fn resolve_time_zone_config(zone: RawTimeZoneConfig) -> TimeZoneConfig {
     let mut resolved_abbrev = None;
 
     if let Some(tz_name) = tz_name {
-        if let Ok(time_zone) = tz_name.parse::<Tz>() {
-            let zoned = Utc::now().with_timezone(&time_zone);
-            resolved_offset = zoned.offset().fix().local_minus_utc() / 3600;
-            resolved_abbrev = Some(zoned.format("%Z").to_string());
+        if let Some(resolved) = resolve_iana_time_zone(tz_name, now) {
+            resolved_offset = resolved.offset_hours;
+            resolved_abbrev = Some(resolved.label);
         }
     } else if let Some(abbrev) = tz_abbrev {
         let normalized = abbrev.to_ascii_uppercase();
@@ -509,6 +533,15 @@ fn resolve_time_zone_config(zone: RawTimeZoneConfig) -> TimeZoneConfig {
         label,
         offset_hours: resolved_offset,
     }
+}
+
+fn resolve_iana_time_zone(tz_name: &str, now: DateTime<Utc>) -> Option<TimeZoneConfig> {
+    let time_zone = tz_name.parse::<Tz>().ok()?;
+    let zoned = now.with_timezone(&time_zone);
+    Some(TimeZoneConfig {
+        label: zoned.format("%Z").to_string(),
+        offset_hours: zoned.offset().fix().local_minus_utc() / 3600,
+    })
 }
 
 fn format_offset_label(offset_hours: i32) -> String {
@@ -546,6 +579,7 @@ fn tz_abbrev_offset_hours(abbrev: &str) -> Option<i32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeZone;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
@@ -558,28 +592,63 @@ mod tests {
     }
 
     #[test]
-    fn defaults_match_the_shipped_template_intent() {
-        let config = AliceConfig::default();
+    fn shipped_template_matches_typed_defaults_across_sydney_dst() {
+        for now in [
+            Utc.with_ymd_and_hms(2026, 1, 15, 12, 0, 0)
+                .single()
+                .unwrap(),
+            Utc.with_ymd_and_hms(2026, 7, 15, 12, 0, 0)
+                .single()
+                .unwrap(),
+        ] {
+            let template = AliceConfig::from_yaml_str_at(DEFAULT_CONFIG_TEMPLATE, now)
+                .expect("default template should parse");
+
+            assert_eq!(template, AliceConfig::default_at(now));
+        }
+    }
+
+    #[test]
+    fn documented_scalar_defaults_are_stable() {
+        let config = AliceConfig::from_yaml_str("").expect("empty yaml should parse");
 
         assert_eq!(config.theme_mode, ThemeMode::System);
         assert_eq!(config.accent_color, "#4C956C");
         assert!(!config.transparent_top_bar);
         assert!(config.show_network_label);
         assert_eq!(config.max_visible_tray_items, 5);
-        assert_eq!(config.local_time_zone_label, None);
-        assert_eq!(config.time_zones.len(), 2);
+        assert_eq!(config.panel_top_gap_px, 8);
         assert_eq!(config.notifications.default_timeout_ms, 5000);
         assert!(config.notifications.show_notification_popup);
         assert_eq!(config.notifications.notification_display_time_ms, 5000);
         assert!(!config.notifications.expire_critical_notifications);
         assert!(config.weather.enable);
-        assert_eq!(config.weather.pirate_weather_key, None);
-        assert_eq!(config.weather.forecast_lat, None);
-        assert_eq!(config.weather.forecast_long, None);
         assert_eq!(config.weather.forecast_language, "en");
         assert_eq!(config.weather.forecast_units, "us");
         assert_eq!(config.weather.refresh_interval, 3600);
-        assert_eq!(config.weather.location_label, None);
+    }
+
+    #[test]
+    fn resolves_sydney_standard_and_daylight_time() {
+        let standard = resolve_iana_time_zone(
+            "Australia/Sydney",
+            Utc.with_ymd_and_hms(2026, 7, 15, 12, 0, 0)
+                .single()
+                .unwrap(),
+        )
+        .unwrap();
+        let daylight = resolve_iana_time_zone(
+            "Australia/Sydney",
+            Utc.with_ymd_and_hms(2026, 1, 15, 12, 0, 0)
+                .single()
+                .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(standard.label, "AEST");
+        assert_eq!(standard.offset_hours, 10);
+        assert_eq!(daylight.label, "AEDT");
+        assert_eq!(daylight.offset_hours, 11);
     }
 
     #[test]
