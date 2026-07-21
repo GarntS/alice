@@ -1,16 +1,59 @@
 import 'package:alicebar/panel_controller.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('maps known panel ids and ignores unknown ids', () {
-    expect(alicePanelFromId('media'), AlicePanel.media);
-    expect(alicePanelFromId('clock'), AlicePanel.clock);
-    expect(alicePanelFromId('weather'), AlicePanel.weather);
-    expect(alicePanelFromId('trayOverflow'), AlicePanel.trayOverflow);
-    expect(alicePanelFromId('power'), AlicePanel.power);
-    expect(alicePanelFromId('notifications'), AlicePanel.notifications);
+  test('panel ids are canonical and round-trip', () {
+    const expectedIds = <AlicePanel, String>{
+      AlicePanel.media: 'media',
+      AlicePanel.clock: 'clock',
+      AlicePanel.weather: 'weather',
+      AlicePanel.trayOverflow: 'trayOverflow',
+      AlicePanel.power: 'power',
+      AlicePanel.notifications: 'notifications',
+    };
+
+    expect(AlicePanel.values, orderedEquals(expectedIds.keys));
+    for (final panel in AlicePanel.values) {
+      expect(panel.id, expectedIds[panel]);
+      expect(alicePanelFromId(panel.id), panel);
+    }
     expect(alicePanelFromId('missing'), isNull);
     expect(alicePanelFromId(null), isNull);
+  });
+
+  test('every panel has a stable initially-false listenable', () {
+    final controller = PanelController();
+    final namedListenables = <AlicePanel, ValueListenable<bool>>{
+      AlicePanel.media: controller.mediaOpen,
+      AlicePanel.clock: controller.clockOpen,
+      AlicePanel.weather: controller.weatherOpen,
+      AlicePanel.trayOverflow: controller.trayOverflowOpen,
+      AlicePanel.power: controller.powerOpen,
+      AlicePanel.notifications: controller.notificationsOpen,
+    };
+
+    for (final panel in AlicePanel.values) {
+      final listenable = controller.openListenable(panel);
+      expect(listenable, same(controller.openListenable(panel)));
+      expect(namedListenables[panel], same(listenable));
+      expect(listenable.value, isFalse);
+    }
+
+    controller.dispose();
+  });
+
+  test('disposing the controller disposes every panel listenable', () {
+    final controller = PanelController();
+    final listenables = AlicePanel.values
+        .map(controller.openListenable)
+        .toList();
+
+    controller.dispose();
+
+    for (final listenable in listenables) {
+      expect(() => listenable.addListener(() {}), throwsFlutterError);
+    }
   });
 
   test('toggle tracks a single open panel and anchor', () {
@@ -94,6 +137,10 @@ void main() {
     expect(counts[AlicePanel.weather], 2);
     expect(counts.length, 3);
     expect(controller.weatherOpen.value, isFalse);
+
+    controller.close();
+    expect(counts[AlicePanel.weather], 2);
+    expect(counts.length, 3);
 
     controller.dispose();
   });

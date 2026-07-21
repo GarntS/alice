@@ -4,12 +4,17 @@
 Define Flutter-side panel identity, toggle behavior, anchor tracking, sizing, and bridge coordination.
 ## Requirements
 ### Requirement: Supported panel identities
-Alice SHALL model the implemented panels as media, clock, weather, tray overflow, power, and notifications.
+Alice SHALL model the implemented panels as media, clock, weather, tray overflow, power, and notifications. Each modeled panel SHALL have one canonical native wire id used consistently for parsing and panel-show requests.
 
 #### Scenario: Native panel command arrives
 - **WHEN** Dart receives a native panel id string
-- **THEN** Alice SHALL map known ids to the corresponding Flutter panel enum
-- **AND** Alice SHALL ignore unknown ids by rendering no panel content
+- **THEN** Alice SHALL map `media`, `clock`, `weather`, `trayOverflow`, `power`, and `notifications` to their corresponding Flutter panel enum values
+- **AND** Alice SHALL ignore unknown or null ids by rendering no panel content
+
+#### Scenario: Flutter requests a native panel
+- **WHEN** Flutter opens a modeled panel
+- **THEN** Alice SHALL send that panel's canonical wire id in the native `showPanel` request
+- **AND** parsing the emitted id SHALL return the original panel enum value
 
 ### Requirement: Toggle semantics
 Alice SHALL track at most one open panel in the Flutter panel controller.
@@ -42,7 +47,7 @@ Alice SHALL use implemented per-panel sizing rules.
 - **THEN** media SHALL use 360x268, power SHALL use 280x292, clock SHALL use width 320 and half screen height, weather SHALL use width 320 with height constrained by screen height and a minimum placeholder height, tray overflow SHALL scale with overflow item count within bounds, and notifications SHALL scale with notification count within bounds
 
 ### Requirement: Granular panel open-state notifications
-Alice SHALL expose granular listenable panel open states for media, clock, weather, tray overflow, notifications, and power in addition to preserving the existing single-open-panel controller semantics.
+Alice SHALL expose granular listenable panel open states for every modeled panel in addition to preserving the existing single-open-panel controller semantics. The named media, clock, weather, tray overflow, notifications, and power listenable accessors SHALL remain available.
 
 #### Scenario: One panel opens from closed state
 - **WHEN** the user opens a panel while no panel is open
@@ -59,6 +64,11 @@ Alice SHALL expose granular listenable panel open states for media, clock, weath
 - **WHEN** the user toggles the currently open panel closed
 - **THEN** Alice SHALL notify the open-state listener for that panel
 - **AND** Alice SHALL NOT notify open-state listeners for other panels
+
+#### Scenario: Granular state is requested for every modeled panel
+- **WHEN** a caller requests the open-state listenable for any value in the modeled panel enum
+- **THEN** Alice SHALL return that panel's stable listenable
+- **AND** the listenable SHALL initially be false for a new controller
 
 ### Requirement: Panel highlight rebuild isolation
 Alice SHALL bind bar module highlight UI to granular panel open-state listenables so panel toggles rebuild only modules whose highlighted state changes.

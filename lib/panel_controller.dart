@@ -1,18 +1,24 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-enum AlicePanel { media, clock, weather, trayOverflow, power, notifications }
+enum AlicePanel {
+  media('media'),
+  clock('clock'),
+  weather('weather'),
+  trayOverflow('trayOverflow'),
+  power('power'),
+  notifications('notifications');
+
+  const AlicePanel(this.id);
+
+  final String id;
+}
 
 AlicePanel? alicePanelFromId(String? panelId) {
-  return switch (panelId) {
-    'media' => AlicePanel.media,
-    'clock' => AlicePanel.clock,
-    'weather' => AlicePanel.weather,
-    'trayOverflow' => AlicePanel.trayOverflow,
-    'power' => AlicePanel.power,
-    'notifications' => AlicePanel.notifications,
-    _ => null,
-  };
+  for (final panel in AlicePanel.values) {
+    if (panel.id == panelId) return panel;
+  }
+  return null;
 }
 
 enum PanelAlignment { center, right }
@@ -28,33 +34,24 @@ class PanelController extends ChangeNotifier {
   AlicePanel? _openPanel;
   PanelAnchor? _anchor;
 
-  final ValueNotifier<bool> _mediaOpen = ValueNotifier(false);
-  final ValueNotifier<bool> _clockOpen = ValueNotifier(false);
-  final ValueNotifier<bool> _weatherOpen = ValueNotifier(false);
-  final ValueNotifier<bool> _trayOverflowOpen = ValueNotifier(false);
-  final ValueNotifier<bool> _notificationsOpen = ValueNotifier(false);
-  final ValueNotifier<bool> _powerOpen = ValueNotifier(false);
+  final Map<AlicePanel, ValueNotifier<bool>> _openNotifiers = {
+    for (final panel in AlicePanel.values) panel: ValueNotifier(false),
+  };
 
   AlicePanel? get openPanel => _openPanel;
   PanelAnchor? get anchor => _anchor;
 
-  ValueListenable<bool> get mediaOpen => _mediaOpen;
-  ValueListenable<bool> get clockOpen => _clockOpen;
-  ValueListenable<bool> get weatherOpen => _weatherOpen;
-  ValueListenable<bool> get trayOverflowOpen => _trayOverflowOpen;
-  ValueListenable<bool> get notificationsOpen => _notificationsOpen;
-  ValueListenable<bool> get powerOpen => _powerOpen;
+  ValueListenable<bool> get mediaOpen => openListenable(AlicePanel.media);
+  ValueListenable<bool> get clockOpen => openListenable(AlicePanel.clock);
+  ValueListenable<bool> get weatherOpen => openListenable(AlicePanel.weather);
+  ValueListenable<bool> get trayOverflowOpen =>
+      openListenable(AlicePanel.trayOverflow);
+  ValueListenable<bool> get notificationsOpen =>
+      openListenable(AlicePanel.notifications);
+  ValueListenable<bool> get powerOpen => openListenable(AlicePanel.power);
 
-  ValueListenable<bool> openListenable(AlicePanel panel) {
-    return switch (panel) {
-      AlicePanel.media => _mediaOpen,
-      AlicePanel.clock => _clockOpen,
-      AlicePanel.weather => _weatherOpen,
-      AlicePanel.trayOverflow => _trayOverflowOpen,
-      AlicePanel.notifications => _notificationsOpen,
-      AlicePanel.power => _powerOpen,
-    };
-  }
+  ValueListenable<bool> openListenable(AlicePanel panel) =>
+      _openNotifiers[panel]!;
 
   bool isOpen(AlicePanel panel) => _openPanel == panel;
 
@@ -90,25 +87,15 @@ class PanelController extends ChangeNotifier {
   }
 
   void _setOpen(AlicePanel panel, bool value) {
-    final notifier = switch (panel) {
-      AlicePanel.media => _mediaOpen,
-      AlicePanel.clock => _clockOpen,
-      AlicePanel.weather => _weatherOpen,
-      AlicePanel.trayOverflow => _trayOverflowOpen,
-      AlicePanel.notifications => _notificationsOpen,
-      AlicePanel.power => _powerOpen,
-    };
+    final notifier = _openNotifiers[panel]!;
     if (notifier.value != value) notifier.value = value;
   }
 
   @override
   void dispose() {
-    _mediaOpen.dispose();
-    _clockOpen.dispose();
-    _weatherOpen.dispose();
-    _trayOverflowOpen.dispose();
-    _notificationsOpen.dispose();
-    _powerOpen.dispose();
+    for (final notifier in _openNotifiers.values) {
+      notifier.dispose();
+    }
     super.dispose();
   }
 }

@@ -120,7 +120,7 @@ class _AliceAppState extends State<AliceApp> {
       if (anchor == null) return;
 
       final panelSize = alicePanelSize(openPanel);
-      final panelId = _panelId(openPanel);
+      final panelId = openPanel.id;
       await _platform
           .showPanel(
             panelId,
@@ -259,17 +259,6 @@ class _AliceAppState extends State<AliceApp> {
     _notificationPopupState.remove(id);
     await _handleInvokeNotificationAction(id, actionKey);
     await _handleMarkNotificationRead(id);
-  }
-
-  String _panelId(AlicePanel panel) {
-    return switch (panel) {
-      AlicePanel.media => 'media',
-      AlicePanel.clock => 'clock',
-      AlicePanel.weather => 'weather',
-      AlicePanel.trayOverflow => 'trayOverflow',
-      AlicePanel.power => 'power',
-      AlicePanel.notifications => 'notifications',
-    };
   }
 
   @override
