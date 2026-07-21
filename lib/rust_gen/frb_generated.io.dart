@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'caldav/models.dart';
 import 'config.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -36,13 +37,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
-  AliceConfig dco_decode_alice_config(dynamic raw);
+  AliceUiConfig dco_decode_alice_ui_config(dynamic raw);
 
   @protected
   BarSnapshot dco_decode_bar_snapshot(dynamic raw);
 
   @protected
   bool dco_decode_bool(dynamic raw);
+
+  @protected
+  CalDavUiConfig dco_decode_box_autoadd_cal_dav_ui_config(dynamic raw);
 
   @protected
   CalendarConfig dco_decode_box_autoadd_calendar_config(dynamic raw);
@@ -60,7 +64,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PanelCommand dco_decode_box_autoadd_panel_command(dynamic raw);
 
   @protected
+  TaskResourceIdentity dco_decode_box_autoadd_task_resource_identity(
+    dynamic raw,
+  );
+
+  @protected
   WeatherSnapshot dco_decode_box_autoadd_weather_snapshot(dynamic raw);
+
+  @protected
+  CalDavFreshness dco_decode_cal_dav_freshness(dynamic raw);
+
+  @protected
+  CalDavSyncState dco_decode_cal_dav_sync_state(dynamic raw);
+
+  @protected
+  CalDavUiConfig dco_decode_cal_dav_ui_config(dynamic raw);
 
   @protected
   CalendarConfig dco_decode_calendar_config(dynamic raw);
@@ -84,7 +102,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
   List<CalendarEvent> dco_decode_list_calendar_event(dynamic raw);
+
+  @protected
+  List<NormalizedTask> dco_decode_list_normalized_task(dynamic raw);
 
   @protected
   List<NotificationActionSnapshot> dco_decode_list_notification_action_snapshot(
@@ -125,6 +149,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   NetworkSnapshot dco_decode_network_snapshot(dynamic raw);
 
   @protected
+  NormalizedTask dco_decode_normalized_task(dynamic raw);
+
+  @protected
   NotificationActionSnapshot dco_decode_notification_action_snapshot(
     dynamic raw,
   );
@@ -140,6 +167,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  CalDavUiConfig? dco_decode_opt_box_autoadd_cal_dav_ui_config(dynamic raw);
 
   @protected
   CalendarConfig? dco_decode_opt_box_autoadd_calendar_config(dynamic raw);
@@ -167,6 +197,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PowerCommandConfig dco_decode_power_command_config(dynamic raw);
+
+  @protected
+  TaskPriority dco_decode_task_priority(dynamic raw);
+
+  @protected
+  TaskResourceIdentity dco_decode_task_resource_identity(dynamic raw);
+
+  @protected
+  TaskStatus dco_decode_task_status(dynamic raw);
 
   @protected
   ThemeMode dco_decode_theme_mode(dynamic raw);
@@ -225,13 +264,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
-  AliceConfig sse_decode_alice_config(SseDeserializer deserializer);
+  AliceUiConfig sse_decode_alice_ui_config(SseDeserializer deserializer);
 
   @protected
   BarSnapshot sse_decode_bar_snapshot(SseDeserializer deserializer);
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  CalDavUiConfig sse_decode_box_autoadd_cal_dav_ui_config(
+    SseDeserializer deserializer,
+  );
 
   @protected
   CalendarConfig sse_decode_box_autoadd_calendar_config(
@@ -255,9 +299,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  TaskResourceIdentity sse_decode_box_autoadd_task_resource_identity(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   WeatherSnapshot sse_decode_box_autoadd_weather_snapshot(
     SseDeserializer deserializer,
   );
+
+  @protected
+  CalDavFreshness sse_decode_cal_dav_freshness(SseDeserializer deserializer);
+
+  @protected
+  CalDavSyncState sse_decode_cal_dav_sync_state(SseDeserializer deserializer);
+
+  @protected
+  CalDavUiConfig sse_decode_cal_dav_ui_config(SseDeserializer deserializer);
 
   @protected
   CalendarConfig sse_decode_calendar_config(SseDeserializer deserializer);
@@ -283,7 +341,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
   List<CalendarEvent> sse_decode_list_calendar_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<NormalizedTask> sse_decode_list_normalized_task(
     SseDeserializer deserializer,
   );
 
@@ -338,6 +404,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   NetworkSnapshot sse_decode_network_snapshot(SseDeserializer deserializer);
 
   @protected
+  NormalizedTask sse_decode_normalized_task(SseDeserializer deserializer);
+
+  @protected
   NotificationActionSnapshot sse_decode_notification_action_snapshot(
     SseDeserializer deserializer,
   );
@@ -359,6 +428,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  CalDavUiConfig? sse_decode_opt_box_autoadd_cal_dav_ui_config(
+    SseDeserializer deserializer,
+  );
 
   @protected
   CalendarConfig? sse_decode_opt_box_autoadd_calendar_config(
@@ -396,6 +470,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PowerCommandConfig sse_decode_power_command_config(
     SseDeserializer deserializer,
   );
+
+  @protected
+  TaskPriority sse_decode_task_priority(SseDeserializer deserializer);
+
+  @protected
+  TaskResourceIdentity sse_decode_task_resource_identity(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TaskStatus sse_decode_task_status(SseDeserializer deserializer);
 
   @protected
   ThemeMode sse_decode_theme_mode(SseDeserializer deserializer);
@@ -458,13 +543,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
-  void sse_encode_alice_config(AliceConfig self, SseSerializer serializer);
+  void sse_encode_alice_ui_config(AliceUiConfig self, SseSerializer serializer);
 
   @protected
   void sse_encode_bar_snapshot(BarSnapshot self, SseSerializer serializer);
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_cal_dav_ui_config(
+    CalDavUiConfig self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_calendar_config(
@@ -494,8 +585,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_task_resource_identity(
+    TaskResourceIdentity self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_weather_snapshot(
     WeatherSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_cal_dav_freshness(
+    CalDavFreshness self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_cal_dav_sync_state(
+    CalDavSyncState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_cal_dav_ui_config(
+    CalDavUiConfig self,
     SseSerializer serializer,
   );
 
@@ -527,8 +642,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_calendar_event(
     List<CalendarEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_normalized_task(
+    List<NormalizedTask> self,
     SseSerializer serializer,
   );
 
@@ -599,6 +723,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_normalized_task(
+    NormalizedTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_notification_action_snapshot(
     NotificationActionSnapshot self,
     SseSerializer serializer,
@@ -624,6 +754,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_cal_dav_ui_config(
+    CalDavUiConfig? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_opt_box_autoadd_calendar_config(
@@ -672,6 +808,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     PowerCommandConfig self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_task_priority(TaskPriority self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_task_resource_identity(
+    TaskResourceIdentity self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_task_status(TaskStatus self, SseSerializer serializer);
 
   @protected
   void sse_encode_theme_mode(ThemeMode self, SseSerializer serializer);

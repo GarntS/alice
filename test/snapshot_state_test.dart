@@ -331,6 +331,8 @@ BarSnapshot copySnapshot(
     weather: weather ?? snapshot.weather,
     trayItems: trayItems ?? snapshot.trayItems,
     notifications: notifications ?? snapshot.notifications,
+    tasks: snapshot.tasks,
+    caldavSyncState: snapshot.caldavSyncState,
   );
 }
 

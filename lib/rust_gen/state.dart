@@ -3,6 +3,7 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import 'caldav/models.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
@@ -16,6 +17,8 @@ class BarSnapshot {
   final WeatherSnapshot? weather;
   final List<TrayItemSnapshot> trayItems;
   final List<NotificationSnapshot> notifications;
+  final List<NormalizedTask> tasks;
+  final CalDavSyncState caldavSyncState;
 
   const BarSnapshot({
     required this.workspaces,
@@ -27,6 +30,8 @@ class BarSnapshot {
     this.weather,
     required this.trayItems,
     required this.notifications,
+    required this.tasks,
+    required this.caldavSyncState,
   });
 
   @override
@@ -39,7 +44,9 @@ class BarSnapshot {
       clock.hashCode ^
       weather.hashCode ^
       trayItems.hashCode ^
-      notifications.hashCode;
+      notifications.hashCode ^
+      tasks.hashCode ^
+      caldavSyncState.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -54,7 +61,9 @@ class BarSnapshot {
           clock == other.clock &&
           weather == other.weather &&
           trayItems == other.trayItems &&
-          notifications == other.notifications;
+          notifications == other.notifications &&
+          tasks == other.tasks &&
+          caldavSyncState == other.caldavSyncState;
 }
 
 class CalendarEvent {

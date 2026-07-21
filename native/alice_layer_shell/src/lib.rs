@@ -36,6 +36,7 @@ pub struct LayerShellCapabilities {
 }
 
 /// Marker type for the layer-shell host.
+#[derive(Default)]
 pub struct LayerShellHost;
 
 impl LayerShellHost {

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:alicebar/alice_config.dart';
 import 'package:alicebar/alice_theme.dart';
+import 'package:alicebar/rust_gen/caldav/models.dart';
 import 'package:alicebar/rust_gen/state.dart';
 import 'package:alicebar/snapshot_state.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ AliceConfig testConfig({
   bool showNetworkLabel = true,
   bool transparentTopBar = false,
   CalendarConfig? calendar,
+  CalDavConfig? caldav,
   WeatherConfig weather = const WeatherConfig(
     enable: true,
     pirateWeatherKey: null,
@@ -52,6 +54,7 @@ AliceConfig testConfig({
     notifications: notifications,
     weather: weather,
     calendar: calendar,
+    caldav: caldav,
   );
 }
 
@@ -69,6 +72,11 @@ BarSnapshot testSnapshot({
   WeatherSnapshot? weather,
   double memoryUsagePercent = 82,
   double cpuUsageCores = 2.7,
+  List<NormalizedTask> tasks = const [],
+  CalDavSyncState caldavSyncState = const CalDavSyncState(
+    freshness: CalDavFreshness.disabled,
+    hasCachedData: false,
+  ),
 }) {
   final resolvedMedia = identical(media, _defaultMediaSentinel)
       ? testMedia()
@@ -85,6 +93,8 @@ BarSnapshot testSnapshot({
     weather: weather,
     trayItems: trayItems ?? testTrayItems(5),
     notifications: notifications ?? testNotifications(2),
+    tasks: tasks,
+    caldavSyncState: caldavSyncState,
   );
 }
 
@@ -99,6 +109,8 @@ BarSnapshot copyTestSnapshot(
   WeatherSnapshot? weather,
   List<TrayItemSnapshot>? trayItems,
   List<NotificationSnapshot>? notifications,
+  List<NormalizedTask>? tasks,
+  CalDavSyncState? caldavSyncState,
 }) {
   return BarSnapshot(
     workspaces: workspaces ?? snapshot.workspaces,
@@ -112,6 +124,8 @@ BarSnapshot copyTestSnapshot(
     weather: weather ?? snapshot.weather,
     trayItems: trayItems ?? snapshot.trayItems,
     notifications: notifications ?? snapshot.notifications,
+    tasks: tasks ?? snapshot.tasks,
+    caldavSyncState: caldavSyncState ?? snapshot.caldavSyncState,
   );
 }
 
@@ -258,7 +272,10 @@ AliceSnapshotState testSnapshotState({
   AliceConfig? config,
   BarSnapshot? snapshot,
 }) {
-  final state = AliceSnapshotState(config: config ?? testConfig());
+  final state = AliceSnapshotState(
+    config: config ?? testConfig(),
+    scheduleDateRollover: false,
+  );
   state.ingest(snapshot ?? testSnapshot());
   return state;
 }

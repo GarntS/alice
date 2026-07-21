@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../alice_config.dart';
+import '../../rust_gen/caldav/models.dart';
 import '../../rust_gen/state.dart';
 import '../../panel_controller.dart';
 import '../../snapshot_state.dart';
@@ -8,6 +9,7 @@ import 'panel_sizes.dart';
 import 'media_panel.dart';
 import 'clock_panel.dart';
 import 'tray_panel.dart';
+import 'task_panel.dart';
 import 'power_panel.dart';
 import 'notification_panel.dart';
 import 'weather_panel.dart';
@@ -26,6 +28,8 @@ class AlicePanelCard extends StatelessWidget {
     required this.onDismissAllNotifications,
     required this.onMarkAllNotificationsRead,
     required this.onInvokeNotificationAction,
+    this.onTaskRefresh,
+    this.onTaskCompletion,
   });
 
   final AlicePanel panel;
@@ -40,6 +44,9 @@ class AlicePanelCard extends StatelessWidget {
   final Future<void> Function() onMarkAllNotificationsRead;
   final Future<void> Function(int id, String actionKey)
   onInvokeNotificationAction;
+  final Future<void> Function()? onTaskRefresh;
+  final Future<void> Function(TaskResourceIdentity identity, bool completed)?
+  onTaskCompletion;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +64,18 @@ class AlicePanelCard extends StatelessWidget {
         valueListenable: snapshotState.clock,
         builder: (context, clock, _) =>
             ClockPanel(config: config, snapshot: clock),
+      ),
+      AlicePanel.tasks => ValueListenableBuilder<List<NormalizedTask>>(
+        valueListenable: snapshotState.tasks,
+        builder: (context, tasks, _) => ValueListenableBuilder<CalDavSyncState>(
+          valueListenable: snapshotState.caldavSyncState,
+          builder: (context, syncState, _) => TaskPanel(
+            tasks: tasks,
+            syncState: syncState,
+            onRefresh: onTaskRefresh ?? () async {},
+            onCompletion: onTaskCompletion ?? (_, __) async {},
+          ),
+        ),
       ),
       AlicePanel.weather => ValueListenableBuilder<WeatherSnapshot?>(
         valueListenable: snapshotState.weather,
@@ -90,7 +109,7 @@ class AlicePanelCard extends StatelessWidget {
       child: Container(
         width: panelSize.width,
         constraints: BoxConstraints(maxHeight: panelSize.height),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(18),

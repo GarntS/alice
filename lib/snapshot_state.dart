@@ -1,16 +1,29 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 
 import 'alice_config.dart';
 import 'notification_popup_state.dart';
+import 'rust_gen/caldav/models.dart';
 import 'rust_gen/state.dart';
 
 class AliceSnapshotState {
-  AliceSnapshotState({AliceConfig? config})
-    : _config = config ?? AliceConfig.fallback();
+  AliceSnapshotState({
+    AliceConfig? config,
+    DateTime Function()? now,
+    bool scheduleDateRollover = true,
+  }) : _config = config ?? AliceConfig.fallback(),
+       _now = now ?? DateTime.now {
+    _recomputeTaskDateProjections();
+    if (scheduleDateRollover) {
+      _scheduleLocalDateRollover();
+    }
+  }
 
   AliceConfig _config;
+  final DateTime Function() _now;
+  Timer? _dateRolloverTimer;
 
   final ValueNotifier<List<WorkspaceSnapshot>> _workspaces = ValueNotifier(
     const [],
@@ -37,6 +50,15 @@ class AliceSnapshotState {
   );
   final ValueNotifier<List<NotificationSnapshot>> _notifications =
       ValueNotifier(const []);
+  final ValueNotifier<List<NormalizedTask>> _tasks = ValueNotifier(const []);
+  final ValueNotifier<CalDavSyncState> _caldavSyncState = ValueNotifier(
+    const CalDavSyncState(
+      freshness: CalDavFreshness.disabled,
+      hasCachedData: false,
+    ),
+  );
+  final ValueNotifier<int> _dueTodayTaskCount = ValueNotifier(0);
+  final ValueNotifier<int> _overdueTaskCount = ValueNotifier(0);
 
   final ValueNotifier<List<TrayItemSnapshot>> _visibleTrayItems = ValueNotifier(
     const [],
@@ -58,6 +80,10 @@ class AliceSnapshotState {
   ValueListenable<List<TrayItemSnapshot>> get trayItems => _trayItems;
   ValueListenable<List<NotificationSnapshot>> get notifications =>
       _notifications;
+  ValueListenable<List<NormalizedTask>> get tasks => _tasks;
+  ValueListenable<CalDavSyncState> get caldavSyncState => _caldavSyncState;
+  ValueListenable<int> get dueTodayTaskCount => _dueTodayTaskCount;
+  ValueListenable<int> get overdueTaskCount => _overdueTaskCount;
   ValueListenable<List<TrayItemSnapshot>> get visibleTrayItems =>
       _visibleTrayItems;
   ValueListenable<int> get trayOverflowCount => _trayOverflowCount;
@@ -74,6 +100,10 @@ class AliceSnapshotState {
   WeatherSnapshot? get currentWeather => _weather.value;
   List<TrayItemSnapshot> get currentTrayItems => _trayItems.value;
   List<NotificationSnapshot> get currentNotifications => _notifications.value;
+  List<NormalizedTask> get currentTasks => _tasks.value;
+  CalDavSyncState get currentCalDavSyncState => _caldavSyncState.value;
+  int get currentDueTodayTaskCount => _dueTodayTaskCount.value;
+  int get currentOverdueTaskCount => _overdueTaskCount.value;
   List<TrayItemSnapshot> get currentVisibleTrayItems => _visibleTrayItems.value;
   int get currentTrayOverflowCount => _trayOverflowCount.value;
 
@@ -87,6 +117,8 @@ class AliceSnapshotState {
     weather: currentWeather,
     trayItems: currentTrayItems,
     notifications: currentNotifications,
+    tasks: currentTasks,
+    caldavSyncState: currentCalDavSyncState,
   );
 
   void ingest(BarSnapshot next) {
@@ -131,6 +163,53 @@ class AliceSnapshotState {
       _notifications.value = _freeze(next.notifications);
       _recomputeNotificationDerived();
     }
+    if (!listEqualsBy(_tasks.value, next.tasks, normalizedTasksEqual)) {
+      _tasks.value = _freeze(next.tasks);
+      _recomputeTaskDateProjections();
+    }
+    if (!calDavSyncStatesEqual(_caldavSyncState.value, next.caldavSyncState)) {
+      _caldavSyncState.value = next.caldavSyncState;
+    }
+  }
+
+  @visibleForTesting
+  void refreshTaskDateProjections() {
+    _recomputeTaskDateProjections();
+  }
+
+  void _recomputeTaskDateProjections() {
+    final now = _now();
+    final today = DateTime(now.year, now.month, now.day);
+    var dueToday = 0;
+    var overdue = 0;
+    for (final task in _tasks.value) {
+      if (task.status != TaskStatus.active || task.dueDate == null) continue;
+      final due = DateTime.tryParse(task.dueDate!);
+      if (due == null) continue;
+      final date = DateTime(due.year, due.month, due.day);
+      if (date == today) {
+        dueToday++;
+      } else if (date.isBefore(today)) {
+        overdue++;
+      }
+    }
+    if (_dueTodayTaskCount.value != dueToday) {
+      _dueTodayTaskCount.value = dueToday;
+    }
+    if (_overdueTaskCount.value != overdue) {
+      _overdueTaskCount.value = overdue;
+    }
+  }
+
+  void _scheduleLocalDateRollover() {
+    _dateRolloverTimer?.cancel();
+    final now = _now();
+    final nextDay = DateTime(now.year, now.month, now.day + 1);
+    final delay = nextDay.difference(now);
+    _dateRolloverTimer = Timer(delay.isNegative ? Duration.zero : delay, () {
+      _recomputeTaskDateProjections();
+      _scheduleLocalDateRollover();
+    });
   }
 
   void updateConfig(AliceConfig config) {
@@ -201,6 +280,7 @@ class AliceSnapshotState {
       UnmodifiableListView(values.toList(growable: false));
 
   void dispose() {
+    _dateRolloverTimer?.cancel();
     _workspaces.dispose();
     _media.dispose();
     _memoryUsagePercent.dispose();
@@ -210,6 +290,10 @@ class AliceSnapshotState {
     _weather.dispose();
     _trayItems.dispose();
     _notifications.dispose();
+    _tasks.dispose();
+    _caldavSyncState.dispose();
+    _dueTodayTaskCount.dispose();
+    _overdueTaskCount.dispose();
     _visibleTrayItems.dispose();
     _trayOverflowCount.dispose();
     _unreadNotificationCount.dispose();
@@ -262,6 +346,23 @@ bool trayItemSnapshotsEqual(TrayItemSnapshot a, TrayItemSnapshot b) =>
     a.serviceName == b.serviceName &&
     a.objectPath == b.objectPath &&
     bytesEqual(a.iconPngBytes, b.iconPngBytes);
+
+bool normalizedTasksEqual(NormalizedTask a, NormalizedTask b) =>
+    a.identity.collectionHref == b.identity.collectionHref &&
+    a.identity.resourceHref == b.identity.resourceHref &&
+    a.uid == b.uid &&
+    a.title == b.title &&
+    a.collectionName == b.collectionName &&
+    a.dueDate == b.dueDate &&
+    a.completedAtUnixSecs == b.completedAtUnixSecs &&
+    a.status == b.status &&
+    a.priority == b.priority;
+
+bool calDavSyncStatesEqual(CalDavSyncState a, CalDavSyncState b) =>
+    a.freshness == b.freshness &&
+    a.lastSuccessUnixSecs == b.lastSuccessUnixSecs &&
+    a.error == b.error &&
+    a.hasCachedData == b.hasCachedData;
 
 bool notificationActionSnapshotsEqual(
   NotificationActionSnapshot a,

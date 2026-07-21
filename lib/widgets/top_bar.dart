@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../alice_config.dart';
+import '../rust_gen/caldav/models.dart';
 import '../rust_gen/state.dart';
 import '../panel_controller.dart';
 import '../snapshot_state.dart';
@@ -12,6 +13,7 @@ import 'bar_widgets/memory_module.dart';
 import 'bar_widgets/network_module.dart';
 import 'bar_widgets/notification_module.dart';
 import 'bar_widgets/power_module.dart';
+import 'bar_widgets/task_module.dart';
 import 'bar_widgets/tray_module.dart';
 import 'bar_widgets/weather_module.dart';
 import 'bar_widgets/workspace_module.dart';
@@ -132,6 +134,12 @@ class TopBar extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (config.caldav != null)
+                      _TaskModuleBindings(
+                        snapshotState: snapshotState,
+                        panelController: panelController,
+                        probe: _probe,
+                      ),
                     ValueListenableBuilder<ClockSnapshot>(
                       valueListenable: snapshotState.clock,
                       builder: (context, clock, _) =>
@@ -221,6 +229,43 @@ class TopBar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _TaskModuleBindings extends StatelessWidget {
+  const _TaskModuleBindings({
+    required this.snapshotState,
+    required this.panelController,
+    required this.probe,
+  });
+
+  final AliceSnapshotState snapshotState;
+  final PanelController panelController;
+  final Widget Function(String name, Widget child) probe;
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+    valueListenable: snapshotState.dueTodayTaskCount,
+    builder: (context, dueToday, _) => ValueListenableBuilder<int>(
+      valueListenable: snapshotState.overdueTaskCount,
+      builder: (context, overdue, _) => ValueListenableBuilder<CalDavSyncState>(
+        valueListenable: snapshotState.caldavSyncState,
+        builder: (context, syncState, _) => ValueListenableBuilder<bool>(
+          valueListenable: panelController.tasksOpen,
+          builder: (context, highlighted, _) => probe(
+            'tasks',
+            TopBarTaskModule(
+              dueTodayCount: dueToday,
+              overdueCount: overdue,
+              syncState: syncState,
+              highlighted: highlighted,
+              onToggle: (anchor) =>
+                  panelController.toggle(AlicePanel.tasks, anchor),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _TrayCluster extends StatelessWidget {

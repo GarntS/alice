@@ -41,7 +41,8 @@ void main() {
       final cardSize = tester.getSize(
         find.byWidgetPredicate(
           (widget) =>
-              widget is Container && widget.padding == const EdgeInsets.all(16),
+              widget is Container &&
+              widget.padding == const EdgeInsets.fromLTRB(16, 12, 16, 16),
         ),
       );
 

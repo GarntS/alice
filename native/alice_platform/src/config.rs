@@ -23,6 +23,7 @@ pub struct AliceConfig {
     pub power_commands: PowerCommandConfig,
     pub panel_top_gap_px: u32,
     pub calendar: Option<CalendarConfig>,
+    pub caldav: Option<CalDavConfig>,
     pub notifications: NotificationConfig,
     pub weather: WeatherConfig,
 }
@@ -45,6 +46,136 @@ pub struct CalendarConfig {
     pub google_client_secret: String,
     /// How often (in seconds) to poll for calendar changes via incremental sync.
     pub poll_interval_secs: u32,
+}
+
+/// Native CalDAV account settings.
+///
+/// The token is deliberately private so bridge generation and derived debug
+/// output cannot expose it to Flutter or logs.
+#[derive(Clone, PartialEq, Eq)]
+pub struct CalDavConfig {
+    pub principal_url: String,
+    pub allow_http: bool,
+    pub username: String,
+    token: String,
+    pub collection_hrefs: Vec<String>,
+    pub poll_interval_secs: u32,
+    pub ca_certificate_path: Option<PathBuf>,
+}
+
+impl CalDavConfig {
+    #[cfg(test)]
+    pub(crate) fn token(&self) -> &str {
+        &self.token
+    }
+
+    /// Validate required settings and resolve the collection allowlist against
+    /// the principal origin before any network work starts.
+    pub fn validated_for_runtime(&self) -> Result<ValidatedCalDavConfig, String> {
+        use crate::caldav::{canonicalize_href, canonicalize_principal_url, collection_url_key};
+
+        let principal_url = canonicalize_principal_url(&self.principal_url, self.allow_http)?;
+        let username = self.username.trim();
+        if username.is_empty() {
+            return Err("caldav.username is required".into());
+        }
+        if self.token.trim().is_empty() {
+            return Err("caldav.token is required".into());
+        }
+        if self.collection_hrefs.is_empty() {
+            return Err("caldav.collection_hrefs must contain at least one href".into());
+        }
+
+        let mut collection_urls = Vec::with_capacity(self.collection_hrefs.len());
+        let mut collection_keys = std::collections::BTreeSet::new();
+        for href in &self.collection_hrefs {
+            let url = canonicalize_href(&principal_url, href)?;
+            if collection_keys.insert(collection_url_key(&url)) {
+                collection_urls.push(url);
+            }
+        }
+
+        Ok(ValidatedCalDavConfig {
+            principal_url,
+            allow_http: self.allow_http,
+            username: username.to_string(),
+            token: self.token.clone(),
+            collection_urls,
+            poll_interval_secs: self.poll_interval_secs.max(1),
+            ca_certificate_path: self.ca_certificate_path.clone(),
+        })
+    }
+}
+
+/// Canonical, validated settings consumed only by the native runtime.
+#[derive(Clone, PartialEq, Eq)]
+pub struct ValidatedCalDavConfig {
+    pub principal_url: url::Url,
+    pub allow_http: bool,
+    pub username: String,
+    token: String,
+    pub collection_urls: Vec<url::Url>,
+    pub poll_interval_secs: u32,
+    pub ca_certificate_path: Option<PathBuf>,
+}
+
+impl ValidatedCalDavConfig {
+    #[cfg(test)]
+    pub(crate) fn for_test(
+        principal_url: url::Url,
+        username: &str,
+        token: &str,
+        collection_urls: Vec<url::Url>,
+    ) -> Self {
+        let allow_http = principal_url.scheme() == "http";
+        Self {
+            principal_url,
+            allow_http,
+            username: username.into(),
+            token: token.into(),
+            collection_urls,
+            poll_interval_secs: 60,
+            ca_certificate_path: None,
+        }
+    }
+
+    pub(crate) fn token(&self) -> &str {
+        &self.token
+    }
+
+    pub(crate) fn redact(&self, message: &str) -> String {
+        crate::caldav::redact_sensitive(message, &[&self.token])
+    }
+}
+
+impl std::fmt::Debug for ValidatedCalDavConfig {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ValidatedCalDavConfig")
+            .field("principal_url", &self.principal_url)
+            .field("allow_http", &self.allow_http)
+            .field("username", &self.username)
+            .field("token", &"[REDACTED]")
+            .field("collection_urls", &self.collection_urls)
+            .field("poll_interval_secs", &self.poll_interval_secs)
+            .field("ca_certificate_path", &self.ca_certificate_path)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for CalDavConfig {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("CalDavConfig")
+            .field("principal_url", &self.principal_url)
+            .field("allow_http", &self.allow_http)
+            .field("username", &self.username)
+            .field("token", &"[REDACTED]")
+            .field("collection_hrefs", &self.collection_hrefs)
+            .field("poll_interval_secs", &self.poll_interval_secs)
+            .field("ca_certificate_path", &self.ca_certificate_path)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -142,6 +273,7 @@ impl AliceConfig {
             },
             panel_top_gap_px: 8,
             calendar: None,
+            caldav: None,
             notifications: NotificationConfig {
                 default_timeout_ms: 5000,
                 show_notification_popup: true,
@@ -221,7 +353,21 @@ pub fn ensure_default_config(path: &Path) -> Result<bool, ConfigError> {
         .parent()
         .ok_or_else(|| ConfigError::new("config path has no parent directory"))?;
     fs::create_dir_all(parent)?;
-    fs::write(path, DEFAULT_CONFIG_TEMPLATE)?;
+    #[cfg(unix)]
+    let mut file = {
+        use std::os::unix::fs::OpenOptionsExt;
+        fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .mode(0o600)
+            .open(path)?
+    };
+    #[cfg(not(unix))]
+    let mut file = fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(path)?;
+    std::io::Write::write_all(&mut file, DEFAULT_CONFIG_TEMPLATE.as_bytes())?;
     Ok(true)
 }
 
@@ -263,6 +409,8 @@ struct RawConfig {
     #[serde(default)]
     calendar: Option<RawCalendarConfig>,
     #[serde(default)]
+    caldav: Option<RawCalDavConfig>,
+    #[serde(default)]
     notifications: RawNotificationConfig,
     #[serde(default)]
     weather: RawWeatherConfig,
@@ -282,6 +430,17 @@ struct RawCalendarConfig {
     google_client_secret: String,
     #[serde(default)]
     poll_interval_secs: Option<u32>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct RawCalDavConfig {
+    principal_url: Option<String>,
+    allow_http: Option<bool>,
+    username: Option<String>,
+    token: Option<String>,
+    collection_hrefs: Option<Vec<String>>,
+    poll_interval_secs: Option<u32>,
+    ca_certificate_path: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -354,6 +513,21 @@ impl RawConfig {
                 google_client_secret: c.google_client_secret,
                 // Calendar is optional, so AliceConfig has no CalendarConfig default to own this.
                 poll_interval_secs: c.poll_interval_secs.unwrap_or(30).max(1),
+            }),
+            caldav: self.caldav.map(|c| CalDavConfig {
+                principal_url: c.principal_url.unwrap_or_default().trim().to_string(),
+                allow_http: c.allow_http.unwrap_or(false),
+                username: c.username.unwrap_or_default().trim().to_string(),
+                token: c.token.unwrap_or_default(),
+                collection_hrefs: c
+                    .collection_hrefs
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|href| href.trim().to_string())
+                    .collect(),
+                poll_interval_secs: c.poll_interval_secs.unwrap_or(60).max(1),
+                ca_certificate_path: normalize_optional_label(c.ca_certificate_path)
+                    .map(PathBuf::from),
             }),
             notifications: NotificationConfig {
                 default_timeout_ms: self
@@ -589,6 +763,8 @@ mod tests {
         assert!(DEFAULT_CONFIG_TEMPLATE.contains("tray:"));
         assert!(DEFAULT_CONFIG_TEMPLATE.contains("clock:"));
         assert!(DEFAULT_CONFIG_TEMPLATE.contains("power:"));
+        assert!(DEFAULT_CONFIG_TEMPLATE.contains("# caldav:"));
+        assert!(DEFAULT_CONFIG_TEMPLATE.contains("token: \"YOUR_DEDICATED_TOKEN\""));
     }
 
     #[test]
@@ -740,6 +916,170 @@ weather:
                 .expect_err("invalid lat should be rejected")
                 .contains("forecast_lat")
         );
+    }
+
+    #[test]
+    fn parses_caldav_config_and_polling_defaults() {
+        let omitted = AliceConfig::from_yaml_str("").expect("empty yaml should parse");
+        assert_eq!(omitted.caldav, None);
+
+        let default_poll = AliceConfig::from_yaml_str(
+            r##"
+caldav:
+  principal_url: "https://tasks.example.test/dav/principals/alice/"
+  username: " alice "
+  token: "secret-token"
+  collection_hrefs:
+    - " /dav/calendars/alice/work/ "
+  ca_certificate_path: " /etc/alice/vikunja-ca.pem "
+"##,
+        )
+        .expect("CalDAV config should parse")
+        .caldav
+        .expect("CalDAV should be present");
+
+        assert_eq!(
+            default_poll.principal_url,
+            "https://tasks.example.test/dav/principals/alice/"
+        );
+        assert_eq!(default_poll.username, "alice");
+        assert!(!default_poll.allow_http);
+        assert_eq!(default_poll.token(), "secret-token");
+        assert_eq!(
+            default_poll.collection_hrefs,
+            ["/dav/calendars/alice/work/"]
+        );
+        assert_eq!(default_poll.poll_interval_secs, 60);
+        assert_eq!(
+            default_poll.ca_certificate_path,
+            Some(PathBuf::from("/etc/alice/vikunja-ca.pem"))
+        );
+
+        let minimum_poll = AliceConfig::from_yaml_str(
+            r##"
+caldav:
+  principal_url: https://tasks.example.test/
+  username: alice
+  token: secret-token
+  collection_hrefs: [/tasks/]
+  poll_interval_secs: 0
+"##,
+        )
+        .expect("CalDAV config should parse")
+        .caldav
+        .expect("CalDAV should be present");
+        assert_eq!(minimum_poll.poll_interval_secs, 1);
+    }
+
+    #[test]
+    fn validates_and_canonicalizes_caldav_config() {
+        let config = AliceConfig::from_yaml_str(
+            r##"
+caldav:
+  principal_url: https://TASKS.example.test:443/dav/principals/alice/
+  username: alice
+  token: secret-token
+  collection_hrefs:
+    - /dav/calendars/alice/./work/
+    - https://tasks.example.test/dav/calendars/alice/work
+"##,
+        )
+        .unwrap()
+        .caldav
+        .unwrap()
+        .validated_for_runtime()
+        .unwrap();
+
+        assert_eq!(
+            config.principal_url.as_str(),
+            "https://tasks.example.test/dav/principals/alice/"
+        );
+        assert_eq!(config.collection_urls.len(), 1);
+        assert_eq!(
+            config.collection_urls[0].as_str(),
+            "https://tasks.example.test/dav/calendars/alice/work/"
+        );
+        assert!(!config.allow_http);
+        assert_eq!(config.token(), "secret-token");
+        assert_eq!(
+            config.redact("Authorization: Basic abc; token=secret-token"),
+            "Authorization: [REDACTED]"
+        );
+    }
+
+    #[test]
+    fn requires_explicit_opt_in_for_http_caldav() {
+        let yaml = |allow_http: &str| {
+            format!(
+                "caldav:\n  principal_url: http://tasks.example.test/dav/\n{allow_http}  username: alice\n  token: secret-token\n  collection_hrefs: [/tasks/]\n"
+            )
+        };
+
+        let default_http = AliceConfig::from_yaml_str(&yaml(""))
+            .unwrap()
+            .caldav
+            .unwrap();
+        assert!(!default_http.allow_http);
+        assert_eq!(
+            default_http.validated_for_runtime().unwrap_err(),
+            "caldav.principal_url must use HTTPS unless caldav.allow_http is true"
+        );
+
+        let enabled = AliceConfig::from_yaml_str(&yaml("  allow_http: true\n"))
+            .unwrap()
+            .caldav
+            .unwrap()
+            .validated_for_runtime()
+            .unwrap();
+        assert!(enabled.allow_http);
+        assert_eq!(
+            enabled.principal_url.as_str(),
+            "http://tasks.example.test/dav/"
+        );
+        assert_eq!(
+            enabled.collection_urls[0].as_str(),
+            "http://tasks.example.test/tasks/"
+        );
+    }
+
+    #[test]
+    fn rejects_missing_and_cross_origin_caldav_config() {
+        let missing = AliceConfig::from_yaml_str("caldav: {}\n")
+            .unwrap()
+            .caldav
+            .unwrap();
+        assert_eq!(
+            missing.validated_for_runtime().unwrap_err(),
+            "caldav.principal_url must be a URL"
+        );
+
+        let cross_origin = AliceConfig::from_yaml_str(
+            r##"
+caldav:
+  principal_url: https://tasks.example.test/dav/
+  username: alice
+  token: secret-token
+  collection_hrefs: [https://other.example.test/tasks/]
+"##,
+        )
+        .unwrap()
+        .caldav
+        .unwrap();
+        assert_eq!(
+            cross_origin.validated_for_runtime().unwrap_err(),
+            "caldav.collection_hrefs must use the principal origin"
+        );
+    }
+
+    #[test]
+    fn caldav_debug_output_redacts_token() {
+        let config = AliceConfig::from_yaml_str(
+            "caldav:\n  principal_url: https://example.test/\n  username: alice\n  token: never-log-me\n  collection_hrefs: [/tasks/]\n",
+        )
+        .unwrap();
+        let debug = format!("{:?}", config.caldav.unwrap());
+        assert!(debug.contains("[REDACTED]"));
+        assert!(!debug.contains("never-log-me"));
     }
 
     #[test]
@@ -895,6 +1235,14 @@ network:
 
         assert!(created);
         assert!(contents.contains("theme:"));
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
         assert!(!second);
 
         fs::remove_dir_all(root).expect("temp config tree should be removable");

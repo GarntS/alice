@@ -1,0 +1,14 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Vikunja//CalDAV//EN
+BEGIN:VTODO
+UID:vikunja-task-42
+DTSTAMP:20260720T120000Z
+SUMMARY:Write CalDAV\, parser\; preserve\nall fields and folded 
+ text
+STATUS:IN-PROCESS
+PRIORITY:2
+DESCRIPTION:This body must remain byte-for-byte intact.
+X-VIKUNJA-TASK-ID:42
+END:VTODO
+END:VCALENDAR

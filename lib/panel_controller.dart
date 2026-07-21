@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 enum AlicePanel {
   media('media'),
   clock('clock'),
+  tasks('tasks'),
   weather('weather'),
   trayOverflow('trayOverflow'),
   power('power'),
@@ -43,6 +44,7 @@ class PanelController extends ChangeNotifier {
 
   ValueListenable<bool> get mediaOpen => openListenable(AlicePanel.media);
   ValueListenable<bool> get clockOpen => openListenable(AlicePanel.clock);
+  ValueListenable<bool> get tasksOpen => openListenable(AlicePanel.tasks);
   ValueListenable<bool> get weatherOpen => openListenable(AlicePanel.weather);
   ValueListenable<bool> get trayOverflowOpen =>
       openListenable(AlicePanel.trayOverflow);

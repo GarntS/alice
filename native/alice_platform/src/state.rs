@@ -9,6 +9,8 @@ pub struct BarSnapshot {
     pub weather: Option<WeatherSnapshot>,
     pub tray_items: Vec<TrayItemSnapshot>,
     pub notifications: Vec<NotificationSnapshot>,
+    pub tasks: Vec<crate::caldav::NormalizedTask>,
+    pub caldav_sync_state: crate::caldav::CalDavSyncState,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

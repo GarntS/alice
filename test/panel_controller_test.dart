@@ -7,6 +7,7 @@ void main() {
     const expectedIds = <AlicePanel, String>{
       AlicePanel.media: 'media',
       AlicePanel.clock: 'clock',
+      AlicePanel.tasks: 'tasks',
       AlicePanel.weather: 'weather',
       AlicePanel.trayOverflow: 'trayOverflow',
       AlicePanel.power: 'power',
@@ -27,6 +28,7 @@ void main() {
     final namedListenables = <AlicePanel, ValueListenable<bool>>{
       AlicePanel.media: controller.mediaOpen,
       AlicePanel.clock: controller.clockOpen,
+      AlicePanel.tasks: controller.tasksOpen,
       AlicePanel.weather: controller.weatherOpen,
       AlicePanel.trayOverflow: controller.trayOverflowOpen,
       AlicePanel.power: controller.powerOpen,

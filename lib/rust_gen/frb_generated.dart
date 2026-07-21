@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'caldav/models.dart';
 import 'config.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -68,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 827720240;
+  int get rustContentHash => -751678668;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -98,9 +99,11 @@ abstract class RustLibApi extends BaseApi {
     required String actionKey,
   });
 
-  Future<AliceConfig> crateApiLoadConfig();
+  Future<AliceUiConfig> crateApiLoadConfig();
 
   Future<void> crateApiMarkNotificationRead({required int id});
+
+  Future<bool> crateApiRequestCaldavRefresh();
 
   Future<bool> crateApiSeekMedia({required PlatformInt64 positionMicros});
 
@@ -112,6 +115,11 @@ abstract class RustLibApi extends BaseApi {
     required String action,
     required int x,
     required int y,
+  });
+
+  Future<void> crateApiSetCaldavTaskCompleted({
+    required TaskResourceIdentity identity,
+    required bool completed,
   });
 
   Stream<BarSnapshot> crateApiWatchBarSnapshots();
@@ -336,7 +344,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<AliceConfig> crateApiLoadConfig() {
+  Future<AliceUiConfig> crateApiLoadConfig() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -349,7 +357,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_alice_config,
+          decodeSuccessData: sse_decode_alice_ui_config,
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiLoadConfigConstMeta,
@@ -394,6 +402,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<bool> crateApiRequestCaldavRefresh() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiRequestCaldavRefreshConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRequestCaldavRefreshConstMeta =>
+      const TaskConstMeta(debugName: "request_caldav_refresh", argNames: []);
+
+  @override
   Future<bool> crateApiSeekMedia({required PlatformInt64 positionMicros}) {
     return handler.executeNormal(
       NormalTask(
@@ -403,7 +438,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 11,
             port: port_,
           );
         },
@@ -433,7 +468,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 12,
             port: port_,
           );
         },
@@ -471,7 +506,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 13,
             port: port_,
           );
         },
@@ -492,6 +527,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<void> crateApiSetCaldavTaskCompleted({
+    required TaskResourceIdentity identity,
+    required bool completed,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_task_resource_identity(identity, serializer);
+          sse_encode_bool(completed, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 14,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiSetCaldavTaskCompletedConstMeta,
+        argValues: [identity, completed],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSetCaldavTaskCompletedConstMeta =>
+      const TaskConstMeta(
+        debugName: "set_caldav_task_completed",
+        argNames: ["identity", "completed"],
+      );
+
+  @override
   Stream<BarSnapshot> crateApiWatchBarSnapshots() {
     final sink = RustStreamSink<BarSnapshot>();
     unawaited(
@@ -503,7 +573,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 13,
+              funcId: 15,
               port: port_,
             );
           },
@@ -538,7 +608,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 14,
+              funcId: 16,
               port: port_,
             );
           },
@@ -588,12 +658,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  AliceConfig dco_decode_alice_config(dynamic raw) {
+  AliceUiConfig dco_decode_alice_ui_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
-    return AliceConfig(
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    return AliceUiConfig(
       themeMode: dco_decode_theme_mode(arr[0]),
       accentColor: dco_decode_String(arr[1]),
       transparentTopBar: dco_decode_bool(arr[2]),
@@ -604,8 +674,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       powerCommands: dco_decode_power_command_config(arr[7]),
       panelTopGapPx: dco_decode_u_32(arr[8]),
       calendar: dco_decode_opt_box_autoadd_calendar_config(arr[9]),
-      notifications: dco_decode_notification_config(arr[10]),
-      weather: dco_decode_weather_config(arr[11]),
+      caldav: dco_decode_opt_box_autoadd_cal_dav_ui_config(arr[10]),
+      notifications: dco_decode_notification_config(arr[11]),
+      weather: dco_decode_weather_config(arr[12]),
     );
   }
 
@@ -613,8 +684,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BarSnapshot dco_decode_bar_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 9)
-      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return BarSnapshot(
       workspaces: dco_decode_list_workspace_snapshot(arr[0]),
       media: dco_decode_opt_box_autoadd_media_snapshot(arr[1]),
@@ -625,6 +696,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       weather: dco_decode_opt_box_autoadd_weather_snapshot(arr[6]),
       trayItems: dco_decode_list_tray_item_snapshot(arr[7]),
       notifications: dco_decode_list_notification_snapshot(arr[8]),
+      tasks: dco_decode_list_normalized_task(arr[9]),
+      caldavSyncState: dco_decode_cal_dav_sync_state(arr[10]),
     );
   }
 
@@ -632,6 +705,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool dco_decode_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
+  }
+
+  @protected
+  CalDavUiConfig dco_decode_box_autoadd_cal_dav_ui_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_cal_dav_ui_config(raw);
   }
 
   @protected
@@ -665,9 +744,53 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TaskResourceIdentity dco_decode_box_autoadd_task_resource_identity(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_task_resource_identity(raw);
+  }
+
+  @protected
   WeatherSnapshot dco_decode_box_autoadd_weather_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_weather_snapshot(raw);
+  }
+
+  @protected
+  CalDavFreshness dco_decode_cal_dav_freshness(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return CalDavFreshness.values[raw as int];
+  }
+
+  @protected
+  CalDavSyncState dco_decode_cal_dav_sync_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return CalDavSyncState(
+      freshness: dco_decode_cal_dav_freshness(arr[0]),
+      lastSuccessUnixSecs: dco_decode_opt_box_autoadd_i_64(arr[1]),
+      error: dco_decode_opt_String(arr[2]),
+      hasCachedData: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  CalDavUiConfig dco_decode_cal_dav_ui_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return CalDavUiConfig(
+      principalUrl: dco_decode_String(arr[0]),
+      allowHttp: dco_decode_bool(arr[1]),
+      username: dco_decode_String(arr[2]),
+      collectionHrefs: dco_decode_list_String(arr[3]),
+      pollIntervalSecs: dco_decode_u_32(arr[4]),
+      caCertificatePath: dco_decode_opt_String(arr[5]),
+    );
   }
 
   @protected
@@ -747,9 +870,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
   List<CalendarEvent> dco_decode_list_calendar_event(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_calendar_event).toList();
+  }
+
+  @protected
+  List<NormalizedTask> dco_decode_list_normalized_task(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_normalized_task).toList();
   }
 
   @protected
@@ -852,6 +987,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  NormalizedTask dco_decode_normalized_task(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return NormalizedTask(
+      identity: dco_decode_task_resource_identity(arr[0]),
+      uid: dco_decode_String(arr[1]),
+      title: dco_decode_String(arr[2]),
+      collectionName: dco_decode_String(arr[3]),
+      dueDate: dco_decode_opt_String(arr[4]),
+      completedAtUnixSecs: dco_decode_opt_box_autoadd_i_64(arr[5]),
+      status: dco_decode_task_status(arr[6]),
+      priority: dco_decode_task_priority(arr[7]),
+    );
+  }
+
+  @protected
   NotificationActionSnapshot dco_decode_notification_action_snapshot(
     dynamic raw,
   ) {
@@ -911,6 +1064,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
+  CalDavUiConfig? dco_decode_opt_box_autoadd_cal_dav_ui_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_cal_dav_ui_config(raw);
   }
 
   @protected
@@ -984,6 +1143,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       restart: dco_decode_String(arr[2]),
       poweroff: dco_decode_String(arr[3]),
     );
+  }
+
+  @protected
+  TaskPriority dco_decode_task_priority(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return TaskPriority.values[raw as int];
+  }
+
+  @protected
+  TaskResourceIdentity dco_decode_task_resource_identity(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return TaskResourceIdentity(
+      collectionHref: dco_decode_String(arr[0]),
+      resourceHref: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  TaskStatus dco_decode_task_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return TaskStatus.values[raw as int];
   }
 
   @protected
@@ -1179,7 +1362,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  AliceConfig sse_decode_alice_config(SseDeserializer deserializer) {
+  AliceUiConfig sse_decode_alice_ui_config(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_themeMode = sse_decode_theme_mode(deserializer);
     var var_accentColor = sse_decode_String(deserializer);
@@ -1191,9 +1374,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_powerCommands = sse_decode_power_command_config(deserializer);
     var var_panelTopGapPx = sse_decode_u_32(deserializer);
     var var_calendar = sse_decode_opt_box_autoadd_calendar_config(deserializer);
+    var var_caldav = sse_decode_opt_box_autoadd_cal_dav_ui_config(deserializer);
     var var_notifications = sse_decode_notification_config(deserializer);
     var var_weather = sse_decode_weather_config(deserializer);
-    return AliceConfig(
+    return AliceUiConfig(
       themeMode: var_themeMode,
       accentColor: var_accentColor,
       transparentTopBar: var_transparentTopBar,
@@ -1204,6 +1388,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       powerCommands: var_powerCommands,
       panelTopGapPx: var_panelTopGapPx,
       calendar: var_calendar,
+      caldav: var_caldav,
       notifications: var_notifications,
       weather: var_weather,
     );
@@ -1221,6 +1406,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_weather = sse_decode_opt_box_autoadd_weather_snapshot(deserializer);
     var var_trayItems = sse_decode_list_tray_item_snapshot(deserializer);
     var var_notifications = sse_decode_list_notification_snapshot(deserializer);
+    var var_tasks = sse_decode_list_normalized_task(deserializer);
+    var var_caldavSyncState = sse_decode_cal_dav_sync_state(deserializer);
     return BarSnapshot(
       workspaces: var_workspaces,
       media: var_media,
@@ -1231,6 +1418,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       weather: var_weather,
       trayItems: var_trayItems,
       notifications: var_notifications,
+      tasks: var_tasks,
+      caldavSyncState: var_caldavSyncState,
     );
   }
 
@@ -1238,6 +1427,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
+  }
+
+  @protected
+  CalDavUiConfig sse_decode_box_autoadd_cal_dav_ui_config(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_cal_dav_ui_config(deserializer));
   }
 
   @protected
@@ -1277,11 +1474,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TaskResourceIdentity sse_decode_box_autoadd_task_resource_identity(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_task_resource_identity(deserializer));
+  }
+
+  @protected
   WeatherSnapshot sse_decode_box_autoadd_weather_snapshot(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_weather_snapshot(deserializer));
+  }
+
+  @protected
+  CalDavFreshness sse_decode_cal_dav_freshness(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return CalDavFreshness.values[inner];
+  }
+
+  @protected
+  CalDavSyncState sse_decode_cal_dav_sync_state(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_freshness = sse_decode_cal_dav_freshness(deserializer);
+    var var_lastSuccessUnixSecs = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_error = sse_decode_opt_String(deserializer);
+    var var_hasCachedData = sse_decode_bool(deserializer);
+    return CalDavSyncState(
+      freshness: var_freshness,
+      lastSuccessUnixSecs: var_lastSuccessUnixSecs,
+      error: var_error,
+      hasCachedData: var_hasCachedData,
+    );
+  }
+
+  @protected
+  CalDavUiConfig sse_decode_cal_dav_ui_config(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_principalUrl = sse_decode_String(deserializer);
+    var var_allowHttp = sse_decode_bool(deserializer);
+    var var_username = sse_decode_String(deserializer);
+    var var_collectionHrefs = sse_decode_list_String(deserializer);
+    var var_pollIntervalSecs = sse_decode_u_32(deserializer);
+    var var_caCertificatePath = sse_decode_opt_String(deserializer);
+    return CalDavUiConfig(
+      principalUrl: var_principalUrl,
+      allowHttp: var_allowHttp,
+      username: var_username,
+      collectionHrefs: var_collectionHrefs,
+      pollIntervalSecs: var_pollIntervalSecs,
+      caCertificatePath: var_caCertificatePath,
+    );
   }
 
   @protected
@@ -1369,6 +1615,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<CalendarEvent> sse_decode_list_calendar_event(
     SseDeserializer deserializer,
   ) {
@@ -1378,6 +1636,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <CalendarEvent>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_calendar_event(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<NormalizedTask> sse_decode_list_normalized_task(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <NormalizedTask>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_normalized_task(deserializer));
     }
     return ans_;
   }
@@ -1540,6 +1812,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  NormalizedTask sse_decode_normalized_task(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_identity = sse_decode_task_resource_identity(deserializer);
+    var var_uid = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_collectionName = sse_decode_String(deserializer);
+    var var_dueDate = sse_decode_opt_String(deserializer);
+    var var_completedAtUnixSecs = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_status = sse_decode_task_status(deserializer);
+    var var_priority = sse_decode_task_priority(deserializer);
+    return NormalizedTask(
+      identity: var_identity,
+      uid: var_uid,
+      title: var_title,
+      collectionName: var_collectionName,
+      dueDate: var_dueDate,
+      completedAtUnixSecs: var_completedAtUnixSecs,
+      status: var_status,
+      priority: var_priority,
+    );
+  }
+
+  @protected
   NotificationActionSnapshot sse_decode_notification_action_snapshot(
     SseDeserializer deserializer,
   ) {
@@ -1616,6 +1911,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  CalDavUiConfig? sse_decode_opt_box_autoadd_cal_dav_ui_config(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_cal_dav_ui_config(deserializer));
     } else {
       return null;
     }
@@ -1742,6 +2050,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       restart: var_restart,
       poweroff: var_poweroff,
     );
+  }
+
+  @protected
+  TaskPriority sse_decode_task_priority(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return TaskPriority.values[inner];
+  }
+
+  @protected
+  TaskResourceIdentity sse_decode_task_resource_identity(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_collectionHref = sse_decode_String(deserializer);
+    var var_resourceHref = sse_decode_String(deserializer);
+    return TaskResourceIdentity(
+      collectionHref: var_collectionHref,
+      resourceHref: var_resourceHref,
+    );
+  }
+
+  @protected
+  TaskStatus sse_decode_task_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return TaskStatus.values[inner];
   }
 
   @protected
@@ -1981,7 +2316,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_alice_config(AliceConfig self, SseSerializer serializer) {
+  void sse_encode_alice_ui_config(
+    AliceUiConfig self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_theme_mode(self.themeMode, serializer);
     sse_encode_String(self.accentColor, serializer);
@@ -1993,6 +2331,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_power_command_config(self.powerCommands, serializer);
     sse_encode_u_32(self.panelTopGapPx, serializer);
     sse_encode_opt_box_autoadd_calendar_config(self.calendar, serializer);
+    sse_encode_opt_box_autoadd_cal_dav_ui_config(self.caldav, serializer);
     sse_encode_notification_config(self.notifications, serializer);
     sse_encode_weather_config(self.weather, serializer);
   }
@@ -2009,12 +2348,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_weather_snapshot(self.weather, serializer);
     sse_encode_list_tray_item_snapshot(self.trayItems, serializer);
     sse_encode_list_notification_snapshot(self.notifications, serializer);
+    sse_encode_list_normalized_task(self.tasks, serializer);
+    sse_encode_cal_dav_sync_state(self.caldavSyncState, serializer);
   }
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self ? 1 : 0);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_cal_dav_ui_config(
+    CalDavUiConfig self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_cal_dav_ui_config(self, serializer);
   }
 
   @protected
@@ -2060,12 +2410,56 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_task_resource_identity(
+    TaskResourceIdentity self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_task_resource_identity(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_weather_snapshot(
     WeatherSnapshot self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_weather_snapshot(self, serializer);
+  }
+
+  @protected
+  void sse_encode_cal_dav_freshness(
+    CalDavFreshness self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_cal_dav_sync_state(
+    CalDavSyncState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_cal_dav_freshness(self.freshness, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.lastSuccessUnixSecs, serializer);
+    sse_encode_opt_String(self.error, serializer);
+    sse_encode_bool(self.hasCachedData, serializer);
+  }
+
+  @protected
+  void sse_encode_cal_dav_ui_config(
+    CalDavUiConfig self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.principalUrl, serializer);
+    sse_encode_bool(self.allowHttp, serializer);
+    sse_encode_String(self.username, serializer);
+    sse_encode_list_String(self.collectionHrefs, serializer);
+    sse_encode_u_32(self.pollIntervalSecs, serializer);
+    sse_encode_opt_String(self.caCertificatePath, serializer);
   }
 
   @protected
@@ -2131,6 +2525,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_calendar_event(
     List<CalendarEvent> self,
     SseSerializer serializer,
@@ -2139,6 +2542,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_calendar_event(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_normalized_task(
+    List<NormalizedTask> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_normalized_task(item, serializer);
     }
   }
 
@@ -2279,6 +2694,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_normalized_task(
+    NormalizedTask self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_task_resource_identity(self.identity, serializer);
+    sse_encode_String(self.uid, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.collectionName, serializer);
+    sse_encode_opt_String(self.dueDate, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.completedAtUnixSecs, serializer);
+    sse_encode_task_status(self.status, serializer);
+    sse_encode_task_priority(self.priority, serializer);
+  }
+
+  @protected
   void sse_encode_notification_action_snapshot(
     NotificationActionSnapshot self,
     SseSerializer serializer,
@@ -2336,6 +2767,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_String(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_cal_dav_ui_config(
+    CalDavUiConfig? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_cal_dav_ui_config(self, serializer);
     }
   }
 
@@ -2449,6 +2893,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.lockAndSuspend, serializer);
     sse_encode_String(self.restart, serializer);
     sse_encode_String(self.poweroff, serializer);
+  }
+
+  @protected
+  void sse_encode_task_priority(TaskPriority self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_task_resource_identity(
+    TaskResourceIdentity self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.collectionHref, serializer);
+    sse_encode_String(self.resourceHref, serializer);
+  }
+
+  @protected
+  void sse_encode_task_status(TaskStatus self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

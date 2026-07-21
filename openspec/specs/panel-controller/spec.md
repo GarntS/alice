@@ -4,11 +4,11 @@
 Define Flutter-side panel identity, toggle behavior, anchor tracking, sizing, and bridge coordination.
 ## Requirements
 ### Requirement: Supported panel identities
-Alice SHALL model the implemented panels as media, clock, weather, tray overflow, power, and notifications. Each modeled panel SHALL have one canonical native wire id used consistently for parsing and panel-show requests.
+Alice SHALL model the implemented panels as media, clock, tasks, weather, tray overflow, power, and notifications. Each modeled panel SHALL have one canonical native wire id used consistently for parsing and panel-show requests.
 
 #### Scenario: Native panel command arrives
 - **WHEN** Dart receives a native panel id string
-- **THEN** Alice SHALL map `media`, `clock`, `weather`, `trayOverflow`, `power`, and `notifications` to their corresponding Flutter panel enum values
+- **THEN** Alice SHALL map `media`, `clock`, `tasks`, `weather`, `trayOverflow`, `power`, and `notifications` to their corresponding Flutter panel enum values
 - **AND** Alice SHALL ignore unknown or null ids by rendering no panel content
 
 #### Scenario: Flutter requests a native panel
@@ -44,10 +44,15 @@ Alice SHALL use implemented per-panel sizing rules.
 
 #### Scenario: Size is requested
 - **WHEN** Alice sizes a panel
-- **THEN** media SHALL use 360x268, power SHALL use 280x292, clock SHALL use width 320 and half screen height, weather SHALL use width 320 with height constrained by screen height and a minimum placeholder height, tray overflow SHALL scale with overflow item count within bounds, and notifications SHALL scale with notification count within bounds
+- **THEN** media SHALL use 360x268, power SHALL use 280x292, clock SHALL use width 320 and half screen height, tasks SHALL use width 380 and size naturally up to a scrollable maximum height of 800, weather SHALL use width 320 with height constrained by screen height and a minimum placeholder height, tray overflow SHALL scale with overflow item count within bounds, and notifications SHALL scale with notification count within bounds
+
+#### Scenario: Panel card is inset from its window
+- **WHEN** Alice renders any panel card
+- **THEN** its top inset SHALL be slightly smaller than its side and bottom insets
+- **AND** shared and custom panel headings SHALL inherit the same reduction in window-top spacing
 
 ### Requirement: Granular panel open-state notifications
-Alice SHALL expose granular listenable panel open states for every modeled panel in addition to preserving the existing single-open-panel controller semantics. The named media, clock, weather, tray overflow, notifications, and power listenable accessors SHALL remain available.
+Alice SHALL expose granular listenable panel open states for every modeled panel in addition to preserving the existing single-open-panel controller semantics. The named media, clock, tasks, weather, tray overflow, notifications, and power listenable accessors SHALL remain available.
 
 #### Scenario: One panel opens from closed state
 - **WHEN** the user opens a panel while no panel is open
@@ -76,12 +81,17 @@ Alice SHALL bind bar module highlight UI to granular panel open-state listenable
 #### Scenario: Media panel opens
 - **WHEN** the media panel opens from a closed state
 - **THEN** Alice SHALL rebuild the media highlight consumer
-- **AND** Alice SHALL NOT rebuild clock, weather, tray overflow, notification, or power highlight consumers because of that panel state change
+- **AND** Alice SHALL NOT rebuild clock, tasks, weather, tray overflow, notification, or power highlight consumers because of that panel state change
 
 #### Scenario: Media panel switches to clock panel
 - **WHEN** the open panel changes from media to clock
 - **THEN** Alice SHALL rebuild the media highlight consumer and the clock highlight consumer
-- **AND** Alice SHALL NOT rebuild weather, tray overflow, notification, or power highlight consumers because of that panel state change
+- **AND** Alice SHALL NOT rebuild tasks, weather, tray overflow, notification, or power highlight consumers because of that panel state change
+
+#### Scenario: Task panel opens
+- **WHEN** the task panel opens from a closed state
+- **THEN** Alice SHALL rebuild the task highlight consumer
+- **AND** Alice SHALL NOT rebuild media, clock, weather, tray overflow, notification, or power highlight consumers because of that panel state change
 
 ### Requirement: Weather panel toggle integration
 Alice SHALL allow the weather bar widget to toggle the weather panel using the same single-open-panel semantics as other panels.
@@ -98,4 +108,20 @@ Alice SHALL allow the weather bar widget to toggle the weather panel using the s
 #### Scenario: Weather replaces another panel
 - **WHEN** the user activates the weather bar widget while another panel is open
 - **THEN** Alice SHALL replace the open panel with the weather panel
+
+### Requirement: Task panel toggle integration
+Alice SHALL allow the task bar module to toggle the task panel using the same single-open-panel and anchor semantics as other panels.
+
+#### Scenario: Task module opens panel
+- **WHEN** the user activates the task module while no panel is open
+- **THEN** Alice SHALL open the task panel
+- **AND** Alice SHALL store the module's right-aligned anchor for native panel positioning
+
+#### Scenario: Task module closes panel
+- **WHEN** the user activates the task module while the task panel is already open
+- **THEN** Alice SHALL close the task panel and clear its anchor
+
+#### Scenario: Task module replaces another panel
+- **WHEN** the user activates the task module while another panel is open
+- **THEN** Alice SHALL replace the open panel with the task panel
 

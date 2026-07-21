@@ -6,69 +6,6 @@
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-class AliceConfig {
-  final ThemeMode themeMode;
-  final String accentColor;
-  final bool transparentTopBar;
-  final bool showNetworkLabel;
-  final int maxVisibleTrayItems;
-  final String? localTimeZoneLabel;
-  final List<TimeZoneConfig> timeZones;
-  final PowerCommandConfig powerCommands;
-  final int panelTopGapPx;
-  final CalendarConfig? calendar;
-  final NotificationConfig notifications;
-  final WeatherConfig weather;
-
-  const AliceConfig({
-    required this.themeMode,
-    required this.accentColor,
-    required this.transparentTopBar,
-    required this.showNetworkLabel,
-    required this.maxVisibleTrayItems,
-    this.localTimeZoneLabel,
-    required this.timeZones,
-    required this.powerCommands,
-    required this.panelTopGapPx,
-    this.calendar,
-    required this.notifications,
-    required this.weather,
-  });
-
-  @override
-  int get hashCode =>
-      themeMode.hashCode ^
-      accentColor.hashCode ^
-      transparentTopBar.hashCode ^
-      showNetworkLabel.hashCode ^
-      maxVisibleTrayItems.hashCode ^
-      localTimeZoneLabel.hashCode ^
-      timeZones.hashCode ^
-      powerCommands.hashCode ^
-      panelTopGapPx.hashCode ^
-      calendar.hashCode ^
-      notifications.hashCode ^
-      weather.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is AliceConfig &&
-          runtimeType == other.runtimeType &&
-          themeMode == other.themeMode &&
-          accentColor == other.accentColor &&
-          transparentTopBar == other.transparentTopBar &&
-          showNetworkLabel == other.showNetworkLabel &&
-          maxVisibleTrayItems == other.maxVisibleTrayItems &&
-          localTimeZoneLabel == other.localTimeZoneLabel &&
-          timeZones == other.timeZones &&
-          powerCommands == other.powerCommands &&
-          panelTopGapPx == other.panelTopGapPx &&
-          calendar == other.calendar &&
-          notifications == other.notifications &&
-          weather == other.weather;
-}
-
 class CalendarConfig {
   final String googleClientId;
   final String googleClientSecret;

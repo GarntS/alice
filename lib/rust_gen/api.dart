@@ -3,10 +3,13 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import 'caldav/models.dart';
 import 'config.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'state.dart';
+
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`
 
 /// Start streaming `BarSnapshot` values to Dart.
 ///
@@ -24,7 +27,20 @@ Stream<PanelCommand?> watchPanelCommands() =>
     RustLib.instance.api.crateApiWatchPanelCommands();
 
 /// Load the user's config file (or defaults if missing / unreadable).
-Future<AliceConfig> loadConfig() => RustLib.instance.api.crateApiLoadConfig();
+Future<AliceUiConfig> loadConfig() => RustLib.instance.api.crateApiLoadConfig();
+
+/// Coalesce a panel-open or manual CalDAV refresh into the runtime service.
+Future<bool> requestCaldavRefresh() =>
+    RustLib.instance.api.crateApiRequestCaldavRefresh();
+
+/// Complete or un-complete a stable CalDAV task resource identity.
+Future<void> setCaldavTaskCompleted({
+  required TaskResourceIdentity identity,
+  required bool completed,
+}) => RustLib.instance.api.crateApiSetCaldavTaskCompleted(
+  identity: identity,
+  completed: completed,
+);
 
 /// Send an MPRIS media control action: `"previous"`, `"playPause"`, or `"next"`.
 Future<bool> sendMediaAction({required String action}) =>
@@ -96,6 +112,114 @@ Future<void> invokeNotificationAction({
 /// `status == "not_configured"` and the events section stays hidden.
 Future<CalendarFetchResult> fetchCalendarEvents({required String date}) =>
     RustLib.instance.api.crateApiFetchCalendarEvents(date: date);
+
+/// Secret-free configuration contract returned to Flutter.
+class AliceUiConfig {
+  final ThemeMode themeMode;
+  final String accentColor;
+  final bool transparentTopBar;
+  final bool showNetworkLabel;
+  final int maxVisibleTrayItems;
+  final String? localTimeZoneLabel;
+  final List<TimeZoneConfig> timeZones;
+  final PowerCommandConfig powerCommands;
+  final int panelTopGapPx;
+  final CalendarConfig? calendar;
+  final CalDavUiConfig? caldav;
+  final NotificationConfig notifications;
+  final WeatherConfig weather;
+
+  const AliceUiConfig({
+    required this.themeMode,
+    required this.accentColor,
+    required this.transparentTopBar,
+    required this.showNetworkLabel,
+    required this.maxVisibleTrayItems,
+    this.localTimeZoneLabel,
+    required this.timeZones,
+    required this.powerCommands,
+    required this.panelTopGapPx,
+    this.calendar,
+    this.caldav,
+    required this.notifications,
+    required this.weather,
+  });
+
+  @override
+  int get hashCode =>
+      themeMode.hashCode ^
+      accentColor.hashCode ^
+      transparentTopBar.hashCode ^
+      showNetworkLabel.hashCode ^
+      maxVisibleTrayItems.hashCode ^
+      localTimeZoneLabel.hashCode ^
+      timeZones.hashCode ^
+      powerCommands.hashCode ^
+      panelTopGapPx.hashCode ^
+      calendar.hashCode ^
+      caldav.hashCode ^
+      notifications.hashCode ^
+      weather.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AliceUiConfig &&
+          runtimeType == other.runtimeType &&
+          themeMode == other.themeMode &&
+          accentColor == other.accentColor &&
+          transparentTopBar == other.transparentTopBar &&
+          showNetworkLabel == other.showNetworkLabel &&
+          maxVisibleTrayItems == other.maxVisibleTrayItems &&
+          localTimeZoneLabel == other.localTimeZoneLabel &&
+          timeZones == other.timeZones &&
+          powerCommands == other.powerCommands &&
+          panelTopGapPx == other.panelTopGapPx &&
+          calendar == other.calendar &&
+          caldav == other.caldav &&
+          notifications == other.notifications &&
+          weather == other.weather;
+}
+
+/// Non-secret CalDAV settings needed to decide whether and how to render UI.
+class CalDavUiConfig {
+  final String principalUrl;
+  final bool allowHttp;
+  final String username;
+  final List<String> collectionHrefs;
+  final int pollIntervalSecs;
+  final String? caCertificatePath;
+
+  const CalDavUiConfig({
+    required this.principalUrl,
+    required this.allowHttp,
+    required this.username,
+    required this.collectionHrefs,
+    required this.pollIntervalSecs,
+    this.caCertificatePath,
+  });
+
+  @override
+  int get hashCode =>
+      principalUrl.hashCode ^
+      allowHttp.hashCode ^
+      username.hashCode ^
+      collectionHrefs.hashCode ^
+      pollIntervalSecs.hashCode ^
+      caCertificatePath.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CalDavUiConfig &&
+          runtimeType == other.runtimeType &&
+          principalUrl == other.principalUrl &&
+          allowHttp == other.allowHttp &&
+          username == other.username &&
+          collectionHrefs == other.collectionHrefs &&
+          pollIntervalSecs == other.pollIntervalSecs &&
+          caCertificatePath == other.caCertificatePath;
+}
 
 /// A command forwarded to Dart via `watch_panel_commands` whenever a panel
 /// should be shown. `view_id` identifies the Flutter view to render into.

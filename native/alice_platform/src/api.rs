@@ -4,8 +4,74 @@
 //! regenerate `frb_generated.rs` and the Dart bindings in `lib/rust_gen/`.
 
 pub use crate::config::{
-    AliceConfig, CalendarConfig, NotificationConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig,
+    CalendarConfig, NotificationConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig,
     WeatherConfig,
+};
+
+/// Secret-free configuration contract returned to Flutter.
+pub struct AliceUiConfig {
+    pub theme_mode: ThemeMode,
+    pub accent_color: String,
+    pub transparent_top_bar: bool,
+    pub show_network_label: bool,
+    pub max_visible_tray_items: u32,
+    pub local_time_zone_label: Option<String>,
+    pub time_zones: Vec<TimeZoneConfig>,
+    pub power_commands: PowerCommandConfig,
+    pub panel_top_gap_px: u32,
+    pub calendar: Option<CalendarConfig>,
+    pub caldav: Option<CalDavUiConfig>,
+    pub notifications: NotificationConfig,
+    pub weather: WeatherConfig,
+}
+
+/// Non-secret CalDAV settings needed to decide whether and how to render UI.
+pub struct CalDavUiConfig {
+    pub principal_url: String,
+    pub allow_http: bool,
+    pub username: String,
+    pub collection_hrefs: Vec<String>,
+    pub poll_interval_secs: u32,
+    pub ca_certificate_path: Option<String>,
+}
+
+impl From<crate::config::AliceConfig> for AliceUiConfig {
+    fn from(config: crate::config::AliceConfig) -> Self {
+        let caldav = config
+            .caldav
+            .as_ref()
+            .and_then(|value| value.validated_for_runtime().ok())
+            .map(|value| CalDavUiConfig {
+                principal_url: value.principal_url.to_string(),
+                allow_http: value.allow_http,
+                username: value.username,
+                collection_hrefs: value.collection_urls.into_iter().map(Into::into).collect(),
+                poll_interval_secs: value.poll_interval_secs,
+                ca_certificate_path: value
+                    .ca_certificate_path
+                    .map(|path| path.to_string_lossy().into_owned()),
+            });
+
+        Self {
+            theme_mode: config.theme_mode,
+            accent_color: config.accent_color,
+            transparent_top_bar: config.transparent_top_bar,
+            show_network_label: config.show_network_label,
+            max_visible_tray_items: config.max_visible_tray_items,
+            local_time_zone_label: config.local_time_zone_label,
+            time_zones: config.time_zones,
+            power_commands: config.power_commands,
+            panel_top_gap_px: config.panel_top_gap_px,
+            calendar: config.calendar,
+            caldav,
+            notifications: config.notifications,
+            weather: config.weather,
+        }
+    }
+}
+pub use crate::caldav::{
+    CalDavFreshness, CalDavSyncState, NormalizedTask, TaskPriority, TaskResourceIdentity,
+    TaskStatus,
 };
 pub use crate::state::{
     BarSnapshot, CalendarEvent, CalendarFetchResult, ClockSnapshot, MediaSnapshot, NetworkKind,
@@ -64,8 +130,23 @@ pub fn watch_panel_commands(
 }
 
 /// Load the user's config file (or defaults if missing / unreadable).
-pub fn load_config() -> anyhow::Result<AliceConfig> {
-    Ok(crate::load_native_config())
+pub fn load_config() -> anyhow::Result<AliceUiConfig> {
+    Ok(crate::load_native_config().into())
+}
+
+/// Coalesce a panel-open or manual CalDAV refresh into the runtime service.
+pub fn request_caldav_refresh() -> anyhow::Result<bool> {
+    Ok(crate::caldav::service::request_global_refresh())
+}
+
+/// Complete or un-complete a stable CalDAV task resource identity.
+pub async fn set_caldav_task_completed(
+    identity: TaskResourceIdentity,
+    completed: bool,
+) -> anyhow::Result<()> {
+    crate::caldav::service::mutate_global_task(identity, completed)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.to_string()))
 }
 
 /// Send an MPRIS media control action: `"previous"`, `"playPause"`, or `"next"`.
@@ -176,5 +257,44 @@ pub fn fetch_calendar_events(date: String) -> CalendarFetchResult {
             ..Default::default()
         },
         Some(cal_config) => crate::calendar::fetch_events(&date, &cal_config),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn flutter_config_contains_only_valid_non_secret_caldav_settings() {
+        let native = crate::config::AliceConfig::from_yaml_str(
+            r##"
+caldav:
+  principal_url: https://tasks.example.test/dav/principals/alice/
+  allow_http: false
+  username: alice
+  token: never-cross-the-bridge
+  collection_hrefs: [/dav/calendars/alice/work/]
+  poll_interval_secs: 75
+  ca_certificate_path: /etc/alice/ca.pem
+"##,
+        )
+        .unwrap();
+        let ui = AliceUiConfig::from(native);
+        let caldav = ui.caldav.expect("valid CalDAV config should enable UI");
+
+        assert_eq!(caldav.username, "alice");
+        assert!(!caldav.allow_http);
+        assert_eq!(caldav.poll_interval_secs, 75);
+        assert_eq!(
+            caldav.collection_hrefs,
+            ["https://tasks.example.test/dav/calendars/alice/work/"]
+        );
+        assert_eq!(
+            caldav.ca_certificate_path.as_deref(),
+            Some("/etc/alice/ca.pem")
+        );
+
+        let invalid = crate::config::AliceConfig::from_yaml_str("caldav: {}\n").unwrap();
+        assert!(AliceUiConfig::from(invalid).caldav.is_none());
     }
 }

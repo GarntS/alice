@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'alice_config.dart';
+import 'rust_gen/caldav/models.dart';
 import 'rust_gen/state.dart';
 import 'alice_platform.dart';
 import 'panel_controller.dart';
@@ -188,6 +189,15 @@ class _AliceAppState extends State<AliceApp> {
     } catch (_) {}
   }
 
+  Future<void> _handleTaskRefresh() async {
+    await _platform.requestCalDavRefresh();
+  }
+
+  Future<void> _handleTaskCompletion(
+    TaskResourceIdentity identity,
+    bool completed,
+  ) => _platform.setCalDavTaskCompleted(identity, completed);
+
   Future<void> _handleDismissNotification(int id) async {
     try {
       await _platform.dismissNotification(id);
@@ -322,6 +332,8 @@ class _AliceAppState extends State<AliceApp> {
                   onDismissAllNotifications: _handleDismissAllNotifications,
                   onMarkAllNotificationsRead: _handleMarkAllNotificationsRead,
                   onInvokeNotificationAction: _handleInvokeNotificationAction,
+                  onTaskRefresh: _handleTaskRefresh,
+                  onTaskCompletion: _handleTaskCompletion,
                 ),
         ),
       ),

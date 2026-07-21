@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 827720240;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -751678668;
 
 // Section: executor
 
@@ -358,6 +358,40 @@ fn wire__crate__api__mark_notification_read_impl(
         },
     )
 }
+fn wire__crate__api__request_caldav_refresh_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "request_caldav_refresh",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::request_caldav_refresh()?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__seek_media_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -468,6 +502,46 @@ fn wire__crate__api__send_tray_action_impl(
                         )?;
                         Ok(output_ok)
                     })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__set_caldav_task_completed_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "set_caldav_task_completed",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_identity =
+                <crate::caldav::models::TaskResourceIdentity>::sse_decode(&mut deserializer);
+            let api_completed = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok =
+                            crate::api::set_caldav_task_completed(api_identity, api_completed)
+                                .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
                 )
             }
         },
@@ -588,7 +662,7 @@ impl SseDecode for String {
     }
 }
 
-impl SseDecode for crate::config::AliceConfig {
+impl SseDecode for crate::api::AliceUiConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_themeMode = <crate::config::ThemeMode>::sse_decode(deserializer);
@@ -601,9 +675,10 @@ impl SseDecode for crate::config::AliceConfig {
         let mut var_powerCommands = <crate::config::PowerCommandConfig>::sse_decode(deserializer);
         let mut var_panelTopGapPx = <u32>::sse_decode(deserializer);
         let mut var_calendar = <Option<crate::config::CalendarConfig>>::sse_decode(deserializer);
+        let mut var_caldav = <Option<crate::api::CalDavUiConfig>>::sse_decode(deserializer);
         let mut var_notifications = <crate::config::NotificationConfig>::sse_decode(deserializer);
         let mut var_weather = <crate::config::WeatherConfig>::sse_decode(deserializer);
-        return crate::config::AliceConfig {
+        return crate::api::AliceUiConfig {
             theme_mode: var_themeMode,
             accent_color: var_accentColor,
             transparent_top_bar: var_transparentTopBar,
@@ -614,6 +689,7 @@ impl SseDecode for crate::config::AliceConfig {
             power_commands: var_powerCommands,
             panel_top_gap_px: var_panelTopGapPx,
             calendar: var_calendar,
+            caldav: var_caldav,
             notifications: var_notifications,
             weather: var_weather,
         };
@@ -633,6 +709,9 @@ impl SseDecode for crate::state::BarSnapshot {
         let mut var_trayItems = <Vec<crate::state::TrayItemSnapshot>>::sse_decode(deserializer);
         let mut var_notifications =
             <Vec<crate::state::NotificationSnapshot>>::sse_decode(deserializer);
+        let mut var_tasks = <Vec<crate::caldav::models::NormalizedTask>>::sse_decode(deserializer);
+        let mut var_caldavSyncState =
+            <crate::caldav::models::CalDavSyncState>::sse_decode(deserializer);
         return crate::state::BarSnapshot {
             workspaces: var_workspaces,
             media: var_media,
@@ -643,6 +722,8 @@ impl SseDecode for crate::state::BarSnapshot {
             weather: var_weather,
             tray_items: var_trayItems,
             notifications: var_notifications,
+            tasks: var_tasks,
+            caldav_sync_state: var_caldavSyncState,
         };
     }
 }
@@ -651,6 +732,57 @@ impl SseDecode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_u8().unwrap() != 0
+    }
+}
+
+impl SseDecode for crate::caldav::models::CalDavFreshness {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::caldav::models::CalDavFreshness::Disabled,
+            1 => crate::caldav::models::CalDavFreshness::Loading,
+            2 => crate::caldav::models::CalDavFreshness::Current,
+            3 => crate::caldav::models::CalDavFreshness::Stale,
+            4 => crate::caldav::models::CalDavFreshness::Error,
+            _ => unreachable!("Invalid variant for CalDavFreshness: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::caldav::models::CalDavSyncState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_freshness = <crate::caldav::models::CalDavFreshness>::sse_decode(deserializer);
+        let mut var_lastSuccessUnixSecs = <Option<i64>>::sse_decode(deserializer);
+        let mut var_error = <Option<String>>::sse_decode(deserializer);
+        let mut var_hasCachedData = <bool>::sse_decode(deserializer);
+        return crate::caldav::models::CalDavSyncState {
+            freshness: var_freshness,
+            last_success_unix_secs: var_lastSuccessUnixSecs,
+            error: var_error,
+            has_cached_data: var_hasCachedData,
+        };
+    }
+}
+
+impl SseDecode for crate::api::CalDavUiConfig {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_principalUrl = <String>::sse_decode(deserializer);
+        let mut var_allowHttp = <bool>::sse_decode(deserializer);
+        let mut var_username = <String>::sse_decode(deserializer);
+        let mut var_collectionHrefs = <Vec<String>>::sse_decode(deserializer);
+        let mut var_pollIntervalSecs = <u32>::sse_decode(deserializer);
+        let mut var_caCertificatePath = <Option<String>>::sse_decode(deserializer);
+        return crate::api::CalDavUiConfig {
+            principal_url: var_principalUrl,
+            allow_http: var_allowHttp,
+            username: var_username,
+            collection_hrefs: var_collectionHrefs,
+            poll_interval_secs: var_pollIntervalSecs,
+            ca_certificate_path: var_caCertificatePath,
+        };
     }
 }
 
@@ -743,6 +875,18 @@ impl SseDecode for i64 {
     }
 }
 
+impl SseDecode for Vec<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<String>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::state::CalendarEvent> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -750,6 +894,20 @@ impl SseDecode for Vec<crate::state::CalendarEvent> {
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
             ans_.push(<crate::state::CalendarEvent>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::caldav::models::NormalizedTask> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::caldav::models::NormalizedTask>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
@@ -918,6 +1076,31 @@ impl SseDecode for crate::state::NetworkSnapshot {
     }
 }
 
+impl SseDecode for crate::caldav::models::NormalizedTask {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_identity =
+            <crate::caldav::models::TaskResourceIdentity>::sse_decode(deserializer);
+        let mut var_uid = <String>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_collectionName = <String>::sse_decode(deserializer);
+        let mut var_dueDate = <Option<String>>::sse_decode(deserializer);
+        let mut var_completedAtUnixSecs = <Option<i64>>::sse_decode(deserializer);
+        let mut var_status = <crate::caldav::models::TaskStatus>::sse_decode(deserializer);
+        let mut var_priority = <crate::caldav::models::TaskPriority>::sse_decode(deserializer);
+        return crate::caldav::models::NormalizedTask {
+            identity: var_identity,
+            uid: var_uid,
+            title: var_title,
+            collection_name: var_collectionName,
+            due_date: var_dueDate,
+            completed_at_unix_secs: var_completedAtUnixSecs,
+            status: var_status,
+            priority: var_priority,
+        };
+    }
+}
+
 impl SseDecode for crate::state::NotificationActionSnapshot {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -997,6 +1180,17 @@ impl SseDecode for Option<String> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<String>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::CalDavUiConfig> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::CalDavUiConfig>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -1114,6 +1308,46 @@ impl SseDecode for crate::config::PowerCommandConfig {
             lock_and_suspend: var_lockAndSuspend,
             restart: var_restart,
             poweroff: var_poweroff,
+        };
+    }
+}
+
+impl SseDecode for crate::caldav::models::TaskPriority {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::caldav::models::TaskPriority::DoNow,
+            1 => crate::caldav::models::TaskPriority::Urgent,
+            2 => crate::caldav::models::TaskPriority::High,
+            3 => crate::caldav::models::TaskPriority::Medium,
+            4 => crate::caldav::models::TaskPriority::Low,
+            _ => unreachable!("Invalid variant for TaskPriority: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::caldav::models::TaskResourceIdentity {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_collectionHref = <String>::sse_decode(deserializer);
+        let mut var_resourceHref = <String>::sse_decode(deserializer);
+        return crate::caldav::models::TaskResourceIdentity {
+            collection_href: var_collectionHref,
+            resource_href: var_resourceHref,
+        };
+    }
+}
+
+impl SseDecode for crate::caldav::models::TaskStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::caldav::models::TaskStatus::Active,
+            1 => crate::caldav::models::TaskStatus::Completed,
+            2 => crate::caldav::models::TaskStatus::Cancelled,
+            _ => unreachable!("Invalid variant for TaskStatus: {}", inner),
         };
     }
 }
@@ -1341,11 +1575,13 @@ fn pde_ffi_dispatcher_primary_impl(
         7 => wire__crate__api__invoke_notification_action_impl(port, ptr, rust_vec_len, data_len),
         8 => wire__crate__api__load_config_impl(port, ptr, rust_vec_len, data_len),
         9 => wire__crate__api__mark_notification_read_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__seek_media_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__send_media_action_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__send_tray_action_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__watch_bar_snapshots_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__watch_panel_commands_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__request_caldav_refresh_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__seek_media_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__send_media_action_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__send_tray_action_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__set_caldav_task_completed_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__watch_bar_snapshots_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__watch_panel_commands_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1365,7 +1601,7 @@ fn pde_ffi_dispatcher_sync_impl(
 // Section: rust2dart
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::config::AliceConfig {
+impl flutter_rust_bridge::IntoDart for crate::api::AliceUiConfig {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.theme_mode.into_into_dart().into_dart(),
@@ -1378,15 +1614,16 @@ impl flutter_rust_bridge::IntoDart for crate::config::AliceConfig {
             self.power_commands.into_into_dart().into_dart(),
             self.panel_top_gap_px.into_into_dart().into_dart(),
             self.calendar.into_into_dart().into_dart(),
+            self.caldav.into_into_dart().into_dart(),
             self.notifications.into_into_dart().into_dart(),
             self.weather.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::config::AliceConfig {}
-impl flutter_rust_bridge::IntoIntoDart<crate::config::AliceConfig> for crate::config::AliceConfig {
-    fn into_into_dart(self) -> crate::config::AliceConfig {
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::AliceUiConfig {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::AliceUiConfig> for crate::api::AliceUiConfig {
+    fn into_into_dart(self) -> crate::api::AliceUiConfig {
         self
     }
 }
@@ -1403,6 +1640,8 @@ impl flutter_rust_bridge::IntoDart for crate::state::BarSnapshot {
             self.weather.into_into_dart().into_dart(),
             self.tray_items.into_into_dart().into_dart(),
             self.notifications.into_into_dart().into_dart(),
+            self.tasks.into_into_dart().into_dart(),
+            self.caldav_sync_state.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -1410,6 +1649,73 @@ impl flutter_rust_bridge::IntoDart for crate::state::BarSnapshot {
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::state::BarSnapshot {}
 impl flutter_rust_bridge::IntoIntoDart<crate::state::BarSnapshot> for crate::state::BarSnapshot {
     fn into_into_dart(self) -> crate::state::BarSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::caldav::models::CalDavFreshness {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Disabled => 0.into_dart(),
+            Self::Loading => 1.into_dart(),
+            Self::Current => 2.into_dart(),
+            Self::Stale => 3.into_dart(),
+            Self::Error => 4.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::caldav::models::CalDavFreshness
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::caldav::models::CalDavFreshness>
+    for crate::caldav::models::CalDavFreshness
+{
+    fn into_into_dart(self) -> crate::caldav::models::CalDavFreshness {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::caldav::models::CalDavSyncState {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.freshness.into_into_dart().into_dart(),
+            self.last_success_unix_secs.into_into_dart().into_dart(),
+            self.error.into_into_dart().into_dart(),
+            self.has_cached_data.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::caldav::models::CalDavSyncState
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::caldav::models::CalDavSyncState>
+    for crate::caldav::models::CalDavSyncState
+{
+    fn into_into_dart(self) -> crate::caldav::models::CalDavSyncState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::CalDavUiConfig {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.principal_url.into_into_dart().into_dart(),
+            self.allow_http.into_into_dart().into_dart(),
+            self.username.into_into_dart().into_dart(),
+            self.collection_hrefs.into_into_dart().into_dart(),
+            self.poll_interval_secs.into_into_dart().into_dart(),
+            self.ca_certificate_path.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::CalDavUiConfig {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::CalDavUiConfig> for crate::api::CalDavUiConfig {
+    fn into_into_dart(self) -> crate::api::CalDavUiConfig {
         self
     }
 }
@@ -1559,6 +1865,33 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::NetworkSnapshot>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::caldav::models::NormalizedTask {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.identity.into_into_dart().into_dart(),
+            self.uid.into_into_dart().into_dart(),
+            self.title.into_into_dart().into_dart(),
+            self.collection_name.into_into_dart().into_dart(),
+            self.due_date.into_into_dart().into_dart(),
+            self.completed_at_unix_secs.into_into_dart().into_dart(),
+            self.status.into_into_dart().into_dart(),
+            self.priority.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::caldav::models::NormalizedTask
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::caldav::models::NormalizedTask>
+    for crate::caldav::models::NormalizedTask
+{
+    fn into_into_dart(self) -> crate::caldav::models::NormalizedTask {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::state::NotificationActionSnapshot {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -1700,6 +2033,73 @@ impl flutter_rust_bridge::IntoIntoDart<crate::config::PowerCommandConfig>
     for crate::config::PowerCommandConfig
 {
     fn into_into_dart(self) -> crate::config::PowerCommandConfig {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::caldav::models::TaskPriority {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::DoNow => 0.into_dart(),
+            Self::Urgent => 1.into_dart(),
+            Self::High => 2.into_dart(),
+            Self::Medium => 3.into_dart(),
+            Self::Low => 4.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::caldav::models::TaskPriority
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::caldav::models::TaskPriority>
+    for crate::caldav::models::TaskPriority
+{
+    fn into_into_dart(self) -> crate::caldav::models::TaskPriority {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::caldav::models::TaskResourceIdentity {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.collection_href.into_into_dart().into_dart(),
+            self.resource_href.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::caldav::models::TaskResourceIdentity
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::caldav::models::TaskResourceIdentity>
+    for crate::caldav::models::TaskResourceIdentity
+{
+    fn into_into_dart(self) -> crate::caldav::models::TaskResourceIdentity {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::caldav::models::TaskStatus {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Active => 0.into_dart(),
+            Self::Completed => 1.into_dart(),
+            Self::Cancelled => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::caldav::models::TaskStatus
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::caldav::models::TaskStatus>
+    for crate::caldav::models::TaskStatus
+{
+    fn into_into_dart(self) -> crate::caldav::models::TaskStatus {
         self
     }
 }
@@ -1932,7 +2332,7 @@ impl SseEncode for String {
     }
 }
 
-impl SseEncode for crate::config::AliceConfig {
+impl SseEncode for crate::api::AliceUiConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::config::ThemeMode>::sse_encode(self.theme_mode, serializer);
@@ -1945,6 +2345,7 @@ impl SseEncode for crate::config::AliceConfig {
         <crate::config::PowerCommandConfig>::sse_encode(self.power_commands, serializer);
         <u32>::sse_encode(self.panel_top_gap_px, serializer);
         <Option<crate::config::CalendarConfig>>::sse_encode(self.calendar, serializer);
+        <Option<crate::api::CalDavUiConfig>>::sse_encode(self.caldav, serializer);
         <crate::config::NotificationConfig>::sse_encode(self.notifications, serializer);
         <crate::config::WeatherConfig>::sse_encode(self.weather, serializer);
     }
@@ -1962,6 +2363,8 @@ impl SseEncode for crate::state::BarSnapshot {
         <Option<crate::state::WeatherSnapshot>>::sse_encode(self.weather, serializer);
         <Vec<crate::state::TrayItemSnapshot>>::sse_encode(self.tray_items, serializer);
         <Vec<crate::state::NotificationSnapshot>>::sse_encode(self.notifications, serializer);
+        <Vec<crate::caldav::models::NormalizedTask>>::sse_encode(self.tasks, serializer);
+        <crate::caldav::models::CalDavSyncState>::sse_encode(self.caldav_sync_state, serializer);
     }
 }
 
@@ -1969,6 +2372,47 @@ impl SseEncode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_u8(self as _).unwrap();
+    }
+}
+
+impl SseEncode for crate::caldav::models::CalDavFreshness {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::caldav::models::CalDavFreshness::Disabled => 0,
+                crate::caldav::models::CalDavFreshness::Loading => 1,
+                crate::caldav::models::CalDavFreshness::Current => 2,
+                crate::caldav::models::CalDavFreshness::Stale => 3,
+                crate::caldav::models::CalDavFreshness::Error => 4,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::caldav::models::CalDavSyncState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::caldav::models::CalDavFreshness>::sse_encode(self.freshness, serializer);
+        <Option<i64>>::sse_encode(self.last_success_unix_secs, serializer);
+        <Option<String>>::sse_encode(self.error, serializer);
+        <bool>::sse_encode(self.has_cached_data, serializer);
+    }
+}
+
+impl SseEncode for crate::api::CalDavUiConfig {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.principal_url, serializer);
+        <bool>::sse_encode(self.allow_http, serializer);
+        <String>::sse_encode(self.username, serializer);
+        <Vec<String>>::sse_encode(self.collection_hrefs, serializer);
+        <u32>::sse_encode(self.poll_interval_secs, serializer);
+        <Option<String>>::sse_encode(self.ca_certificate_path, serializer);
     }
 }
 
@@ -2035,12 +2479,32 @@ impl SseEncode for i64 {
     }
 }
 
+impl SseEncode for Vec<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <String>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::state::CalendarEvent> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::state::CalendarEvent>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::caldav::models::NormalizedTask> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::caldav::models::NormalizedTask>::sse_encode(item, serializer);
         }
     }
 }
@@ -2175,6 +2639,20 @@ impl SseEncode for crate::state::NetworkSnapshot {
     }
 }
 
+impl SseEncode for crate::caldav::models::NormalizedTask {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::caldav::models::TaskResourceIdentity>::sse_encode(self.identity, serializer);
+        <String>::sse_encode(self.uid, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <String>::sse_encode(self.collection_name, serializer);
+        <Option<String>>::sse_encode(self.due_date, serializer);
+        <Option<i64>>::sse_encode(self.completed_at_unix_secs, serializer);
+        <crate::caldav::models::TaskStatus>::sse_encode(self.status, serializer);
+        <crate::caldav::models::TaskPriority>::sse_encode(self.priority, serializer);
+    }
+}
+
 impl SseEncode for crate::state::NotificationActionSnapshot {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2234,6 +2712,16 @@ impl SseEncode for Option<String> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <String>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::CalDavUiConfig> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::CalDavUiConfig>::sse_encode(value, serializer);
         }
     }
 }
@@ -2328,6 +2816,50 @@ impl SseEncode for crate::config::PowerCommandConfig {
         <String>::sse_encode(self.lock_and_suspend, serializer);
         <String>::sse_encode(self.restart, serializer);
         <String>::sse_encode(self.poweroff, serializer);
+    }
+}
+
+impl SseEncode for crate::caldav::models::TaskPriority {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::caldav::models::TaskPriority::DoNow => 0,
+                crate::caldav::models::TaskPriority::Urgent => 1,
+                crate::caldav::models::TaskPriority::High => 2,
+                crate::caldav::models::TaskPriority::Medium => 3,
+                crate::caldav::models::TaskPriority::Low => 4,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::caldav::models::TaskResourceIdentity {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.collection_href, serializer);
+        <String>::sse_encode(self.resource_href, serializer);
+    }
+}
+
+impl SseEncode for crate::caldav::models::TaskStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::caldav::models::TaskStatus::Active => 0,
+                crate::caldav::models::TaskStatus::Completed => 1,
+                crate::caldav::models::TaskStatus::Cancelled => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 

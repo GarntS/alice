@@ -94,6 +94,20 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
         crate::mpris::MprisCache::install_global(mpris_cache.clone());
         let weather_cache = crate::weather::WeatherCache::new();
 
+        // --- Runtime-owned CalDAV cache and synchronization ---
+        if let Some(caldav_config) = config.caldav.as_ref() {
+            match caldav_config.validated_for_runtime() {
+                Ok(validated) => {
+                    if let Err(error) =
+                        crate::caldav::service::start_runtime_service(validated, tx.clone())
+                    {
+                        eprintln!("alice: CalDAV startup error: {error}");
+                    }
+                }
+                Err(error) => eprintln!("alice: CalDAV config error: {error}"),
+            }
+        }
+
         // --- 1 s stats timer ---
         let tx_stats = tx.clone();
         tokio::spawn(async move {
@@ -252,6 +266,12 @@ fn build_snapshot(
         &crate::weather::CachedWeatherProvider::new(weather_cache),
         &StatusNotifierTrayProvider::new(),
         notification_snapshots(),
+        crate::caldav::provider::CalDavCacheProvider::global()
+            .map(|provider| provider.snapshot())
+            .unwrap_or(crate::caldav::provider::CalDavSnapshot {
+                tasks: vec![],
+                sync_state: crate::caldav::CalDavSyncState::default(),
+            }),
     )
 }
 
@@ -268,6 +288,7 @@ pub(crate) fn build_snapshot_from_providers<W, M, S, N, C, WP, T>(
     weather_provider: &WP,
     tray_provider: &T,
     notifications: Vec<crate::state::NotificationSnapshot>,
+    caldav: crate::caldav::provider::CalDavSnapshot,
 ) -> BarSnapshot
 where
     W: crate::providers::WorkspaceProvider,
@@ -310,6 +331,8 @@ where
         weather,
         tray_items,
         notifications,
+        tasks: caldav.tasks,
+        caldav_sync_state: caldav.sync_state,
     }
 }
 
@@ -482,6 +505,27 @@ mod tests {
                 icon_png_bytes: None,
             }])),
             notifications.clone(),
+            crate::caldav::provider::CalDavSnapshot {
+                tasks: vec![crate::caldav::NormalizedTask {
+                    identity: crate::caldav::TaskResourceIdentity {
+                        collection_href: "https://example.test/tasks/".into(),
+                        resource_href: "https://example.test/tasks/1.ics".into(),
+                    },
+                    uid: "one".into(),
+                    title: "Task one".into(),
+                    collection_name: "Tasks".into(),
+                    due_date: Some("2026-07-20".into()),
+                    completed_at_unix_secs: None,
+                    status: crate::caldav::TaskStatus::Active,
+                    priority: crate::caldav::TaskPriority::High,
+                }],
+                sync_state: crate::caldav::CalDavSyncState {
+                    freshness: crate::caldav::CalDavFreshness::Current,
+                    last_success_unix_secs: Some(42),
+                    error: None,
+                    has_cached_data: true,
+                },
+            },
         );
 
         assert_eq!(snapshot.workspaces.len(), 1);
@@ -493,6 +537,12 @@ mod tests {
         assert_eq!(snapshot.weather, Some(weather()));
         assert_eq!(snapshot.tray_items.len(), 1);
         assert_eq!(snapshot.notifications, notifications);
+        assert_eq!(snapshot.tasks.len(), 1);
+        assert_eq!(snapshot.tasks[0].title, "Task one");
+        assert_eq!(
+            snapshot.caldav_sync_state.freshness,
+            crate::caldav::CalDavFreshness::Current
+        );
     }
 
     #[test]
@@ -506,6 +556,10 @@ mod tests {
             &FakeWeatherProvider(err()),
             &FakeTrayProvider(err()),
             vec![],
+            crate::caldav::provider::CalDavSnapshot {
+                tasks: vec![],
+                sync_state: crate::caldav::CalDavSyncState::default(),
+            },
         );
 
         assert!(snapshot.workspaces.is_empty());

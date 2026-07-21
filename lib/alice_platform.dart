@@ -1,10 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show listEquals;
+import 'package:flutter/foundation.dart' show listEquals, visibleForTesting;
 import 'package:flutter/material.dart' show Color, ThemeMode;
 import 'package:flutter/services.dart';
 
 import 'alice_config.dart';
+import 'rust_gen/caldav/models.dart';
 import 'rust_gen/state.dart';
 import 'panel_controller.dart';
 
@@ -46,7 +47,7 @@ class AlicePlatform {
   // ---------------------------------------------------------------------------
 
   Future<AliceConfig> loadConfig() async {
-    return _mapConfig(await frb.loadConfig());
+    return mapConfigForTesting(await frb.loadConfig());
   }
 
   Future<void> sendMediaAction(String action) {
@@ -79,6 +80,13 @@ class AlicePlatform {
   Future<void> executePowerAction(String action) {
     return frb.executePowerAction(action: action);
   }
+
+  Future<bool> requestCalDavRefresh() => frb.requestCaldavRefresh();
+
+  Future<void> setCalDavTaskCompleted(
+    TaskResourceIdentity identity,
+    bool completed,
+  ) => frb.setCaldavTaskCompleted(identity: identity, completed: completed);
 
   Future<void> dismissNotification(int id) => frb.dismissNotification(id: id);
 
@@ -173,10 +181,13 @@ class AlicePlatform {
       weather: snapshot.weather,
       trayItems: stableItems,
       notifications: snapshot.notifications,
+      tasks: snapshot.tasks,
+      caldavSyncState: snapshot.caldavSyncState,
     );
   }
 
-  AliceConfig _mapConfig(frb_config.AliceConfig r) {
+  @visibleForTesting
+  AliceConfig mapConfigForTesting(frb.AliceUiConfig r) {
     return AliceConfig(
       themeMode: switch (r.themeMode) {
         frb_config.ThemeMode.light => ThemeMode.light,
@@ -223,6 +234,16 @@ class AlicePlatform {
           : CalendarConfig(
               googleClientId: r.calendar!.googleClientId,
               googleClientSecret: r.calendar!.googleClientSecret,
+            ),
+      caldav: r.caldav == null
+          ? null
+          : CalDavConfig(
+              principalUrl: r.caldav!.principalUrl,
+              allowHttp: r.caldav!.allowHttp,
+              username: r.caldav!.username,
+              collectionHrefs: List.unmodifiable(r.caldav!.collectionHrefs),
+              pollIntervalSecs: r.caldav!.pollIntervalSecs,
+              caCertificatePath: r.caldav!.caCertificatePath,
             ),
     );
   }

@@ -14,6 +14,7 @@ class AliceConfig {
     required this.notifications,
     required this.weather,
     this.calendar,
+    this.caldav,
   });
 
   final ThemeMode themeMode;
@@ -28,6 +29,7 @@ class AliceConfig {
   final NotificationConfig notifications;
   final WeatherConfig weather;
   final CalendarConfig? calendar;
+  final CalDavConfig? caldav;
 
   factory AliceConfig.fallback() {
     return const AliceConfig(
@@ -66,6 +68,24 @@ class AliceConfig {
       ),
     );
   }
+}
+
+class CalDavConfig {
+  const CalDavConfig({
+    required this.principalUrl,
+    required this.allowHttp,
+    required this.username,
+    required this.collectionHrefs,
+    required this.pollIntervalSecs,
+    required this.caCertificatePath,
+  });
+
+  final String principalUrl;
+  final bool allowHttp;
+  final String username;
+  final List<String> collectionHrefs;
+  final int pollIntervalSecs;
+  final String? caCertificatePath;
 }
 
 class WeatherConfig {

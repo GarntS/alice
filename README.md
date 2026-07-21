@@ -134,6 +134,71 @@ After you approve access in the browser, close and reopen the clock panel. Event
 
 Alice requests the `calendar.readonly` scope — read-only access to your calendar events. No data leaves your machine except for the OAuth token exchange with Google's servers.
 
+### CalDAV tasks (Vikunja)
+
+Alice can optionally synchronize tasks from one CalDAV account. Vikunja projects
+are exposed as CalDAV collections and can be selected with an explicit href
+allowlist. When this section is absent or invalid, no CalDAV network service is
+started and the task module is omitted.
+
+1. In Vikunja, open **Settings → API Tokens** and create a dedicated token for
+   Alice. Do not reuse an administrator or general-purpose token.
+2. Use the Vikunja CalDAV principal URL for your user, normally:
+   `https://vikunja.example.com/dav/principals/USERNAME/`. Alice follows
+   `current-user-principal` and `calendar-home-set` discovery from this URL.
+3. Add only the project collection hrefs Alice may read and update. Vikunja
+   exposes its calendar home at `/dav/projects/` and each project collection at
+   `/dav/projects/PROJECT_ID`. Do not allowlist the `/dav/projects/` home itself.
+
+```yaml
+caldav:
+  principal_url: "https://vikunja.example.com/dav/principals/USERNAME/"
+  # DANGEROUS: permits cleartext credentials; false by default.
+  allow_http: false
+  username: "USERNAME"
+  token: "YOUR_DEDICATED_TOKEN"
+  collection_hrefs:
+    - "/dav/projects/PROJECT_ID"
+  # Default: 60; minimum: 1.
+  poll_interval_secs: 60
+  # Optional PEM CA certificate, added alongside system trust roots.
+  # ca_certificate_path: "/etc/alice/vikunja-ca.pem"
+```
+
+The token is stored inline, so restrict the configuration to your account:
+
+```bash
+chmod 600 "$XDG_CONFIG_HOME/alice/config.yaml"
+```
+
+HTTPS is required by default. Cleartext `http://` URLs are accepted only when
+`caldav.allow_http: true`; this sends the username and token without transport
+encryption and should be limited to trusted test networks. For HTTPS, TLS
+certificate and hostname verification cannot be disabled. A custom CA is
+additive to system trust roots. Authenticated redirects and collection hrefs
+that change scheme, host, or effective port are always rejected. Tokens and
+Authorization headers are redacted
+from logs and are never returned to Flutter or written to the CalDAV cache.
+
+Alice discovers projects with `PROPFIND /dav/projects` and then synchronizes
+VTODO resources from each explicitly allowlisted `/dav/projects/PROJECT_ID`
+collection. Task GET/PUT requests use the resource href returned by Vikunja.
+A trailing slash on a configured project href is accepted even when Vikunja
+advertises the same collection without one.
+
+Alice performs an immediate startup sync, polls every 60 seconds by default,
+and refreshes when the task panel opens or its refresh button is used. Its
+versioned cache is `$XDG_CACHE_HOME/alice/caldav-v1.json` (falling back to
+`~/.cache/alice/caldav-v1.json`) and is written atomically with mode `0600`.
+Cached tasks remain visible as stale if the server is unavailable.
+
+This integration reads VTODO tasks and permits only completion/un-completion of
+existing tasks. It does not create, edit, or delete tasks. VEVENT resources are
+cached for an approximately three-month past/future window, including recurrence
+and timezone metadata, but events are not shown and recurring occurrences are
+not expanded in this release. The existing Google Calendar integration remains
+separate.
+
 ### A Quick Note on LLMs
 The extreme majority of this project was built using a combination of 
 locally-hosted and frontier lab coding agents as a project to build something
@@ -278,6 +343,6 @@ nix develop --command flutter build linux --release
 To build a Nix package directly:
 
 ```bash
-nix build .#alice
-./result/bin/alice
+nix build .#alicebar
+./result/bin/alicebar
 ```

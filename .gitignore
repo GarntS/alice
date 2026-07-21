@@ -33,7 +33,10 @@ target/
 native/target/
 
 # flutter_rust_bridge generated files
-lib/rust_gen/
+lib/rust_gen/*
+!lib/rust_gen/caldav/
+lib/rust_gen/caldav/*
+!lib/rust_gen/caldav/models.dart
 native/alice_platform/src/frb_generated.rs
 linux/runner/frb_generated.h
 
