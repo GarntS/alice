@@ -56,11 +56,20 @@ String _dateKey(DateTime date) =>
 // ClockPanel — stateful so it tracks the selected calendar date + events
 // ---------------------------------------------------------------------------
 
+typedef CalendarEventFetcher =
+    Future<CalendarFetchResult> Function({required String date});
+
 class ClockPanel extends StatefulWidget {
-  const ClockPanel({super.key, required this.config, required this.snapshot});
+  const ClockPanel({
+    super.key,
+    required this.config,
+    required this.snapshot,
+    this.calendarEventFetcher = fetchCalendarEvents,
+  });
 
   final AliceConfig config;
   final ClockSnapshot snapshot;
+  final CalendarEventFetcher calendarEventFetcher;
 
   @override
   State<ClockPanel> createState() => _ClockPanelState();
@@ -71,9 +80,11 @@ class _ClockPanelState extends State<ClockPanel> {
   CalendarFetchResult? _fetchResult;
   bool _loading = false;
   Timer? _pollTimer;
+  int _eventRequestGeneration = 0;
 
   Map<String, List<Color>> _indicators = {};
   DateTime _calendarMonth = _monthOnly(DateTime.now());
+  int _indicatorRequestGeneration = 0;
 
   @override
   void initState() {
@@ -89,23 +100,28 @@ class _ClockPanelState extends State<ClockPanel> {
   }
 
   Future<void> _fetchEvents(DateTime date) async {
+    final requestGeneration = ++_eventRequestGeneration;
     setState(() => _loading = true);
-    final result = await fetchCalendarEvents(date: _dateKey(date));
-    if (!mounted) return;
+    final result = await widget.calendarEventFetcher(date: _dateKey(date));
+    if (!mounted ||
+        requestGeneration != _eventRequestGeneration ||
+        !_sameDate(date, _selectedDate)) {
+      return;
+    }
     setState(() {
       _fetchResult = result;
       _loading = false;
     });
-    _updatePollTimer(result, date);
+    _updatePollTimer(result);
     if (result.status == 'ready') {
       _refreshIndicators(_calendarMonth);
     }
   }
 
-  void _updatePollTimer(CalendarFetchResult result, DateTime date) {
+  void _updatePollTimer(CalendarFetchResult result) {
     if (result.status == 'polling' || result.status == 'needs_auth') {
       _pollTimer ??= Timer.periodic(const Duration(seconds: 5), (_) {
-        _fetchEvents(date);
+        _fetchEvents(_selectedDate);
       });
     } else {
       _pollTimer?.cancel();
@@ -119,6 +135,7 @@ class _ClockPanelState extends State<ClockPanel> {
   }
 
   Future<void> _refreshIndicators(DateTime month) async {
+    final requestGeneration = ++_indicatorRequestGeneration;
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
 
     final dates = List.generate(
@@ -126,10 +143,14 @@ class _ClockPanelState extends State<ClockPanel> {
       (i) => DateTime(month.year, month.month, i + 1),
     );
     final futures = dates.map(
-      (date) => fetchCalendarEvents(date: _dateKey(date)),
+      (date) => widget.calendarEventFetcher(date: _dateKey(date)),
     );
     final results = await Future.wait(futures);
-    if (!mounted) return;
+    if (!mounted ||
+        requestGeneration != _indicatorRequestGeneration ||
+        !_sameMonth(month, _calendarMonth)) {
+      return;
+    }
 
     final newIndicators = <String, List<Color>>{};
     for (var i = 0; i < daysInMonth; i++) {
