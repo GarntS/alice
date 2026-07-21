@@ -1,5 +1,8 @@
-## ADDED Requirements
+# Snapshot State Specification
 
+## Purpose
+Define Flutter snapshot ingestion, granular state notifications, derived projections, and rebuild isolation.
+## Requirements
 ### Requirement: Snapshot state ingestion
 Alice SHALL maintain a Flutter-side `AliceSnapshotState` that represents the current UI state derived from the latest `BarSnapshot`.
 
@@ -32,20 +35,25 @@ Alice SHALL maintain a Flutter-side `AliceSnapshotState` that represents the cur
 - **AND** Alice SHALL NOT notify CPU, memory, workspace, network, clock, tray, or notification slices
 
 ### Requirement: Explicit snapshot diffing
-Alice SHALL compare incoming snapshot fields using content-aware comparators rather than relying on Dart list identity.
+Alice SHALL compare incoming snapshot fields using content-aware comparators rather than relying on Dart collection identity. Comparators SHALL include every snapshot field observed by a Flutter consumer and MAY delegate scalar-only generated models to their generated structural equality.
 
 #### Scenario: Equivalent lists are received as new objects
-- **WHEN** a new snapshot contains fresh list instances with the same workspace, tray, or notification contents as the current snapshot
-- **THEN** Alice SHALL treat those list slices as unchanged
+- **WHEN** a new snapshot contains fresh list instances with the same workspace, tray, notification, or weather forecast contents as the current snapshot
+- **THEN** Alice SHALL treat those slices as unchanged
 - **AND** Alice SHALL NOT notify listeners for those slices
 
 #### Scenario: List element content changes
-- **WHEN** a new snapshot contains a workspace, tray item, or notification whose relevant content differs from the current snapshot
-- **THEN** Alice SHALL notify the corresponding list slice
+- **WHEN** a new snapshot contains a workspace, tray item, notification, or weather forecast element whose relevant content differs from the current snapshot
+- **THEN** Alice SHALL notify the corresponding list or weather slice
 
 #### Scenario: Binary image data is unchanged
 - **WHEN** tray icon bytes or notification image bytes represent unchanged image data
 - **THEN** Alice SHALL avoid causing unrelated slice notifications because of new byte-list object identity
+
+#### Scenario: Weather offset changes
+- **WHEN** a weather snapshot differs from the current weather snapshot only in `offset`
+- **THEN** Alice SHALL notify the weather slice
+- **AND** weather consumers SHALL receive the new offset for forecast date and time calculations
 
 ### Requirement: Derived snapshot state
 `AliceSnapshotState` SHALL publish derived listenable state for UI projections that are narrower than the full snapshot.
@@ -82,3 +90,18 @@ Alice SHALL bind snapshot-driven widgets to granular snapshot-state listenables 
 - **WHEN** the media panel is open and a snapshot update changes only media data
 - **THEN** Alice SHALL rebuild media consumers in the bar and media panel
 - **AND** Alice SHALL NOT rebuild unrelated bar modules or unrelated panel content because of that snapshot update
+
+### Requirement: Single-owner snapshot configuration propagation
+Alice SHALL apply production configuration changes to `AliceSnapshotState` explicitly from the application state owner rather than through consumer widget lifecycle callbacks.
+
+#### Scenario: Application loads changed configuration
+- **WHEN** `AliceApp` successfully loads a configuration whose tray or notification settings affect derived snapshot state
+- **THEN** `AliceApp` SHALL update `AliceSnapshotState` with that configuration
+- **AND** affected derived snapshot state SHALL be recomputed
+- **AND** `TopBar` and `AlicePanelCard` SHALL NOT mutate snapshot configuration during widget lifecycle updates
+
+#### Scenario: Consumer widget rebuilds with unchanged state configuration
+- **WHEN** `TopBar` or `AlicePanelCard` rebuilds
+- **THEN** the rebuild SHALL NOT invoke snapshot configuration propagation as a side effect
+- **AND** existing granular listenable bindings and rebuild isolation SHALL remain intact
+

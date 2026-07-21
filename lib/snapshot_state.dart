@@ -181,9 +181,13 @@ class AliceSnapshotState {
 
   void _recomputePopupNotifications() {
     final byId = {for (final n in _notifications.value) n.id: n};
-    final next = _freeze(
-      _popupVisibleIds.map((id) => byId[id]).whereType<NotificationSnapshot>(),
-    );
+    final next = _config.notifications.showNotificationPopup
+        ? _freeze(
+            _popupVisibleIds
+                .map((id) => byId[id])
+                .whereType<NotificationSnapshot>(),
+          )
+        : const <NotificationSnapshot>[];
     if (!listEqualsBy(
       _popupNotifications.value,
       next,
@@ -223,31 +227,13 @@ bool listEqualsBy<T>(List<T> a, List<T> b, bool Function(T a, T b) equals) {
 }
 
 bool workspaceSnapshotsEqual(WorkspaceSnapshot a, WorkspaceSnapshot b) =>
-    a.label == b.label &&
-    a.isFocused == b.isFocused &&
-    a.isVisible == b.isVisible;
+    a == b;
 
-bool mediaSnapshotsEqual(MediaSnapshot? a, MediaSnapshot? b) {
-  if (identical(a, b)) return true;
-  if (a == null || b == null) return false;
-  return a.title == b.title &&
-      a.artist == b.artist &&
-      a.albumTitle == b.albumTitle &&
-      a.artUrl == b.artUrl &&
-      a.positionLabel == b.positionLabel &&
-      a.lengthLabel == b.lengthLabel &&
-      a.positionMicros == b.positionMicros &&
-      a.lengthMicros == b.lengthMicros &&
-      a.isPlaying == b.isPlaying;
-}
+bool mediaSnapshotsEqual(MediaSnapshot? a, MediaSnapshot? b) => a == b;
 
-bool networkSnapshotsEqual(NetworkSnapshot a, NetworkSnapshot b) =>
-    a.kind == b.kind && a.label == b.label;
+bool networkSnapshotsEqual(NetworkSnapshot a, NetworkSnapshot b) => a == b;
 
-bool clockSnapshotsEqual(ClockSnapshot a, ClockSnapshot b) =>
-    a.timeZoneCode == b.timeZoneCode &&
-    a.dateLabel == b.dateLabel &&
-    a.timeLabel == b.timeLabel;
+bool clockSnapshotsEqual(ClockSnapshot a, ClockSnapshot b) => a == b;
 
 bool weatherSnapshotsEqual(WeatherSnapshot? a, WeatherSnapshot? b) {
   if (identical(a, b)) return true;
@@ -255,6 +241,7 @@ bool weatherSnapshotsEqual(WeatherSnapshot? a, WeatherSnapshot? b) {
   return a.latitude == b.latitude &&
       a.longitude == b.longitude &&
       a.timezone == b.timezone &&
+      a.offset == b.offset &&
       a.units == b.units &&
       a.lastUpdatedUnixSecs == b.lastUpdatedUnixSecs &&
       weatherPointsEqual(a.currently, b.currently) &&
@@ -263,34 +250,11 @@ bool weatherSnapshotsEqual(WeatherSnapshot? a, WeatherSnapshot? b) {
       listEqualsBy(a.alerts, b.alerts, weatherAlertsEqual);
 }
 
-bool weatherPointsEqual(WeatherPoint a, WeatherPoint b) =>
-    a.time == b.time &&
-    a.summary == b.summary &&
-    a.icon == b.icon &&
-    a.temperature == b.temperature &&
-    a.humidity == b.humidity &&
-    a.precipProbability == b.precipProbability &&
-    a.windSpeed == b.windSpeed &&
-    a.windBearing == b.windBearing;
+bool weatherPointsEqual(WeatherPoint a, WeatherPoint b) => a == b;
 
-bool weatherDaysEqual(WeatherDay a, WeatherDay b) =>
-    a.time == b.time &&
-    a.summary == b.summary &&
-    a.icon == b.icon &&
-    a.moonPhase == b.moonPhase &&
-    a.temperatureHigh == b.temperatureHigh &&
-    a.temperatureLow == b.temperatureLow &&
-    a.humidity == b.humidity &&
-    a.precipProbability == b.precipProbability &&
-    a.windSpeed == b.windSpeed &&
-    a.windBearing == b.windBearing;
+bool weatherDaysEqual(WeatherDay a, WeatherDay b) => a == b;
 
-bool weatherAlertsEqual(WeatherAlert a, WeatherAlert b) =>
-    a.title == b.title &&
-    a.description == b.description &&
-    a.severity == b.severity &&
-    a.time == b.time &&
-    a.expires == b.expires;
+bool weatherAlertsEqual(WeatherAlert a, WeatherAlert b) => a == b;
 
 bool trayItemSnapshotsEqual(TrayItemSnapshot a, TrayItemSnapshot b) =>
     a.id == b.id &&
@@ -302,7 +266,7 @@ bool trayItemSnapshotsEqual(TrayItemSnapshot a, TrayItemSnapshot b) =>
 bool notificationActionSnapshotsEqual(
   NotificationActionSnapshot a,
   NotificationActionSnapshot b,
-) => a.key == b.key && a.label == b.label;
+) => a == b;
 
 bool notificationSnapshotsEqual(
   NotificationSnapshot a,

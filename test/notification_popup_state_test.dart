@@ -26,9 +26,13 @@ void main() {
       config: testConfig(notifications: popupConfig(displayMs: 0)),
     );
 
-    state.processSnapshot(testNotifications(5));
+    var notifications = 0;
+    state.addListener(() => notifications++);
+
+    expect(state.processSnapshot(testNotifications(5)), isTrue);
 
     expect(state.visibleIds, [2, 3, 4, 5]);
+    expect(notifications, 1);
     state.dispose();
   });
 
@@ -37,9 +41,15 @@ void main() {
       config: testConfig(notifications: popupConfig(show: false)),
     );
 
-    state.processSnapshot(testNotifications(2));
+    var notifications = 0;
+    state.addListener(() => notifications++);
+
+    expect(state.processSnapshot(testNotifications(2)), isFalse);
 
     expect(state.visibleIds, isEmpty);
+    expect(state.remove(99), isFalse);
+    expect(state.hideAll(), isFalse);
+    expect(notifications, 0);
     state.dispose();
   });
 
@@ -50,10 +60,15 @@ void main() {
       config: testConfig(notifications: popupConfig(displayMs: 0)),
     );
     state.processSnapshot(testNotifications(2));
+    var notifications = 0;
+    state.addListener(() => notifications++);
 
     expect(state.hideAll(), isTrue);
 
     expect(state.visibleIds, isEmpty);
+    expect(notifications, 1);
+    expect(state.hideAll(), isFalse);
+    expect(notifications, 1);
     state.dispose();
   });
 
@@ -63,8 +78,11 @@ void main() {
       config: testConfig(notifications: popupConfig(displayMs: 100)),
       onChanged: () => changes++,
     );
+    var notifications = 0;
+    state.addListener(() => notifications++);
     final first = testNotifications(1).first;
-    state.processSnapshot([first]);
+    expect(state.processSnapshot([first]), isTrue);
+    expect(notifications, 1);
     await tester.pump(const Duration(milliseconds: 60));
     final replacement = NotificationSnapshot(
       id: first.id,
@@ -81,13 +99,54 @@ void main() {
       imagePath: first.imagePath,
     );
 
-    state.processSnapshot([replacement]);
+    expect(state.processSnapshot([replacement]), isTrue);
+    expect(notifications, 2);
     await tester.pump(const Duration(milliseconds: 60));
     expect(state.visibleIds, [first.id]);
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(state.visibleIds, isEmpty);
+    expect(notifications, 3);
     expect(changes, 1);
+    state.dispose();
+  });
+
+  testWidgets('remove and unchanged snapshots notify only for visibility', (
+    tester,
+  ) async {
+    final state = NotificationPopupState(
+      config: testConfig(notifications: popupConfig(displayMs: 0)),
+    );
+    var notifications = 0;
+    state.addListener(() => notifications++);
+    final snapshot = testNotifications(2);
+
+    expect(state.processSnapshot(snapshot), isTrue);
+    expect(notifications, 1);
+    expect(state.processSnapshot(testNotifications(2)), isFalse);
+    expect(notifications, 1);
+    expect(state.remove(1), isTrue);
+    expect(notifications, 2);
+    expect(state.remove(1), isFalse);
+    expect(notifications, 2);
+
+    state.dispose();
+  });
+
+  testWidgets('snapshot stale removals are emitted as one batch', (
+    tester,
+  ) async {
+    final state = NotificationPopupState(
+      config: testConfig(notifications: popupConfig(displayMs: 0)),
+    );
+    state.processSnapshot(testNotifications(4));
+    var notifications = 0;
+    state.addListener(() => notifications++);
+
+    expect(state.processSnapshot([testNotifications(4).last]), isTrue);
+
+    expect(state.visibleIds, [4]);
+    expect(notifications, 1);
     state.dispose();
   });
 
@@ -100,10 +159,14 @@ void main() {
       onChanged: () => changes++,
     );
 
-    state.processSnapshot([testNotifications(1).first]);
+    var notifications = 0;
+    state.addListener(() => notifications++);
+    expect(state.processSnapshot([testNotifications(1).first]), isTrue);
+    expect(notifications, 1);
     await tester.pump(const Duration(milliseconds: 60));
 
     expect(state.visibleIds, isEmpty);
+    expect(notifications, 2);
     expect(changes, 1);
     state.dispose();
   });

@@ -59,16 +59,8 @@ class _AliceAppState extends State<AliceApp> {
   @override
   void initState() {
     super.initState();
-    _notificationPopupState = NotificationPopupState(
-      config: _config,
-      onChanged: () {
-        if (!mounted) return;
-        _snapshotState.updatePopupVisibleIds(
-          _notificationPopupState.visibleIds,
-        );
-        _syncNotificationPopupWindow();
-      },
-    );
+    _notificationPopupState = NotificationPopupState(config: _config);
+    _notificationPopupState.addListener(_syncNotificationPopupState);
     _panelController.addListener(_syncPanelState);
     _snapshotState.media.addListener(_syncMediaPanelSize);
     _snapshotState.trayOverflowCount.addListener(_syncTrayPanelSize);
@@ -85,11 +77,7 @@ class _AliceAppState extends State<AliceApp> {
     _snapshotSubscription = _platform.watchBarSnapshots().listen((snapshot) {
       if (!mounted) return;
       _snapshotState.ingest(snapshot);
-      final popupsChanged = _notificationPopupState.processSnapshot(
-        snapshot.notifications,
-      );
-      _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
-      if (popupsChanged) _syncNotificationPopupWindow();
+      _notificationPopupState.processSnapshot(snapshot.notifications);
     }, onError: (_, _) {});
 
     // Detect when C++ adds new FlViews (panel windows)
@@ -233,10 +221,12 @@ class _AliceAppState extends State<AliceApp> {
   }
 
   void _hideAllNotificationPopups() {
-    final changed = _notificationPopupState.hideAll();
-    if (changed) {
-      _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
-    }
+    _notificationPopupState.hideAll();
+  }
+
+  void _syncNotificationPopupState() {
+    if (!mounted) return;
+    _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
     _syncNotificationPopupWindow();
   }
 
@@ -257,22 +247,16 @@ class _AliceAppState extends State<AliceApp> {
 
   Future<void> _handleDismissPopupRead(int id) async {
     _notificationPopupState.remove(id);
-    _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
-    _syncNotificationPopupWindow();
     await _handleMarkNotificationRead(id);
   }
 
   Future<void> _handlePopupDismissNotification(int id) async {
     _notificationPopupState.remove(id);
-    _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
-    _syncNotificationPopupWindow();
     await _handleDismissNotification(id);
   }
 
   Future<void> _handlePopupAction(int id, String actionKey) async {
     _notificationPopupState.remove(id);
-    _snapshotState.updatePopupVisibleIds(_notificationPopupState.visibleIds);
-    _syncNotificationPopupWindow();
     await _handleInvokeNotificationAction(id, actionKey);
     await _handleMarkNotificationRead(id);
   }
@@ -292,6 +276,7 @@ class _AliceAppState extends State<AliceApp> {
   void dispose() {
     _panelCommandSubscription.cancel();
     _snapshotSubscription.cancel();
+    _notificationPopupState.removeListener(_syncNotificationPopupState);
     _notificationPopupState.dispose();
     _snapshotState.media.removeListener(_syncMediaPanelSize);
     _snapshotState.trayOverflowCount.removeListener(_syncTrayPanelSize);

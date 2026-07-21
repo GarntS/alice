@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import 'alice_config.dart';
 import 'rust_gen/state.dart';
 
-class NotificationPopupState {
+class NotificationPopupState extends ChangeNotifier {
   NotificationPopupState({required this.config, this.onChanged});
 
   AliceConfig config;
@@ -39,12 +41,14 @@ class NotificationPopupState {
       _seenSignatures[n.id] = signature;
     }
     _seenSignatures.removeWhere((id, _) => !current.containsKey(id));
+    if (changed) notifyListeners();
     return changed;
   }
 
   bool remove(int id) {
     final removed = _visibleIds.remove(id);
     _cancelTimer(id);
+    if (removed) notifyListeners();
     return removed;
   }
 
@@ -55,11 +59,19 @@ class NotificationPopupState {
     _timers.clear();
     if (_visibleIds.isEmpty) return false;
     _visibleIds.clear();
+    notifyListeners();
     return true;
   }
 
+  @override
   void dispose() {
-    hideAll();
+    for (final timer in _timers.values) {
+      timer.cancel();
+    }
+    _timers.clear();
+    _visibleIds.clear();
+    _seenSignatures.clear();
+    super.dispose();
   }
 
   bool _enqueue(NotificationSnapshot notification) {

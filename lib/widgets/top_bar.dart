@@ -16,7 +16,7 @@ import 'bar_widgets/tray_module.dart';
 import 'bar_widgets/weather_module.dart';
 import 'bar_widgets/workspace_module.dart';
 
-class TopBar extends StatefulWidget {
+class TopBar extends StatelessWidget {
   const TopBar({
     super.key,
     required this.config,
@@ -36,20 +36,9 @@ class TopBar extends StatefulWidget {
   final VoidCallback onBackgroundTap;
   final ValueChanged<String>? onModuleBuild;
 
-  @override
-  State<TopBar> createState() => _TopBarState();
-}
-
-class _TopBarState extends State<TopBar> {
   Widget _probe(String name, Widget child) {
-    widget.onModuleBuild?.call(name);
+    onModuleBuild?.call(name);
     return child;
-  }
-
-  @override
-  void didUpdateWidget(TopBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    widget.snapshotState.updateConfig(widget.config);
   }
 
   @override
@@ -58,16 +47,16 @@ class _TopBarState extends State<TopBar> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: widget.onBackgroundTap,
+      onTap: onBackgroundTap,
       child: Container(
         height: 44,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: widget.config.transparentTopBar
+          color: config.transparentTopBar
               ? null
               : theme.colorScheme.surface.withValues(alpha: 0.92),
           borderRadius: BorderRadius.circular(0),
-          border: widget.config.transparentTopBar
+          border: config.transparentTopBar
               ? null
               : Border.all(
                   color: theme.colorScheme.primary.withValues(alpha: 0.35),
@@ -82,12 +71,12 @@ class _TopBarState extends State<TopBar> {
             children: [
               Expanded(
                 child: ValueListenableBuilder<List<WorkspaceSnapshot>>(
-                  valueListenable: widget.snapshotState.workspaces,
+                  valueListenable: snapshotState.workspaces,
                   builder: (context, workspaces, _) => _probe(
                     'workspace',
                     TopBarWorkspaceModule(
                       workspaces: workspaces,
-                      onWorkspaceTap: widget.onWorkspaceTap,
+                      onWorkspaceTap: onWorkspaceTap,
                     ),
                   ),
                 ),
@@ -95,17 +84,19 @@ class _TopBarState extends State<TopBar> {
               Expanded(
                 child: Center(
                   child: ValueListenableBuilder<MediaSnapshot?>(
-                    valueListenable: widget.snapshotState.media,
+                    valueListenable: snapshotState.media,
                     builder: (context, media, _) =>
                         ValueListenableBuilder<bool>(
-                          valueListenable: widget.panelController.mediaOpen,
+                          valueListenable: panelController.mediaOpen,
                           builder: (context, highlighted, _) => _probe(
                             'media',
                             TopBarMediaModule(
                               media: media,
                               highlighted: highlighted,
-                              onToggle: (anchor) => widget.panelController
-                                  .toggle(AlicePanel.media, anchor),
+                              onToggle: (anchor) => panelController.toggle(
+                                AlicePanel.media,
+                                anchor,
+                              ),
                             ),
                           ),
                         ),
@@ -120,103 +111,104 @@ class _TopBarState extends State<TopBar> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     ValueListenableBuilder<double>(
-                      valueListenable: widget.snapshotState.memoryUsagePercent,
+                      valueListenable: snapshotState.memoryUsagePercent,
                       builder: (context, value, _) => _probe(
                         'memory',
                         TopBarMemoryModule(memoryUsagePercent: value),
                       ),
                     ),
                     ValueListenableBuilder<double>(
-                      valueListenable: widget.snapshotState.cpuUsageCores,
+                      valueListenable: snapshotState.cpuUsageCores,
                       builder: (context, value, _) =>
                           _probe('cpu', TopBarCpuModule(cpuUsageCores: value)),
                     ),
                     ValueListenableBuilder<NetworkSnapshot>(
-                      valueListenable: widget.snapshotState.network,
+                      valueListenable: snapshotState.network,
                       builder: (context, network, _) => _probe(
                         'network',
                         TopBarNetworkModule(
                           networkKind: network.kind,
-                          label: widget.config.showNetworkLabel
-                              ? network.label
-                              : '',
+                          label: config.showNetworkLabel ? network.label : '',
                         ),
                       ),
                     ),
                     ValueListenableBuilder<ClockSnapshot>(
-                      valueListenable: widget.snapshotState.clock,
+                      valueListenable: snapshotState.clock,
                       builder: (context, clock, _) =>
                           ValueListenableBuilder<bool>(
-                            valueListenable: widget.panelController.clockOpen,
+                            valueListenable: panelController.clockOpen,
                             builder: (context, highlighted, _) => _probe(
                               'clock',
                               TopBarClockModule(
                                 localTimeZoneLabel:
-                                    widget.config.localTimeZoneLabel ??
+                                    config.localTimeZoneLabel ??
                                     clock.timeZoneCode,
                                 clock: clock,
                                 highlighted: highlighted,
-                                onToggle: (anchor) => widget.panelController
-                                    .toggle(AlicePanel.clock, anchor),
+                                onToggle: (anchor) => panelController.toggle(
+                                  AlicePanel.clock,
+                                  anchor,
+                                ),
                               ),
                             ),
                           ),
                     ),
-                    if (widget.config.weather.enable)
+                    if (config.weather.enable)
                       ValueListenableBuilder<WeatherSnapshot?>(
-                        valueListenable: widget.snapshotState.weather,
+                        valueListenable: snapshotState.weather,
                         builder: (context, weather, _) =>
                             ValueListenableBuilder<bool>(
-                              valueListenable:
-                                  widget.panelController.weatherOpen,
+                              valueListenable: panelController.weatherOpen,
                               builder: (context, highlighted, _) => _probe(
                                 'weather',
                                 TopBarWeatherModule(
                                   weather: weather,
                                   highlighted: highlighted,
-                                  onToggle: (anchor) => widget.panelController
-                                      .toggle(AlicePanel.weather, anchor),
+                                  onToggle: (anchor) => panelController.toggle(
+                                    AlicePanel.weather,
+                                    anchor,
+                                  ),
                                 ),
                               ),
                             ),
                       ),
                     _TrayCluster(
-                      visibleTrayItems: widget.snapshotState.visibleTrayItems,
-                      trayOverflowCount: widget.snapshotState.trayOverflowCount,
-                      trayOverflowOpen: widget.panelController.trayOverflowOpen,
-                      onTrayItemTap: widget.onTrayItemTap,
-                      onTrayOverflowToggle: (anchor) => widget.panelController
-                          .toggle(AlicePanel.trayOverflow, anchor),
+                      visibleTrayItems: snapshotState.visibleTrayItems,
+                      trayOverflowCount: snapshotState.trayOverflowCount,
+                      trayOverflowOpen: panelController.trayOverflowOpen,
+                      onTrayItemTap: onTrayItemTap,
+                      onTrayOverflowToggle: (anchor) => panelController.toggle(
+                        AlicePanel.trayOverflow,
+                        anchor,
+                      ),
                       probe: _probe,
                     ),
                     ValueListenableBuilder<int>(
-                      valueListenable:
-                          widget.snapshotState.unreadNotificationCount,
+                      valueListenable: snapshotState.unreadNotificationCount,
                       builder: (context, unreadCount, _) =>
                           ValueListenableBuilder<bool>(
-                            valueListenable:
-                                widget.panelController.notificationsOpen,
+                            valueListenable: panelController.notificationsOpen,
                             builder: (context, highlighted, _) => _probe(
                               'notifications',
                               TopBarNotificationModule(
                                 unreadCount: unreadCount,
                                 highlighted: highlighted,
-                                onToggle: (anchor) => widget.panelController
-                                    .toggle(AlicePanel.notifications, anchor),
+                                onToggle: (anchor) => panelController.toggle(
+                                  AlicePanel.notifications,
+                                  anchor,
+                                ),
                               ),
                             ),
                           ),
                     ),
                     ValueListenableBuilder<bool>(
-                      valueListenable: widget.panelController.powerOpen,
+                      valueListenable: panelController.powerOpen,
                       builder: (context, highlighted, _) => _probe(
                         'power',
                         TopBarPowerModule(
                           highlighted: highlighted,
-                          onToggle: (anchor) => widget.panelController.toggle(
-                            AlicePanel.power,
-                            anchor,
-                          ),
+                          onToggle: (anchor) =>
+                              panelController.toggle(AlicePanel.power, anchor),
                         ),
                       ),
                     ),

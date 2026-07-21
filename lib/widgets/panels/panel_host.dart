@@ -12,7 +12,7 @@ import 'power_panel.dart';
 import 'notification_panel.dart';
 import 'weather_panel.dart';
 
-class AlicePanelCard extends StatefulWidget {
+class AlicePanelCard extends StatelessWidget {
   const AlicePanelCard({
     super.key,
     required this.panel,
@@ -42,57 +42,45 @@ class AlicePanelCard extends StatefulWidget {
   onInvokeNotificationAction;
 
   @override
-  State<AlicePanelCard> createState() => _AlicePanelCardState();
-}
-
-class _AlicePanelCardState extends State<AlicePanelCard> {
-  @override
-  void didUpdateWidget(AlicePanelCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    widget.snapshotState.updateConfig(widget.config);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final panelSize = alicePanelSize(widget.panel);
-    final content = switch (widget.panel) {
+    final panelSize = alicePanelSize(panel);
+    final content = switch (panel) {
       AlicePanel.media => ValueListenableBuilder<MediaSnapshot?>(
-        valueListenable: widget.snapshotState.media,
+        valueListenable: snapshotState.media,
         builder: (context, media, _) => MediaPanel(
           media: media,
-          onAction: widget.onMediaAction,
-          onSeek: widget.onSeekMedia,
+          onAction: onMediaAction,
+          onSeek: onSeekMedia,
         ),
       ),
       AlicePanel.clock => ValueListenableBuilder<ClockSnapshot>(
-        valueListenable: widget.snapshotState.clock,
+        valueListenable: snapshotState.clock,
         builder: (context, clock, _) =>
-            ClockPanel(config: widget.config, snapshot: clock),
+            ClockPanel(config: config, snapshot: clock),
       ),
       AlicePanel.weather => ValueListenableBuilder<WeatherSnapshot?>(
-        valueListenable: widget.snapshotState.weather,
+        valueListenable: snapshotState.weather,
         builder: (context, weather, _) =>
-            WeatherPanel(config: widget.config, weather: weather),
+            WeatherPanel(config: config, weather: weather),
       ),
       AlicePanel.trayOverflow => ValueListenableBuilder<List<TrayItemSnapshot>>(
-        valueListenable: widget.snapshotState.trayItems,
+        valueListenable: snapshotState.trayItems,
         builder: (context, trayItems, _) => TrayPanel(
           trayItems: trayItems,
-          maxVisibleTrayItems: widget.config.maxVisibleTrayItems,
-          onTrayAction: widget.onTrayAction,
+          maxVisibleTrayItems: config.maxVisibleTrayItems,
+          onTrayAction: onTrayAction,
         ),
       ),
-      AlicePanel.power => PowerPanel(onAction: widget.onPowerAction),
+      AlicePanel.power => PowerPanel(onAction: onPowerAction),
       AlicePanel.notifications =>
         ValueListenableBuilder<List<NotificationSnapshot>>(
-          valueListenable: widget.snapshotState.notifications,
+          valueListenable: snapshotState.notifications,
           builder: (context, notifications, _) => NotificationPanel(
             notifications: notifications,
-            onDismissAll: widget.onDismissAllNotifications,
-            onDismissOne: (id) => widget.onDismissNotification(id),
-            onMarkAllRead: widget.onMarkAllNotificationsRead,
-            onInvokeAction: (id, key) =>
-                widget.onInvokeNotificationAction(id, key),
+            onDismissAll: onDismissAllNotifications,
+            onDismissOne: (id) => onDismissNotification(id),
+            onMarkAllRead: onMarkAllNotificationsRead,
+            onInvokeAction: (id, key) => onInvokeNotificationAction(id, key),
           ),
         ),
     };

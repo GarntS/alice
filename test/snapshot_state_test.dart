@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:alicebar/alice_config.dart';
 import 'package:alicebar/rust_gen/state.dart';
 import 'package:alicebar/snapshot_state.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,6 +29,61 @@ void main() {
       expect(workspaces, 0);
       expect(tray, 0);
       expect(notifications, 0);
+    },
+  );
+
+  test(
+    'weather comparison detects offset changes and ignores fresh equivalents',
+    () {
+      final baseWeather = _freshWeather(
+        testWeather(),
+        alerts: const [
+          WeatherAlert(
+            title: 'Wind advisory',
+            description: 'Strong gusts expected.',
+            severity: 'moderate',
+            time: 1780183620,
+            expires: 1780187220,
+          ),
+        ],
+      );
+      final state = AliceSnapshotState(config: testConfig());
+      addTearDown(state.dispose);
+      state.ingest(testSnapshot(weather: baseWeather));
+
+      var weatherNotifications = 0;
+      var workspaceNotifications = 0;
+      var trayNotifications = 0;
+      var notificationNotifications = 0;
+      state.weather.addListener(() => weatherNotifications++);
+      state.workspaces.addListener(() => workspaceNotifications++);
+      state.trayItems.addListener(() => trayNotifications++);
+      state.notifications.addListener(() => notificationNotifications++);
+
+      state.ingest(
+        copySnapshot(
+          state.currentSnapshot,
+          weather: _freshWeather(baseWeather),
+        ),
+      );
+
+      expect(weatherNotifications, 0);
+      expect(workspaceNotifications, 0);
+      expect(trayNotifications, 0);
+      expect(notificationNotifications, 0);
+
+      state.ingest(
+        copySnapshot(
+          state.currentSnapshot,
+          weather: _freshWeather(baseWeather, offset: -5),
+        ),
+      );
+
+      expect(weatherNotifications, 1);
+      expect(state.currentWeather?.offset, -5);
+      expect(workspaceNotifications, 0);
+      expect(trayNotifications, 0);
+      expect(notificationNotifications, 0);
     },
   );
 
@@ -166,10 +222,57 @@ void main() {
     );
     expect(unread, 0);
     expect(popup, 1);
+    expect(state.popupNotifications.value.single.summary, 'Summary 0 changed');
 
     state.updateConfig(testConfig(maxVisibleTrayItems: 5));
     expect(visibleTray, 1);
     expect(overflow, 1);
+  });
+
+  test('explicit config updates recompute tray and popup projections', () {
+    final state = AliceSnapshotState(
+      config: testConfig(maxVisibleTrayItems: 3),
+    );
+    addTearDown(state.dispose);
+    state.ingest(
+      testSnapshot(
+        trayItems: testTrayItems(4),
+        notifications: testNotifications(1),
+      ),
+    );
+    state.updatePopupVisibleIds(const [1]);
+
+    var visibleTrayNotifications = 0;
+    var popupNotifications = 0;
+    state.visibleTrayItems.addListener(() => visibleTrayNotifications++);
+    state.popupNotifications.addListener(() => popupNotifications++);
+
+    state.updateConfig(
+      testConfig(
+        maxVisibleTrayItems: 5,
+        notifications: const NotificationConfig(
+          defaultTimeoutMs: 5000,
+          showNotificationPopup: false,
+          notificationDisplayTimeMs: 5000,
+          expireCriticalNotifications: false,
+        ),
+      ),
+    );
+
+    expect(state.currentVisibleTrayItems.length, 4);
+    expect(state.currentTrayOverflowCount, 0);
+    expect(state.popupNotifications.value, isEmpty);
+    expect(visibleTrayNotifications, 1);
+    expect(popupNotifications, 1);
+
+    state.updateConfig(testConfig(maxVisibleTrayItems: 5));
+
+    expect(
+      state.popupNotifications.value.map((notification) => notification.id),
+      [1],
+    );
+    expect(visibleTrayNotifications, 1);
+    expect(popupNotifications, 2);
   });
 
   test('binary data compares by bytes, not list identity', () {
@@ -212,6 +315,7 @@ BarSnapshot copySnapshot(
   double? cpuUsageCores,
   NetworkSnapshot? network,
   ClockSnapshot? clock,
+  WeatherSnapshot? weather,
   List<TrayItemSnapshot>? trayItems,
   List<NotificationSnapshot>? notifications,
 }) {
@@ -224,8 +328,64 @@ BarSnapshot copySnapshot(
     cpuUsageCores: cpuUsageCores ?? snapshot.cpuUsageCores,
     network: network ?? snapshot.network,
     clock: clock ?? snapshot.clock,
+    weather: weather ?? snapshot.weather,
     trayItems: trayItems ?? snapshot.trayItems,
     notifications: notifications ?? snapshot.notifications,
+  );
+}
+
+WeatherSnapshot _freshWeather(
+  WeatherSnapshot source, {
+  double? offset,
+  List<WeatherAlert>? alerts,
+}) {
+  WeatherPoint copyPoint(WeatherPoint point) => WeatherPoint(
+    time: point.time,
+    summary: point.summary,
+    icon: point.icon,
+    temperature: point.temperature,
+    humidity: point.humidity,
+    precipProbability: point.precipProbability,
+    windSpeed: point.windSpeed,
+    windBearing: point.windBearing,
+  );
+
+  return WeatherSnapshot(
+    latitude: source.latitude,
+    longitude: source.longitude,
+    timezone: source.timezone,
+    offset: offset ?? source.offset,
+    units: source.units,
+    lastUpdatedUnixSecs: source.lastUpdatedUnixSecs,
+    currently: copyPoint(source.currently),
+    hourly: source.hourly.map(copyPoint).toList(),
+    daily: source.daily
+        .map(
+          (day) => WeatherDay(
+            time: day.time,
+            summary: day.summary,
+            icon: day.icon,
+            moonPhase: day.moonPhase,
+            temperatureHigh: day.temperatureHigh,
+            temperatureLow: day.temperatureLow,
+            humidity: day.humidity,
+            precipProbability: day.precipProbability,
+            windSpeed: day.windSpeed,
+            windBearing: day.windBearing,
+          ),
+        )
+        .toList(),
+    alerts: (alerts ?? source.alerts)
+        .map(
+          (alert) => WeatherAlert(
+            title: alert.title,
+            description: alert.description,
+            severity: alert.severity,
+            time: alert.time,
+            expires: alert.expires,
+          ),
+        )
+        .toList(),
   );
 }
 

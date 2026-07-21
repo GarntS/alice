@@ -118,6 +118,48 @@ void main() {
     controller.dispose();
   });
 
+  testWidgets('reused snapshot state changes config only when explicit', (
+    tester,
+  ) async {
+    final controller = PanelController();
+    final state = testSnapshotState(
+      config: testConfig(maxVisibleTrayItems: 3),
+      snapshot: testSnapshot(trayItems: testTrayItems(5)),
+    );
+    addTearDown(controller.dispose);
+    addTearDown(state.dispose);
+
+    Future<void> pumpWithConfig(AliceConfig config) => pumpAliceWidget(
+      tester,
+      SizedBox(
+        width: 1300,
+        height: 80,
+        child: TopBar(
+          config: config,
+          snapshotState: state,
+          panelController: controller,
+          onWorkspaceTap: (_) {},
+          onTrayItemTap: (_) {},
+          onBackgroundTap: () {},
+        ),
+      ),
+      size: const Size(1500, 140),
+    );
+
+    await pumpWithConfig(testConfig(maxVisibleTrayItems: 3));
+    expect(state.currentVisibleTrayItems.length, 2);
+    expect(state.currentTrayOverflowCount, 3);
+
+    state.updateConfig(testConfig(maxVisibleTrayItems: 5));
+    await pumpWithConfig(testConfig(maxVisibleTrayItems: 5));
+    expect(state.currentVisibleTrayItems.length, 4);
+    expect(state.currentTrayOverflowCount, 1);
+
+    await pumpWithConfig(testConfig(maxVisibleTrayItems: 2));
+    expect(state.currentVisibleTrayItems.length, 4);
+    expect(state.currentTrayOverflowCount, 1);
+  });
+
   testWidgets('top bar renders weather data and no-data placeholder', (
     tester,
   ) async {
