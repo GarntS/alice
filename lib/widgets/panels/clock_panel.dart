@@ -40,14 +40,6 @@ const _monthNames = [
 
 const _weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-class _CalendarDay {
-  const _CalendarDay(this.date);
-
-  final DateTime date;
-
-  String get key => _dateKey(date);
-}
-
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
 DateTime _monthOnly(DateTime date) => DateTime(date.year, date.month);
@@ -298,15 +290,11 @@ class AliceCalendar extends StatefulWidget {
 
 class _AliceCalendarState extends State<AliceCalendar> {
   late DateTime _displayedMonth;
-  late DateTime _today;
-  late List<List<_CalendarDay>> _rows;
 
   @override
   void initState() {
     super.initState();
     _displayedMonth = _monthOnly(widget.selectedDate);
-    _today = _dateOnly(DateTime.now());
-    _rows = _buildMonthRows(_displayedMonth);
   }
 
   void _prevMonth() {
@@ -315,7 +303,6 @@ class _AliceCalendarState extends State<AliceCalendar> {
         _displayedMonth.year,
         _displayedMonth.month - 1,
       );
-      _rows = _buildMonthRows(_displayedMonth);
     });
     widget.onMonthChanged?.call(_displayedMonth);
   }
@@ -326,18 +313,14 @@ class _AliceCalendarState extends State<AliceCalendar> {
         _displayedMonth.year,
         _displayedMonth.month + 1,
       );
-      _rows = _buildMonthRows(_displayedMonth);
     });
     widget.onMonthChanged?.call(_displayedMonth);
   }
 
-  List<List<_CalendarDay>> _buildMonthRows(DateTime month) {
+  List<List<DateTime>> _buildMonthRows(DateTime month) {
     final firstDay = _monthOnly(month);
     final firstCell = firstDay.subtract(Duration(days: firstDay.weekday % 7));
-    final cells = List.generate(
-      42,
-      (i) => _CalendarDay(firstCell.add(Duration(days: i))),
-    );
+    final cells = List.generate(42, (i) => firstCell.add(Duration(days: i)));
 
     return List.generate(6, (row) => cells.sublist(row * 7, row * 7 + 7));
   }
@@ -346,10 +329,11 @@ class _AliceCalendarState extends State<AliceCalendar> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final month = _displayedMonth;
-    final rows = _rows;
+    final rows = _buildMonthRows(month);
+    final today = _dateOnly(DateTime.now());
 
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.4);
-    final selectedIsToday = _sameDate(widget.selectedDate, _today);
+    final selectedIsToday = _sameDate(widget.selectedDate, today);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -421,12 +405,12 @@ class _AliceCalendarState extends State<AliceCalendar> {
                       .map(
                         (date) => _DayCell(
                           date: date,
-                          isCurrentMonth: _sameMonth(date.date, month),
-                          isSelected: _sameDate(date.date, widget.selectedDate),
-                          isToday:
-                              !selectedIsToday && _sameDate(date.date, _today),
+                          isCurrentMonth: _sameMonth(date, month),
+                          isSelected: _sameDate(date, widget.selectedDate),
+                          isToday: !selectedIsToday && _sameDate(date, today),
                           onTap: widget.onDateSelected,
-                          dotColors: widget.indicators[date.key] ?? const [],
+                          dotColors:
+                              widget.indicators[_dateKey(date)] ?? const [],
                         ),
                       )
                       .toList(),
@@ -449,7 +433,7 @@ class _DayCell extends StatelessWidget {
     this.dotColors = const [],
   });
 
-  final _CalendarDay date;
+  final DateTime date;
   final bool isCurrentMonth;
   final bool isSelected;
   final bool isToday;
@@ -469,7 +453,8 @@ class _DayCell extends StatelessWidget {
 
     return Expanded(
       child: InkWell(
-        onTap: () => onTap(date.date),
+        key: ValueKey('calendar-day-${_dateKey(date)}'),
+        onTap: () => onTap(date),
         borderRadius: BorderRadius.circular(999),
         child: Center(
           child: Container(
@@ -490,7 +475,7 @@ class _DayCell extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '${date.date.day}',
+                  '${date.day}',
                   style: theme.textTheme.bodySmall?.copyWith(color: textColor),
                 ),
                 if (dotColors.isNotEmpty) ...[
