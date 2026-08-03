@@ -26,6 +26,7 @@ pub mod tray;
 pub mod weather;
 
 // frb_generated.rs is produced by `flutter_rust_bridge_codegen generate`.
+mod foreign_toplevel;
 mod frb_generated;
 
 use std::ffi::CStr;

@@ -55,6 +55,7 @@ dependencies = [
  "notify",
  "quick-xml",
  "reqwest",
+ "rustix",
  "rustls",
  "serde",
  "serde_json",
@@ -63,6 +64,8 @@ dependencies = [
  "tempfile",
  "tokio",
  "url",
+ "wayland-client",
+ "wayland-protocols-wlr",
  "wiremock",
  "yup-oauth2",
  "zbus",
@@ -3149,6 +3152,7 @@ checksum = "b23b5df31ceff1328f06ac607591d5ba360cf58f90c8fad4ac8d3a55a3c4aec7"
 dependencies = [
  "bitflags 2.11.0",
  "wayland-backend",
+ "wayland-client",
  "wayland-scanner",
 ]
 
@@ -3160,6 +3164,7 @@ checksum = "78248e4cc0eff8163370ba5c158630dcae1f3497a586b826eca2ef5f348d6235"
 dependencies = [
  "bitflags 2.11.0",
  "wayland-backend",
+ "wayland-client",
  "wayland-protocols",
  "wayland-scanner",
 ]

@@ -6,6 +6,7 @@
 
 use std::{
     collections::HashMap,
+    future::Future,
     sync::{
         Arc, Mutex, OnceLock,
         atomic::{AtomicU32, Ordering},
@@ -27,6 +28,7 @@ const NOTIFICATION_ICON_THUMBNAIL_PX: u32 = 96;
 #[derive(Debug, Clone)]
 struct StoredNotification {
     snapshot: NotificationSnapshot,
+    activation_identity: Option<String>,
     received_at: std::time::Instant,
 }
 
@@ -76,6 +78,13 @@ impl NotificationStore {
             .iter()
             .map(|record| record.snapshot.clone())
             .collect()
+    }
+
+    fn activation_identity(&self, id: u32) -> Option<String> {
+        self.notifications
+            .iter()
+            .find(|record| record.snapshot.id == id)
+            .and_then(|record| record.activation_identity.clone())
     }
 
     pub fn mark_read(&mut self, id: u32) {
@@ -129,6 +138,7 @@ impl NotificationServer {
         let category = parse_category(&hints);
         let image_data = parse_image_data(&hints);
         let image_path = parse_image_path(&hints);
+        let activation_identity = parse_activation_identity(&hints);
 
         // actions vec is [key, label, key, label, ...]
         let parsed_actions: Vec<NotificationActionSnapshot> = actions
@@ -176,6 +186,7 @@ impl NotificationServer {
                 image_data,
                 image_path,
             },
+            activation_identity,
             received_at: std::time::Instant::now(),
         };
 
@@ -328,6 +339,11 @@ pub fn mark_notification_read_impl(id: u32) {
 
 /// Emit the `ActionInvoked` signal for the given notification and action key.
 pub fn invoke_action_impl(id: u32, action_key: String) {
+    let activation_identity = NOTIFICATION_STORE
+        .get()
+        .and_then(|store| store.lock().ok())
+        .and_then(|store| store.activation_identity(id));
+
     if let Some(conn) = NOTIFICATION_CONNECTION.get().cloned() {
         if let Some(handle) = crate::runtime::tokio_handle() {
             handle.spawn(async move {
@@ -336,13 +352,23 @@ pub fn invoke_action_impl(id: u32, action_key: String) {
                     .interface::<_, NotificationServer>("/org/freedesktop/Notifications")
                     .await
                 {
-                    if let Err(error) = NotificationServer::action_invoked(
-                        iface.signal_emitter(),
-                        id,
-                        &action_key,
+                    let result = deliver_action_then_activate(
+                        activation_identity,
+                        || {
+                            NotificationServer::action_invoked(
+                                iface.signal_emitter(),
+                                id,
+                                &action_key,
+                            )
+                        },
+                        |identity| {
+                            crate::foreign_toplevel::ForeignToplevelActivationService::request_global_activation(
+                                identity,
+                            );
+                        },
                     )
-                    .await
-                    {
+                    .await;
+                    if let Err(error) = result {
                         eprintln!(
                             "alice: failed to emit notification action id={id} key={action_key}: {error}"
                         );
@@ -353,6 +379,23 @@ pub fn invoke_action_impl(id: u32, action_key: String) {
             });
         }
     }
+}
+
+async fn deliver_action_then_activate<Emit, EmitFuture, Activate>(
+    activation_identity: Option<String>,
+    emit: Emit,
+    activate: Activate,
+) -> zbus::Result<()>
+where
+    Emit: FnOnce() -> EmitFuture,
+    EmitFuture: Future<Output = zbus::Result<()>>,
+    Activate: FnOnce(String),
+{
+    emit().await?;
+    if let Some(identity) = activation_identity {
+        activate(identity);
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -389,6 +432,22 @@ fn parse_urgency(hints: &HashMap<String, OwnedValue>) -> NotificationUrgency {
             _ => None,
         })
         .unwrap_or(NotificationUrgency::Normal)
+}
+
+fn parse_activation_identity(hints: &HashMap<String, OwnedValue>) -> Option<String> {
+    hints.get("desktop-entry").and_then(|value| match &**value {
+        Value::Str(identity) => normalize_activation_identity(identity.as_str()),
+        _ => None,
+    })
+}
+
+pub(crate) fn normalize_activation_identity(identity: &str) -> Option<String> {
+    let identity = identity.trim().to_lowercase();
+    let identity = identity
+        .strip_suffix(".desktop")
+        .unwrap_or(&identity)
+        .trim();
+    (!identity.is_empty()).then(|| identity.to_string())
 }
 
 fn parse_category(hints: &HashMap<String, OwnedValue>) -> Option<String> {
@@ -509,6 +568,11 @@ fn extract_bytes(val: &Value<'_>) -> Option<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zbus::zvariant::Str;
+
+    fn string_hint(value: &str) -> OwnedValue {
+        OwnedValue::from(Str::from(value))
+    }
 
     fn snapshot(id: u32, summary: &str) -> NotificationSnapshot {
         NotificationSnapshot {
@@ -530,6 +594,87 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn successful_action_emission_precedes_activation() {
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let emitted_events = events.clone();
+        let activated_events = events.clone();
+
+        let result = deliver_action_then_activate(
+            Some("org.example.chat".to_string()),
+            || async move {
+                emitted_events.lock().expect("events").push("emitted");
+                Ok(())
+            },
+            move |identity| {
+                assert_eq!(identity, "org.example.chat");
+                activated_events.lock().expect("events").push("activated");
+            },
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(*events.lock().expect("events"), ["emitted", "activated"]);
+    }
+
+    #[tokio::test]
+    async fn failed_action_emission_suppresses_activation() {
+        let activated = Arc::new(Mutex::new(false));
+        let activation_observer = activated.clone();
+
+        let result = deliver_action_then_activate(
+            Some("org.example.chat".to_string()),
+            || async { Err(zbus::Error::Failure("signal failed".to_string())) },
+            move |_| *activation_observer.lock().expect("activation state") = true,
+        )
+        .await;
+
+        assert!(result.is_err());
+        assert!(!*activated.lock().expect("activation state"));
+    }
+
+    #[tokio::test]
+    async fn unavailable_or_ambiguous_activation_does_not_fail_action_delivery() {
+        let attempts = Arc::new(Mutex::new(Vec::new()));
+        let activation_attempts = attempts.clone();
+
+        let result = deliver_action_then_activate(
+            Some("ambiguous.app".to_string()),
+            || async { Ok(()) },
+            move |identity| {
+                // The worker may decline this request as unsupported or
+                // ambiguous; enqueue outcome is intentionally not propagated.
+                activation_attempts
+                    .lock()
+                    .expect("activation attempts")
+                    .push(identity);
+            },
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(
+            *attempts.lock().expect("activation attempts"),
+            ["ambiguous.app"]
+        );
+    }
+
+    #[tokio::test]
+    async fn missing_identity_still_delivers_action_without_activation() {
+        let activated = Arc::new(Mutex::new(false));
+        let activation_observer = activated.clone();
+
+        let result = deliver_action_then_activate(
+            None,
+            || async { Ok(()) },
+            move |_| *activation_observer.lock().expect("activation state") = true,
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert!(!*activated.lock().expect("activation state"));
+    }
+
     #[test]
     fn store_add_replace_mark_read_remove_and_extract_exact_snapshot() {
         let mut store = NotificationStore::default();
@@ -538,6 +683,7 @@ mod tests {
         assert_eq!(
             store.add_or_replace(StoredNotification {
                 snapshot: initial.clone(),
+                activation_identity: None,
                 received_at: std::time::Instant::now(),
             }),
             7
@@ -547,6 +693,7 @@ mod tests {
         let replacement = snapshot(7, "replacement");
         store.add_or_replace(StoredNotification {
             snapshot: replacement.clone(),
+            activation_identity: None,
             received_at: std::time::Instant::now(),
         });
         assert_eq!(store.get_all(), vec![replacement.clone()]);
@@ -562,7 +709,65 @@ mod tests {
     }
 
     #[test]
-    fn store_only_received_at_does_not_change_snapshot_payload() {
+    fn desktop_entry_hint_is_normalized_when_present() {
+        let hints = HashMap::from([(
+            "desktop-entry".to_string(),
+            string_hint("  Org.Example.Chat.Desktop  "),
+        )]);
+
+        assert_eq!(
+            parse_activation_identity(&hints),
+            Some("org.example.chat".to_string())
+        );
+    }
+
+    #[test]
+    fn desktop_entry_hint_absence_and_malformed_values_are_ignored() {
+        assert_eq!(parse_activation_identity(&HashMap::new()), None);
+
+        let wrong_type = HashMap::from([("desktop-entry".to_string(), OwnedValue::from(7_u32))]);
+        assert_eq!(parse_activation_identity(&wrong_type), None);
+
+        for value in ["", "   ", ".desktop", " .DESKTOP "] {
+            let hints = HashMap::from([("desktop-entry".to_string(), string_hint(value))]);
+            assert_eq!(parse_activation_identity(&hints), None, "value={value:?}");
+        }
+    }
+
+    #[test]
+    fn normalization_removes_only_one_suffix_and_matches_case_insensitively() {
+        assert_eq!(
+            normalize_activation_identity(" Example.App.DESKTOP.desktop "),
+            Some("example.app.desktop".to_string())
+        );
+        assert_eq!(
+            normalize_activation_identity(" EXAMPLE.APP "),
+            normalize_activation_identity("example.app.desktop")
+        );
+    }
+
+    #[test]
+    fn replacement_updates_internal_identity_without_changing_snapshot_extraction() {
+        let mut store = NotificationStore::default();
+        store.add_or_replace(StoredNotification {
+            snapshot: snapshot(11, "initial"),
+            activation_identity: Some("old.app".to_string()),
+            received_at: std::time::Instant::now(),
+        });
+
+        let replacement = snapshot(11, "replacement");
+        store.add_or_replace(StoredNotification {
+            snapshot: replacement.clone(),
+            activation_identity: Some("new.app".to_string()),
+            received_at: std::time::Instant::now(),
+        });
+
+        assert_eq!(store.activation_identity(11).as_deref(), Some("new.app"));
+        assert_eq!(store.get_all(), vec![replacement]);
+    }
+
+    #[test]
+    fn store_only_metadata_does_not_change_snapshot_payload() {
         let payload = snapshot(9, "same payload");
         let recent = std::time::Instant::now();
         let earlier = recent
@@ -570,13 +775,19 @@ mod tests {
             .expect("recent instant should support a one-minute subtraction");
         let earlier_record = StoredNotification {
             snapshot: payload.clone(),
+            activation_identity: None,
             received_at: earlier,
         };
         let recent_record = StoredNotification {
             snapshot: payload.clone(),
+            activation_identity: Some("internal.app".to_string()),
             received_at: recent,
         };
         assert_ne!(earlier_record.received_at, recent_record.received_at);
+        assert_ne!(
+            earlier_record.activation_identity,
+            recent_record.activation_identity
+        );
 
         let mut earlier_store = NotificationStore::default();
         earlier_store.add_or_replace(earlier_record);

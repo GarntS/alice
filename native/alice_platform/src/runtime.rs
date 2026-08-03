@@ -93,6 +93,13 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
         let mpris_cache = crate::mpris::MprisCache::new();
         crate::mpris::MprisCache::install_global(mpris_cache.clone());
         let weather_cache = crate::weather::WeatherCache::new();
+        // Retain the optional service for the lifetime of the snapshot runtime.
+        // Unsupported compositors simply return `None` and preserve startup.
+        let _foreign_toplevel_activation =
+            crate::foreign_toplevel::ForeignToplevelActivationService::start();
+        if let Some(service) = &_foreign_toplevel_activation {
+            service.install_global();
+        }
 
         // --- Runtime-owned CalDAV cache and synchronization ---
         if let Some(caldav_config) = config.caldav.as_ref() {
