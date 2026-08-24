@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show listEquals, visibleForTesting;
-import 'package:flutter/material.dart' show Color, ThemeMode;
+import 'package:material_ui/material_ui.dart' show Color, ThemeMode;
 import 'package:flutter/services.dart';
 
 import 'alice_config.dart';

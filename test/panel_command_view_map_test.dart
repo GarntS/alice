@@ -6,7 +6,7 @@ import 'package:alicebar/rust_gen/api.dart' as frb;
 import 'package:alicebar/snapshot_state.dart';
 import 'package:alicebar/widgets/panels/media_panel.dart';
 import 'package:alicebar/widgets/panels/panel_host.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers/alice_test_helpers.dart';

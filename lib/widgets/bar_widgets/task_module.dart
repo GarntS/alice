@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../panel_controller.dart';
 import '../../rust_gen/caldav/models.dart';

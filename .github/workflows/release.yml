@@ -20,6 +20,8 @@ jobs:
             label: ubuntu2404
           - image: ubuntu:25.10
             label: ubuntu2510
+          - image: ubuntu:26.04
+            label: ubuntu2604
     container:
       image: ${{ matrix.image }}
     steps:
@@ -54,7 +56,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        version: ["42", "43", "rawhide"]
+        version: ["43", "44", "rawhide"]
     container:
       image: fedora:${{ matrix.version }}
     steps:
@@ -123,7 +125,7 @@ jobs:
 
       - name: Install Flutter SDK
         run: |
-          FLUTTER_VERSION="3.41.4"
+          FLUTTER_VERSION="3.47.0"
           curl -Lo /tmp/flutter.tar.xz \
             "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
           mkdir -p /opt/flutter

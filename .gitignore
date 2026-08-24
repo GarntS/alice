@@ -44,7 +44,6 @@ linux/runner/frb_generated.h
 .claude/
 .pi/
 .codex/
-.github/
 
 # Packaging build artifacts
 .flutter-sdk/
