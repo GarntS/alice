@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FLUTTER_VERSION="3.41.4"
+FLUTTER_VERSION="3.47.0"
 FLUTTER_SDK="$(pwd)/.flutter-sdk"
+APP_VERSION="$(./packaging/version.sh)"
+
+./packaging/check-version-sync.sh
 
 # Install build dependencies
 apt-get update -qq
@@ -20,13 +23,17 @@ apt-get install -y --no-install-recommends \
 # Build gtk-layer-shell 0.10.0 from source — distro ships 0.9.0 which is missing
 # gtk_layer_set_respect_close (added in 0.10.0).
 GTK_LAYER_SHELL_VERSION="0.10.0"
+GTK_LAYER_SHELL_PREFIX="$(pwd)/.gtk-layer-shell-install"
 curl -Lo /tmp/gtk-layer-shell.tar.gz \
   "https://github.com/wmww/gtk-layer-shell/archive/refs/tags/v${GTK_LAYER_SHELL_VERSION}.tar.gz"
 tar -xf /tmp/gtk-layer-shell.tar.gz -C /tmp
+rm -rf /tmp/gtk-layer-shell-build "$GTK_LAYER_SHELL_PREFIX"
 meson setup /tmp/gtk-layer-shell-build \
   "/tmp/gtk-layer-shell-${GTK_LAYER_SHELL_VERSION}" \
-  --prefix=/usr --buildtype=release -Dvapi=false
+  --prefix="$GTK_LAYER_SHELL_PREFIX" --libdir=lib \
+  --buildtype=release -Dvapi=false
 ninja -C /tmp/gtk-layer-shell-build install
+export PKG_CONFIG_PATH="$GTK_LAYER_SHELL_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 
 # Download Flutter SDK
 if [ ! -d "$FLUTTER_SDK" ]; then
@@ -54,3 +61,9 @@ ln -sf packaging/deb debian
 # Build .deb
 dpkg-buildpackage -us -uc -b \
   --rules-file="packaging/deb/rules"
+
+# Reject packages with stale metadata, a missing payload, or an old app bundle.
+PACKAGE_VERSION="$(dpkg-parsechangelog --show-field Version)"
+PACKAGE_ARCH="$(dpkg-architecture --query DEB_HOST_ARCH)"
+PACKAGE_PATH="../alicebar_${PACKAGE_VERSION}_${PACKAGE_ARCH}.deb"
+./packaging/verify-package.sh deb "$PACKAGE_PATH" "$APP_VERSION"

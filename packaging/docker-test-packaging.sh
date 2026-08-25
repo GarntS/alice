@@ -7,7 +7,7 @@ set -euo pipefail
 #
 # With no arguments, all targets are tested.
 # Pass one or more target labels to test only those:
-#   bash packaging/docker-test-packaging.sh debian-trixie fedora-42
+#   bash packaging/docker-test-packaging.sh debian-trixie fedora-43
 # ---------------------------------------------------------------------------
 
 # Color helpers (suppressed when not writing to a terminal)
@@ -21,8 +21,8 @@ else
   RESET=''
 fi
 
-pass() { printf "${GREEN}PASS${RESET}\n"; }
-fail() { printf "${RED}FAIL${RESET}\n"; }
+pass() { printf '%sPASS%s\n' "$GREEN" "$RESET"; }
+fail() { printf '%sFAIL%s\n' "$RED" "$RESET"; }
 
 # ---------------------------------------------------------------------------
 # Preflight
@@ -35,11 +35,8 @@ fi
 # ---------------------------------------------------------------------------
 # Version detection
 # ---------------------------------------------------------------------------
-VERSION="$(grep '^pkgver=' packaging/arch/PKGBUILD | cut -d= -f2)"
-if [[ -z "$VERSION" ]]; then
-  echo "ERROR: could not detect version from packaging/arch/PKGBUILD" >&2
-  exit 1
-fi
+VERSION="$(./packaging/version.sh)"
+./packaging/check-version-sync.sh
 echo "==> Version: $VERSION"
 
 LOG_DIR="$(mktemp -d)"
@@ -72,8 +69,9 @@ TARGETS=(
   "debian-trixie|debian:trixie|deb"
   "ubuntu-2404|ubuntu:24.04|deb"
   "ubuntu-2510|ubuntu:25.10|deb"
-  "fedora-42|fedora:42|rpm"
+  "ubuntu-2604|ubuntu:26.04|deb"
   "fedora-43|fedora:43|rpm"
+  "fedora-44|fedora:44|rpm"
   "fedora-rawhide|fedora:rawhide|rpm"
   "arch|archlinux:latest|arch"
 )
@@ -119,6 +117,7 @@ apt-get update -qq
 mkdir -p /work
 cp -r /src /work/alicebar
 cd /work/alicebar
+rm -rf build .dart_tool native/target
 bash ./packaging/build-deb.sh
 EOF
 }
@@ -127,7 +126,7 @@ rpm_cmd() {
   local ver="$1"
   cat <<EOF
 set -euo pipefail
-dnf install -y rpm-build clang cmake ninja-build pkg-config curl tar git which \
+dnf install -y rpm-build cpio clang cmake ninja-build pkg-config curl tar git which \
   wayland-devel wayland-protocols-devel \
   gtk3-devel gtk-layer-shell-devel \
   atk-devel gdk-pixbuf2-devel harfbuzz-devel \
@@ -144,6 +143,8 @@ rpmbuild -ba /src/packaging/fedora/alicebar.spec \
   --define "_rpmdir /rpms" \
   --define "_srcrpmdir /srpms" \
   --define "_builddir /rpmbuild"
+RPM=\$(find /rpms -name '*.rpm' ! -name '*debug*' | head -1)
+/src/packaging/verify-package.sh rpm "\$RPM" "${ver}"
 EOF
 }
 
@@ -155,7 +156,7 @@ pacman -Syu --noconfirm base-devel clang cmake ninja pkg-config \\
   wayland wayland-protocols gtk3 gtk-layer-shell rustup curl git
 
 # Download Flutter SDK
-FLUTTER_VERSION=3.41.4
+FLUTTER_VERSION=3.47.0
 mkdir -p /opt/flutter
 curl -Lo /tmp/flutter.tar.xz \\
   "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_\${FLUTTER_VERSION}-stable.tar.xz"
@@ -178,6 +179,8 @@ su builder -c "
   PATH=/opt/flutter/bin:\\\$PATH \\
   makepkg --noconfirm --skippgpcheck --nodeps
 "
+PKG=\$(find /home/builder/build -name '*.pkg.tar.zst' ! -name '*-debug-*' | head -1)
+/src/packaging/verify-package.sh arch "\$PKG" "${ver}"
 EOF
 }
 

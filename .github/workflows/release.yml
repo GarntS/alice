@@ -27,6 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate release version
+        run: ./packaging/check-version-sync.sh "${GITHUB_REF_NAME#v}"
+
       - name: Build .deb
         run: ./packaging/build-deb.sh
 
@@ -62,9 +65,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate release version
+        run: ./packaging/check-version-sync.sh "${GITHUB_REF_NAME#v}"
+
       - name: Install build dependencies
         run: |
-          dnf install -y rpm-build clang cmake ninja-build pkg-config curl tar \
+          dnf install -y rpm-build cpio clang cmake ninja-build pkg-config curl tar \
             git which \
             wayland-devel wayland-protocols-devel \
             gtk3-devel gtk-layer-shell-devel \
@@ -91,6 +97,8 @@ jobs:
             --define "_sourcedir $PWD" \
             --define "_rpmdir $PWD/rpms" \
             --define "_srcrpmdir $PWD/srpms"
+          RPM=$(find rpms -name '*.rpm' ! -name '*debug*' | head -1)
+          ./packaging/verify-package.sh rpm "$RPM" "$BARE"
 
       - name: Upload .rpm to release
         run: |
@@ -120,6 +128,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate release version
+        run: ./packaging/check-version-sync.sh "${GITHUB_REF_NAME#v}"
+
       - name: Install base build tools
         run: pacman -Syu --noconfirm base-devel clang cmake ninja pkg-config git which
 
@@ -148,6 +159,8 @@ jobs:
             -C /build .
           chown -R builder:builder /build /opt/flutter /srcdest
           su builder -c "export HOME=/home/builder && cd /build/packaging/arch && PATH=/opt/flutter/bin:\$PATH SRCDEST=/srcdest makepkg --noconfirm --skippgpcheck --nodeps"
+          PKG=$(find /build -name '*.pkg.tar.zst' ! -name '*-debug-*' | head -1)
+          ./packaging/verify-package.sh arch "$PKG" "$BARE"
 
       - name: Upload .pkg.tar.zst to release
         run: |

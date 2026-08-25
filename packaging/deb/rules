@@ -2,6 +2,8 @@
 export DH_VERBOSE = 1
 FLUTTER ?= flutter
 CARGO_INSTALL_DIR := $(CURDIR)/.cargo-install
+GTK_LAYER_SHELL_PREFIX := $(CURDIR)/.gtk-layer-shell-install
+PACKAGE_ROOT := $(CURDIR)/debian/alicebar
 
 %:
 	dh $@
@@ -19,8 +21,18 @@ override_dh_auto_build:
 	$(FLUTTER) build linux --release
 
 override_dh_auto_install:
-	install -d $(DESTDIR)/usr/lib/alicebar
-	cp -r build/linux/x64/release/bundle/. $(DESTDIR)/usr/lib/alicebar/
-	install -Dm755 packaging/alicebar.sh $(DESTDIR)/usr/bin/alicebar
+	install -d $(PACKAGE_ROOT)/usr/lib/alicebar
+	cp -r build/linux/x64/release/bundle/. $(PACKAGE_ROOT)/usr/lib/alicebar/
+	cp -a $(GTK_LAYER_SHELL_PREFIX)/lib/libgtk-layer-shell.so.0* \
+		$(PACKAGE_ROOT)/usr/lib/alicebar/lib/
+	install -Dm755 packaging/alicebar.sh $(PACKAGE_ROOT)/usr/bin/alicebar
 
 override_dh_auto_test:
+
+# Flutter and Rust ELF files can contain DWARF sections unsupported by dwz.
+override_dh_dwz:
+	:
+
+# Resolve the bundled gtk-layer-shell before distro library search paths.
+override_dh_shlibdeps:
+	dh_shlibdeps -l$(PACKAGE_ROOT)/usr/lib/alicebar/lib

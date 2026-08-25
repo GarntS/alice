@@ -4,7 +4,7 @@
 %undefine _annotated_build
 
 Name:       alicebar
-Version:    %{?alicebar_version}%{!?alicebar_version:1.4.0}
+Version:    %{?alicebar_version}%{!?alicebar_version:2026.1.5}
 Release:    1%{?dist}
 Summary:    Flutter-based Wayland top bar for wlroots compositors
 License:    GPL-3.0-only
@@ -12,7 +12,7 @@ URL:        https://github.com/garnt/alice
 Source0:    %{name}-%{version}.tar.gz
 
 # Pin this to a specific stable Flutter release:
-%global flutter_version 3.41.4
+%global flutter_version 3.47.0
 
 BuildRequires: clang, cmake, ninja-build, pkg-config, curl, tar, git, which
 BuildRequires: wayland-devel, wayland-protocols-devel
@@ -67,6 +67,9 @@ install -Dm755 packaging/alicebar.sh %{buildroot}/usr/bin/alicebar
 /usr/bin/alicebar
 
 %changelog
+* Tue Aug 25 2026 Maintainer <maintainer@example.com> - 2026.1.5-1
+- Release 2026.1.5
+
 * Tue Jul 21 2026 Maintainer <maintainer@example.com> - 1.4.0-1
 - Release 1.4.0
 
