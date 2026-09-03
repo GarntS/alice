@@ -135,6 +135,7 @@ class AliceUiConfig {
   final CalDavUiConfig? caldav;
   final NotificationConfig notifications;
   final WeatherConfig weather;
+  final BatteryConfig battery;
 
   const AliceUiConfig({
     required this.themeMode,
@@ -152,6 +153,7 @@ class AliceUiConfig {
     this.caldav,
     required this.notifications,
     required this.weather,
+    required this.battery,
   });
 
   @override
@@ -170,7 +172,8 @@ class AliceUiConfig {
       calendar.hashCode ^
       caldav.hashCode ^
       notifications.hashCode ^
-      weather.hashCode;
+      weather.hashCode ^
+      battery.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -191,7 +194,8 @@ class AliceUiConfig {
           calendar == other.calendar &&
           caldav == other.caldav &&
           notifications == other.notifications &&
-          weather == other.weather;
+          weather == other.weather &&
+          battery == other.battery;
 }
 
 /// A command forwarded to Dart via `watch_panel_commands` whenever a panel

@@ -45,6 +45,7 @@ class AliceSnapshotState {
     ),
   );
   final ValueNotifier<WeatherSnapshot?> _weather = ValueNotifier(null);
+  final ValueNotifier<BatterySnapshot?> _battery = ValueNotifier(null);
   final ValueNotifier<List<TrayItemSnapshot>> _trayItems = ValueNotifier(
     const [],
   );
@@ -77,6 +78,7 @@ class AliceSnapshotState {
   ValueListenable<NetworkSnapshot> get network => _network;
   ValueListenable<ClockSnapshot> get clock => _clock;
   ValueListenable<WeatherSnapshot?> get weather => _weather;
+  ValueListenable<BatterySnapshot?> get battery => _battery;
   ValueListenable<List<TrayItemSnapshot>> get trayItems => _trayItems;
   ValueListenable<List<NotificationSnapshot>> get notifications =>
       _notifications;
@@ -98,6 +100,7 @@ class AliceSnapshotState {
   NetworkSnapshot get currentNetwork => _network.value;
   ClockSnapshot get currentClock => _clock.value;
   WeatherSnapshot? get currentWeather => _weather.value;
+  BatterySnapshot? get currentBattery => _battery.value;
   List<TrayItemSnapshot> get currentTrayItems => _trayItems.value;
   List<NotificationSnapshot> get currentNotifications => _notifications.value;
   List<NormalizedTask> get currentTasks => _tasks.value;
@@ -115,6 +118,7 @@ class AliceSnapshotState {
     network: currentNetwork,
     clock: currentClock,
     weather: currentWeather,
+    battery: currentBattery,
     trayItems: currentTrayItems,
     notifications: currentNotifications,
     tasks: currentTasks,
@@ -146,6 +150,9 @@ class AliceSnapshotState {
     }
     if (!weatherSnapshotsEqual(_weather.value, next.weather)) {
       _weather.value = next.weather;
+    }
+    if (!batterySnapshotsEqual(_battery.value, next.battery)) {
+      _battery.value = next.battery;
     }
     if (!listEqualsBy(
       _trayItems.value,
@@ -288,6 +295,7 @@ class AliceSnapshotState {
     _network.dispose();
     _clock.dispose();
     _weather.dispose();
+    _battery.dispose();
     _trayItems.dispose();
     _notifications.dispose();
     _tasks.dispose();
@@ -318,6 +326,8 @@ bool mediaSnapshotsEqual(MediaSnapshot? a, MediaSnapshot? b) => a == b;
 bool networkSnapshotsEqual(NetworkSnapshot a, NetworkSnapshot b) => a == b;
 
 bool clockSnapshotsEqual(ClockSnapshot a, ClockSnapshot b) => a == b;
+
+bool batterySnapshotsEqual(BatterySnapshot? a, BatterySnapshot? b) => a == b;
 
 bool weatherSnapshotsEqual(WeatherSnapshot? a, WeatherSnapshot? b) {
   if (identical(a, b)) return true;

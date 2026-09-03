@@ -37,6 +37,7 @@ void main() {
         notificationDisplayTimeMs: 5000,
         expireCriticalNotifications: false,
       ),
+      battery: rust_config.BatteryConfig(enable: true),
       weather: rust_config.WeatherConfig(
         enable: false,
         forecastLanguage: 'en',

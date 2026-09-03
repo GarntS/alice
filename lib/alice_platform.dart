@@ -181,6 +181,7 @@ class AlicePlatform {
       network: snapshot.network,
       clock: snapshot.clock,
       weather: snapshot.weather,
+      battery: snapshot.battery,
       trayItems: stableItems,
       notifications: snapshot.notifications,
       tasks: snapshot.tasks,
@@ -232,6 +233,10 @@ class AlicePlatform {
         forecastUnits: r.weather.forecastUnits,
         refreshInterval: r.weather.refreshInterval,
         locationLabel: r.weather.locationLabel,
+      ),
+      battery: BatteryConfig(
+        enable: r.battery.enable,
+        deviceName: r.battery.deviceName,
       ),
       calendar: r.calendar == null
           ? null

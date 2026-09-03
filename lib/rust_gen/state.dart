@@ -15,6 +15,7 @@ class BarSnapshot {
   final NetworkSnapshot network;
   final ClockSnapshot clock;
   final WeatherSnapshot? weather;
+  final BatterySnapshot? battery;
   final List<TrayItemSnapshot> trayItems;
   final List<NotificationSnapshot> notifications;
   final List<NormalizedTask> tasks;
@@ -28,6 +29,7 @@ class BarSnapshot {
     required this.network,
     required this.clock,
     this.weather,
+    this.battery,
     required this.trayItems,
     required this.notifications,
     required this.tasks,
@@ -43,6 +45,7 @@ class BarSnapshot {
       network.hashCode ^
       clock.hashCode ^
       weather.hashCode ^
+      battery.hashCode ^
       trayItems.hashCode ^
       notifications.hashCode ^
       tasks.hashCode ^
@@ -60,10 +63,29 @@ class BarSnapshot {
           network == other.network &&
           clock == other.clock &&
           weather == other.weather &&
+          battery == other.battery &&
           trayItems == other.trayItems &&
           notifications == other.notifications &&
           tasks == other.tasks &&
           caldavSyncState == other.caldavSyncState;
+}
+
+class BatterySnapshot {
+  final int capacity;
+  final String status;
+
+  const BatterySnapshot({required this.capacity, required this.status});
+
+  @override
+  int get hashCode => capacity.hashCode ^ status.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BatterySnapshot &&
+          runtimeType == other.runtimeType &&
+          capacity == other.capacity &&
+          status == other.status;
 }
 
 class CalendarEvent {

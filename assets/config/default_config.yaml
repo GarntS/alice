@@ -82,6 +82,13 @@ power:
 #   # TLS certificate and hostname verification always remain enabled.
 #   # ca_certificate_path: "/etc/alice/vikunja-ca.pem"
 
+battery:
+  # Battery display is enabled by default. Set false to hide it.
+  enable: true
+  # Optional power-supply device name (for example BAT0). Omit to auto-detect
+  # the first type=Battery device in lexical order.
+  # device_name: BAT0
+
 weather:
   # Weather is enabled by default. If enabled, provide the Pirate Weather API
   # key and forecast coordinates below. Missing required values are logged by

@@ -707,8 +707,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AliceUiConfig dco_decode_alice_ui_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 15)
-      throw Exception('unexpected arr length: expect 15 but see ${arr.length}');
+    if (arr.length != 16)
+      throw Exception('unexpected arr length: expect 16 but see ${arr.length}');
     return AliceUiConfig(
       themeMode: dco_decode_theme_mode(arr[0]),
       accentColor: dco_decode_String(arr[1]),
@@ -725,6 +725,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       caldav: dco_decode_opt_box_autoadd_cal_dav_ui_config(arr[12]),
       notifications: dco_decode_notification_config(arr[13]),
       weather: dco_decode_weather_config(arr[14]),
+      battery: dco_decode_battery_config(arr[15]),
     );
   }
 
@@ -732,8 +733,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BarSnapshot dco_decode_bar_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 11)
-      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return BarSnapshot(
       workspaces: dco_decode_list_workspace_snapshot(arr[0]),
       media: dco_decode_opt_box_autoadd_media_snapshot(arr[1]),
@@ -742,10 +743,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       network: dco_decode_network_snapshot(arr[4]),
       clock: dco_decode_clock_snapshot(arr[5]),
       weather: dco_decode_opt_box_autoadd_weather_snapshot(arr[6]),
-      trayItems: dco_decode_list_tray_item_snapshot(arr[7]),
-      notifications: dco_decode_list_notification_snapshot(arr[8]),
-      tasks: dco_decode_list_normalized_task(arr[9]),
-      caldavSyncState: dco_decode_cal_dav_sync_state(arr[10]),
+      battery: dco_decode_opt_box_autoadd_battery_snapshot(arr[7]),
+      trayItems: dco_decode_list_tray_item_snapshot(arr[8]),
+      notifications: dco_decode_list_notification_snapshot(arr[9]),
+      tasks: dco_decode_list_normalized_task(arr[10]),
+      caldavSyncState: dco_decode_cal_dav_sync_state(arr[11]),
     );
   }
 
@@ -759,9 +761,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BatteryConfig dco_decode_battery_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BatteryConfig(
+      enable: dco_decode_bool(arr[0]),
+      deviceName: dco_decode_opt_String(arr[1]),
+    );
+  }
+
+  @protected
+  BatterySnapshot dco_decode_battery_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BatterySnapshot(
+      capacity: dco_decode_u_8(arr[0]),
+      status: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
   bool dco_decode_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
+  }
+
+  @protected
+  BatterySnapshot dco_decode_box_autoadd_battery_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_battery_snapshot(raw);
   }
 
   @protected
@@ -1130,6 +1162,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BatterySnapshot? dco_decode_opt_box_autoadd_battery_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_battery_snapshot(raw);
+  }
+
+  @protected
   CalDavUiConfig? dco_decode_opt_box_autoadd_cal_dav_ui_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_cal_dav_ui_config(raw);
@@ -1450,6 +1488,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_caldav = sse_decode_opt_box_autoadd_cal_dav_ui_config(deserializer);
     var var_notifications = sse_decode_notification_config(deserializer);
     var var_weather = sse_decode_weather_config(deserializer);
+    var var_battery = sse_decode_battery_config(deserializer);
     return AliceUiConfig(
       themeMode: var_themeMode,
       accentColor: var_accentColor,
@@ -1466,6 +1505,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       caldav: var_caldav,
       notifications: var_notifications,
       weather: var_weather,
+      battery: var_battery,
     );
   }
 
@@ -1479,6 +1519,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_network = sse_decode_network_snapshot(deserializer);
     var var_clock = sse_decode_clock_snapshot(deserializer);
     var var_weather = sse_decode_opt_box_autoadd_weather_snapshot(deserializer);
+    var var_battery = sse_decode_opt_box_autoadd_battery_snapshot(deserializer);
     var var_trayItems = sse_decode_list_tray_item_snapshot(deserializer);
     var var_notifications = sse_decode_list_notification_snapshot(deserializer);
     var var_tasks = sse_decode_list_normalized_task(deserializer);
@@ -1491,6 +1532,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       network: var_network,
       clock: var_clock,
       weather: var_weather,
+      battery: var_battery,
       trayItems: var_trayItems,
       notifications: var_notifications,
       tasks: var_tasks,
@@ -1506,9 +1548,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BatteryConfig sse_decode_battery_config(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_enable = sse_decode_bool(deserializer);
+    var var_deviceName = sse_decode_opt_String(deserializer);
+    return BatteryConfig(enable: var_enable, deviceName: var_deviceName);
+  }
+
+  @protected
+  BatterySnapshot sse_decode_battery_snapshot(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_capacity = sse_decode_u_8(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    return BatterySnapshot(capacity: var_capacity, status: var_status);
+  }
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
+  }
+
+  @protected
+  BatterySnapshot sse_decode_box_autoadd_battery_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_battery_snapshot(deserializer));
   }
 
   @protected
@@ -2006,6 +2072,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BatterySnapshot? sse_decode_opt_box_autoadd_battery_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_battery_snapshot(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   CalDavUiConfig? sse_decode_opt_box_autoadd_cal_dav_ui_config(
     SseDeserializer deserializer,
   ) {
@@ -2442,6 +2521,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_cal_dav_ui_config(self.caldav, serializer);
     sse_encode_notification_config(self.notifications, serializer);
     sse_encode_weather_config(self.weather, serializer);
+    sse_encode_battery_config(self.battery, serializer);
   }
 
   @protected
@@ -2454,6 +2534,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_network_snapshot(self.network, serializer);
     sse_encode_clock_snapshot(self.clock, serializer);
     sse_encode_opt_box_autoadd_weather_snapshot(self.weather, serializer);
+    sse_encode_opt_box_autoadd_battery_snapshot(self.battery, serializer);
     sse_encode_list_tray_item_snapshot(self.trayItems, serializer);
     sse_encode_list_notification_snapshot(self.notifications, serializer);
     sse_encode_list_normalized_task(self.tasks, serializer);
@@ -2470,9 +2551,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_battery_config(BatteryConfig self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.enable, serializer);
+    sse_encode_opt_String(self.deviceName, serializer);
+  }
+
+  @protected
+  void sse_encode_battery_snapshot(
+    BatterySnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_8(self.capacity, serializer);
+    sse_encode_String(self.status, serializer);
+  }
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self ? 1 : 0);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_battery_snapshot(
+    BatterySnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_battery_snapshot(self, serializer);
   }
 
   @protected
@@ -2894,6 +3001,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_String(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_battery_snapshot(
+    BatterySnapshot? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_battery_snapshot(self, serializer);
     }
   }
 

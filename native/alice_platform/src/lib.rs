@@ -10,6 +10,7 @@
 //!    listener to forward show/hide events into the Dart `StreamSink`.
 
 pub mod api;
+pub mod battery;
 pub mod caldav;
 pub mod calendar;
 pub mod clock;

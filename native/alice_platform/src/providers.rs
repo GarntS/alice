@@ -1,8 +1,8 @@
 use crate::{
     PlatformError,
     state::{
-        ClockSnapshot, MediaSnapshot, NetworkSnapshot, TrayItemSnapshot, WeatherSnapshot,
-        WorkspaceSnapshot,
+        BatterySnapshot, ClockSnapshot, MediaSnapshot, NetworkSnapshot, TrayItemSnapshot,
+        WeatherSnapshot, WorkspaceSnapshot,
     },
 };
 
@@ -30,6 +30,10 @@ pub trait NetworkProvider {
 
 pub trait ClockProvider {
     fn read_clock(&self) -> Result<ClockSnapshot, PlatformError>;
+}
+
+pub trait BatteryProvider {
+    fn read_battery(&self) -> Result<Option<BatterySnapshot>, PlatformError>;
 }
 
 pub trait WeatherProvider {

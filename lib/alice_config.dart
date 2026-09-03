@@ -15,6 +15,7 @@ class AliceConfig {
     required this.panelTopGapPx,
     required this.notifications,
     required this.weather,
+    this.battery = const BatteryConfig(enable: true, deviceName: null),
     this.calendar,
     this.caldav,
   });
@@ -32,6 +33,7 @@ class AliceConfig {
   final int panelTopGapPx;
   final NotificationConfig notifications;
   final WeatherConfig weather;
+  final BatteryConfig battery;
   final CalendarConfig? calendar;
   final CalDavConfig? caldav;
 
@@ -72,6 +74,7 @@ class AliceConfig {
         refreshInterval: 3600,
         locationLabel: null,
       ),
+      battery: BatteryConfig(enable: true, deviceName: null),
     );
   }
 }
@@ -114,6 +117,13 @@ class WeatherConfig {
   final String forecastUnits;
   final int refreshInterval;
   final String? locationLabel;
+}
+
+class BatteryConfig {
+  const BatteryConfig({required this.enable, required this.deviceName});
+
+  final bool enable;
+  final String? deviceName;
 }
 
 class NotificationConfig {

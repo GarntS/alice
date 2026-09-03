@@ -207,6 +207,44 @@ void main() {
     expect(find.text('-'), findsOneWidget);
   });
 
+  testWidgets('battery-only updates rebuild only the battery module', (
+    tester,
+  ) async {
+    final controller = PanelController();
+    final state = testSnapshotState(snapshot: testSnapshot());
+    addTearDown(() {
+      controller.dispose();
+      state.dispose();
+    });
+    final builds = <String, int>{};
+    await pumpAliceWidget(
+      tester,
+      SizedBox(
+        width: 1300,
+        height: 80,
+        child: TopBar(
+          config: testConfig(),
+          snapshotState: state,
+          panelController: controller,
+          onWorkspaceTap: (_) {},
+          onTrayItemTap: (_) {},
+          onBackgroundTap: () {},
+          onModuleBuild: (name) => builds[name] = (builds[name] ?? 0) + 1,
+        ),
+      ),
+      size: const Size(1500, 140),
+    );
+    builds.clear();
+    state.ingest(
+      copyTestSnapshot(
+        state.currentSnapshot,
+        battery: const BatterySnapshot(capacity: 60, status: 'Discharging'),
+      ),
+    );
+    await tester.pump();
+    expect(builds, {'battery': 1});
+  });
+
   testWidgets('top bar tolerates hidden network label and no media', (
     tester,
   ) async {

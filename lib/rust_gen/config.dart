@@ -6,6 +6,24 @@
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+class BatteryConfig {
+  final bool enable;
+  final String? deviceName;
+
+  const BatteryConfig({required this.enable, this.deviceName});
+
+  @override
+  int get hashCode => enable.hashCode ^ deviceName.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BatteryConfig &&
+          runtimeType == other.runtimeType &&
+          enable == other.enable &&
+          deviceName == other.deviceName;
+}
+
 class CalendarConfig {
   final String googleClientId;
   final String googleClientSecret;

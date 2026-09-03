@@ -27,7 +27,7 @@
 // Section: imports
 
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
@@ -729,6 +729,7 @@ impl SseDecode for crate::api::AliceUiConfig {
         let mut var_caldav = <Option<crate::api::CalDavUiConfig>>::sse_decode(deserializer);
         let mut var_notifications = <crate::config::NotificationConfig>::sse_decode(deserializer);
         let mut var_weather = <crate::config::WeatherConfig>::sse_decode(deserializer);
+        let mut var_battery = <crate::config::BatteryConfig>::sse_decode(deserializer);
         return crate::api::AliceUiConfig {
             theme_mode: var_themeMode,
             accent_color: var_accentColor,
@@ -745,6 +746,7 @@ impl SseDecode for crate::api::AliceUiConfig {
             caldav: var_caldav,
             notifications: var_notifications,
             weather: var_weather,
+            battery: var_battery,
         };
     }
 }
@@ -759,6 +761,7 @@ impl SseDecode for crate::state::BarSnapshot {
         let mut var_network = <crate::state::NetworkSnapshot>::sse_decode(deserializer);
         let mut var_clock = <crate::state::ClockSnapshot>::sse_decode(deserializer);
         let mut var_weather = <Option<crate::state::WeatherSnapshot>>::sse_decode(deserializer);
+        let mut var_battery = <Option<crate::state::BatterySnapshot>>::sse_decode(deserializer);
         let mut var_trayItems = <Vec<crate::state::TrayItemSnapshot>>::sse_decode(deserializer);
         let mut var_notifications =
             <Vec<crate::state::NotificationSnapshot>>::sse_decode(deserializer);
@@ -773,6 +776,7 @@ impl SseDecode for crate::state::BarSnapshot {
             network: var_network,
             clock: var_clock,
             weather: var_weather,
+            battery: var_battery,
             tray_items: var_trayItems,
             notifications: var_notifications,
             tasks: var_tasks,
@@ -787,6 +791,30 @@ impl SseDecode for crate::api::BarViewLifecycle {
         let mut var_viewIds = <Vec<i64>>::sse_decode(deserializer);
         return crate::api::BarViewLifecycle {
             view_ids: var_viewIds,
+        };
+    }
+}
+
+impl SseDecode for crate::config::BatteryConfig {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_enable = <bool>::sse_decode(deserializer);
+        let mut var_deviceName = <Option<String>>::sse_decode(deserializer);
+        return crate::config::BatteryConfig {
+            enable: var_enable,
+            device_name: var_deviceName,
+        };
+    }
+}
+
+impl SseDecode for crate::state::BatterySnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_capacity = <u8>::sse_decode(deserializer);
+        let mut var_status = <String>::sse_decode(deserializer);
+        return crate::state::BatterySnapshot {
+            capacity: var_capacity,
+            status: var_status,
         };
     }
 }
@@ -1261,6 +1289,17 @@ impl SseDecode for Option<String> {
     }
 }
 
+impl SseDecode for Option<crate::state::BatterySnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::state::BatterySnapshot>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::CalDavUiConfig> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1695,6 +1734,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::AliceUiConfig {
             self.caldav.into_into_dart().into_dart(),
             self.notifications.into_into_dart().into_dart(),
             self.weather.into_into_dart().into_dart(),
+            self.battery.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -1716,6 +1756,7 @@ impl flutter_rust_bridge::IntoDart for crate::state::BarSnapshot {
             self.network.into_into_dart().into_dart(),
             self.clock.into_into_dart().into_dart(),
             self.weather.into_into_dart().into_dart(),
+            self.battery.into_into_dart().into_dart(),
             self.tray_items.into_into_dart().into_dart(),
             self.notifications.into_into_dart().into_dart(),
             self.tasks.into_into_dart().into_dart(),
@@ -1741,6 +1782,42 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::BarViewLifecycle>
     for crate::api::BarViewLifecycle
 {
     fn into_into_dart(self) -> crate::api::BarViewLifecycle {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::config::BatteryConfig {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.enable.into_into_dart().into_dart(),
+            self.device_name.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::config::BatteryConfig {}
+impl flutter_rust_bridge::IntoIntoDart<crate::config::BatteryConfig>
+    for crate::config::BatteryConfig
+{
+    fn into_into_dart(self) -> crate::config::BatteryConfig {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::BatterySnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.capacity.into_into_dart().into_dart(),
+            self.status.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::state::BatterySnapshot {}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::BatterySnapshot>
+    for crate::state::BatterySnapshot
+{
+    fn into_into_dart(self) -> crate::state::BatterySnapshot {
         self
     }
 }
@@ -2451,6 +2528,7 @@ impl SseEncode for crate::api::AliceUiConfig {
         <Option<crate::api::CalDavUiConfig>>::sse_encode(self.caldav, serializer);
         <crate::config::NotificationConfig>::sse_encode(self.notifications, serializer);
         <crate::config::WeatherConfig>::sse_encode(self.weather, serializer);
+        <crate::config::BatteryConfig>::sse_encode(self.battery, serializer);
     }
 }
 
@@ -2464,6 +2542,7 @@ impl SseEncode for crate::state::BarSnapshot {
         <crate::state::NetworkSnapshot>::sse_encode(self.network, serializer);
         <crate::state::ClockSnapshot>::sse_encode(self.clock, serializer);
         <Option<crate::state::WeatherSnapshot>>::sse_encode(self.weather, serializer);
+        <Option<crate::state::BatterySnapshot>>::sse_encode(self.battery, serializer);
         <Vec<crate::state::TrayItemSnapshot>>::sse_encode(self.tray_items, serializer);
         <Vec<crate::state::NotificationSnapshot>>::sse_encode(self.notifications, serializer);
         <Vec<crate::caldav::models::NormalizedTask>>::sse_encode(self.tasks, serializer);
@@ -2475,6 +2554,22 @@ impl SseEncode for crate::api::BarViewLifecycle {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<i64>>::sse_encode(self.view_ids, serializer);
+    }
+}
+
+impl SseEncode for crate::config::BatteryConfig {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.enable, serializer);
+        <Option<String>>::sse_encode(self.device_name, serializer);
+    }
+}
+
+impl SseEncode for crate::state::BatterySnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u8>::sse_encode(self.capacity, serializer);
+        <String>::sse_encode(self.status, serializer);
     }
 }
 
@@ -2836,6 +2931,16 @@ impl SseEncode for Option<String> {
     }
 }
 
+impl SseEncode for Option<crate::state::BatterySnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::state::BatterySnapshot>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::CalDavUiConfig> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3136,7 +3241,7 @@ mod io {
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,
     };
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
@@ -3160,7 +3265,7 @@ mod web {
     };
     use flutter_rust_bridge::for_generated::wasm_bindgen;
     use flutter_rust_bridge::for_generated::wasm_bindgen::prelude::*;
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate

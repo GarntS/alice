@@ -4,8 +4,8 @@
 //! regenerate `frb_generated.rs` and the Dart bindings in `lib/rust_gen/`.
 
 pub use crate::config::{
-    CalendarConfig, NotificationConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig,
-    WeatherConfig,
+    BatteryConfig, CalendarConfig, NotificationConfig, PowerCommandConfig, ThemeMode,
+    TimeZoneConfig, WeatherConfig,
 };
 
 /// Secret-free configuration contract returned to Flutter.
@@ -25,6 +25,7 @@ pub struct AliceUiConfig {
     pub caldav: Option<CalDavUiConfig>,
     pub notifications: NotificationConfig,
     pub weather: WeatherConfig,
+    pub battery: BatteryConfig,
 }
 
 /// Non-secret CalDAV settings needed to decide whether and how to render UI.
@@ -70,6 +71,7 @@ impl From<crate::config::AliceConfig> for AliceUiConfig {
             caldav,
             notifications: config.notifications,
             weather: config.weather,
+            battery: config.battery,
         }
     }
 }
@@ -78,9 +80,10 @@ pub use crate::caldav::{
     TaskStatus,
 };
 pub use crate::state::{
-    BarSnapshot, CalendarEvent, CalendarFetchResult, ClockSnapshot, MediaSnapshot, NetworkKind,
-    NetworkSnapshot, NotificationActionSnapshot, NotificationSnapshot, NotificationUrgency,
-    TrayItemSnapshot, WeatherAlert, WeatherDay, WeatherPoint, WeatherSnapshot, WorkspaceSnapshot,
+    BarSnapshot, BatterySnapshot, CalendarEvent, CalendarFetchResult, ClockSnapshot, MediaSnapshot,
+    NetworkKind, NetworkSnapshot, NotificationActionSnapshot, NotificationSnapshot,
+    NotificationUrgency, TrayItemSnapshot, WeatherAlert, WeatherDay, WeatherPoint, WeatherSnapshot,
+    WorkspaceSnapshot,
 };
 
 /// Called once at process startup via FRB's `executeRustInitializers`.

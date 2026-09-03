@@ -241,7 +241,11 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
             while rx.try_recv().is_ok() {}
 
-            let snapshot = build_snapshot(mpris_cache.clone(), weather_cache.clone());
+            let snapshot = build_snapshot(
+                mpris_cache.clone(),
+                weather_cache.clone(),
+                config.battery.clone(),
+            );
             if sink.add(snapshot).is_err() {
                 break;
             }
@@ -288,7 +292,9 @@ fn weather_jitter_secs() -> u64 {
 fn build_snapshot(
     mpris_cache: Arc<crate::mpris::MprisCache>,
     weather_cache: crate::weather::WeatherCache,
+    battery_config: crate::config::BatteryConfig,
 ) -> BarSnapshot {
+    use crate::battery::SysfsBatteryProvider;
     use crate::clock::LocalClockProvider;
     use crate::mpris::CachedMprisMediaProvider;
     use crate::network::SysNetworkProvider;
@@ -302,6 +308,7 @@ fn build_snapshot(
         &ProcStatsProvider::new(),
         &SysNetworkProvider::new(),
         &LocalClockProvider::new(),
+        &SysfsBatteryProvider::new(battery_config),
         &crate::weather::CachedWeatherProvider::new(weather_cache),
         &StatusNotifierTrayProvider::new(),
         notification_snapshots(),
@@ -318,12 +325,13 @@ fn notification_snapshots() -> Vec<crate::state::NotificationSnapshot> {
     crate::notifications::get_notifications()
 }
 
-pub(crate) fn build_snapshot_from_providers<W, M, S, N, C, WP, T>(
+pub(crate) fn build_snapshot_from_providers<W, M, S, N, C, B, WP, T>(
     workspace_provider: &W,
     media_provider: &M,
     stats_provider: &S,
     network_provider: &N,
     clock_provider: &C,
+    battery_provider: &B,
     weather_provider: &WP,
     tray_provider: &T,
     notifications: Vec<crate::state::NotificationSnapshot>,
@@ -335,6 +343,7 @@ where
     S: crate::providers::StatsProvider,
     N: crate::providers::NetworkProvider,
     C: crate::providers::ClockProvider,
+    B: crate::providers::BatteryProvider,
     WP: crate::providers::WeatherProvider,
     T: crate::providers::TrayProvider,
 {
@@ -357,6 +366,7 @@ where
         date_label: "-- ---".into(),
         time_label: "--:--".into(),
     });
+    let battery = battery_provider.read_battery().unwrap_or(None);
     let weather = weather_provider.read_weather().unwrap_or(None);
     let tray_items = tray_provider.read_tray_items().unwrap_or_default();
 
@@ -368,6 +378,7 @@ where
         network,
         clock,
         weather,
+        battery,
         tray_items,
         notifications,
         tasks: caldav.tasks,
@@ -398,12 +409,13 @@ mod tests {
     use super::*;
     use crate::PlatformError;
     use crate::providers::{
-        ClockProvider, MediaProvider, NetworkProvider, Stats, StatsProvider, TrayProvider,
-        WeatherProvider, WorkspaceProvider,
+        BatteryProvider, ClockProvider, MediaProvider, NetworkProvider, Stats, StatsProvider,
+        TrayProvider, WeatherProvider, WorkspaceProvider,
     };
     use crate::state::{
-        ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot, NotificationSnapshot,
-        NotificationUrgency, TrayItemSnapshot, WeatherPoint, WeatherSnapshot, WorkspaceSnapshot,
+        BatterySnapshot, ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot,
+        NotificationSnapshot, NotificationUrgency, TrayItemSnapshot, WeatherPoint, WeatherSnapshot,
+        WorkspaceSnapshot,
     };
 
     struct FakeWorkspaceProvider(Result<Vec<WorkspaceSnapshot>, PlatformError>);
@@ -411,6 +423,7 @@ mod tests {
     struct FakeStatsProvider(Result<Stats, PlatformError>);
     struct FakeNetworkProvider(Result<NetworkSnapshot, PlatformError>);
     struct FakeClockProvider(Result<ClockSnapshot, PlatformError>);
+    struct FakeBatteryProvider(Result<Option<BatterySnapshot>, PlatformError>);
     struct FakeWeatherProvider(Result<Option<WeatherSnapshot>, PlatformError>);
     struct FakeTrayProvider(Result<Vec<TrayItemSnapshot>, PlatformError>);
 
@@ -440,6 +453,12 @@ mod tests {
 
     impl ClockProvider for FakeClockProvider {
         fn read_clock(&self) -> Result<ClockSnapshot, PlatformError> {
+            self.0.clone()
+        }
+    }
+
+    impl BatteryProvider for FakeBatteryProvider {
+        fn read_battery(&self) -> Result<Option<BatterySnapshot>, PlatformError> {
             self.0.clone()
         }
     }
@@ -535,6 +554,10 @@ mod tests {
                 date_label: "16 May".into(),
                 time_label: "12:34".into(),
             })),
+            &FakeBatteryProvider(Ok(Some(BatterySnapshot {
+                capacity: 80,
+                status: "Charging".into(),
+            }))),
             &FakeWeatherProvider(Ok(Some(weather()))),
             &FakeTrayProvider(Ok(vec![TrayItemSnapshot {
                 id: "tray".into(),
@@ -592,6 +615,7 @@ mod tests {
             &FakeStatsProvider(err()),
             &FakeNetworkProvider(err()),
             &FakeClockProvider(err()),
+            &FakeBatteryProvider(err()),
             &FakeWeatherProvider(err()),
             &FakeTrayProvider(err()),
             vec![],
@@ -610,6 +634,7 @@ mod tests {
         assert_eq!(snapshot.clock.time_zone_code, "UTC");
         assert_eq!(snapshot.clock.date_label, "-- ---");
         assert_eq!(snapshot.clock.time_label, "--:--");
+        assert_eq!(snapshot.battery, None);
         assert_eq!(snapshot.weather, None);
         assert!(snapshot.tray_items.is_empty());
         assert!(snapshot.notifications.is_empty());

@@ -27,6 +27,30 @@ class AliceIcons {
     regular: PhosphorIconsRegular.memory,
     duotone: PhosphorIconsDuotone.memory,
   );
+  static const batteryFull = AliceIconDescriptor(
+    regular: PhosphorIconsRegular.batteryFull,
+    duotone: PhosphorIconsDuotone.batteryFull,
+  );
+  static const batteryHigh = AliceIconDescriptor(
+    regular: PhosphorIconsRegular.batteryHigh,
+    duotone: PhosphorIconsDuotone.batteryHigh,
+  );
+  static const batteryMedium = AliceIconDescriptor(
+    regular: PhosphorIconsRegular.batteryMedium,
+    duotone: PhosphorIconsDuotone.batteryMedium,
+  );
+  static const batteryLow = AliceIconDescriptor(
+    regular: PhosphorIconsRegular.batteryLow,
+    duotone: PhosphorIconsDuotone.batteryLow,
+  );
+  static const batteryWarning = AliceIconDescriptor(
+    regular: PhosphorIconsRegular.batteryWarning,
+    duotone: PhosphorIconsDuotone.batteryWarning,
+  );
+  static const batteryCharging = AliceIconDescriptor(
+    regular: PhosphorIconsRegular.batteryCharging,
+    duotone: PhosphorIconsDuotone.batteryCharging,
+  );
   static const play = AliceIconDescriptor(
     regular: PhosphorIconsRegular.play,
     duotone: PhosphorIconsDuotone.play,

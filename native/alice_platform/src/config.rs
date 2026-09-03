@@ -28,6 +28,13 @@ pub struct AliceConfig {
     pub caldav: Option<CalDavConfig>,
     pub notifications: NotificationConfig,
     pub weather: WeatherConfig,
+    pub battery: BatteryConfig,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BatteryConfig {
+    pub enable: bool,
+    pub device_name: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -294,6 +301,10 @@ impl AliceConfig {
                 refresh_interval: 3600,
                 location_label: None,
             },
+            battery: BatteryConfig {
+                enable: true,
+                device_name: None,
+            },
         }
     }
 
@@ -418,6 +429,8 @@ struct RawConfig {
     notifications: RawNotificationConfig,
     #[serde(default)]
     weather: RawWeatherConfig,
+    #[serde(default)]
+    battery: RawBatteryConfig,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -445,6 +458,12 @@ struct RawCalDavConfig {
     collection_hrefs: Option<Vec<String>>,
     poll_interval_secs: Option<u32>,
     ca_certificate_path: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct RawBatteryConfig {
+    enable: Option<bool>,
+    device_name: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -583,6 +602,10 @@ impl RawConfig {
                     .max(300),
                 location_label: normalize_optional_label(self.weather.location_label)
                     .or(defaults.weather.location_label),
+            },
+            battery: BatteryConfig {
+                enable: self.battery.enable.unwrap_or(defaults.battery.enable),
+                device_name: normalize_optional_label(self.battery.device_name),
             },
         }
     }
@@ -1249,6 +1272,25 @@ network:
         assert!(!config.show_network_label);
 
         fs::remove_dir_all(root).expect("temp config tree should be removable");
+    }
+
+    #[test]
+    fn parses_battery_defaults_explicit_values_and_blank_device() {
+        let omitted = AliceConfig::from_yaml_str("").unwrap();
+        assert!(omitted.battery.enable);
+        assert_eq!(omitted.battery.device_name, None);
+
+        let explicit =
+            AliceConfig::from_yaml_str("battery:\n  enable: false\n  device_name: BAT1\n").unwrap();
+        assert!(!explicit.battery.enable);
+        assert_eq!(explicit.battery.device_name.as_deref(), Some("BAT1"));
+
+        let blank = AliceConfig::from_yaml_str("battery:\n  device_name: '   '\n").unwrap();
+        assert_eq!(blank.battery.device_name, None);
+        assert_eq!(
+            AliceConfig::from_yaml_str(DEFAULT_CONFIG_TEMPLATE).unwrap(),
+            AliceConfig::default()
+        );
     }
 
     #[test]

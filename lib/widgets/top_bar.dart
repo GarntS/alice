@@ -6,6 +6,7 @@ import '../rust_gen/caldav/models.dart';
 import '../rust_gen/state.dart';
 import '../panel_controller.dart';
 import '../snapshot_state.dart';
+import 'bar_widgets/battery_module.dart';
 import 'bar_widgets/clock_module.dart';
 import 'bar_widgets/cpu_module.dart';
 import 'bar_widgets/media_module.dart';
@@ -127,6 +128,14 @@ class TopBar extends StatelessWidget {
                       builder: (context, value, _) =>
                           _probe('cpu', TopBarCpuModule(cpuUsageCores: value)),
                     ),
+                    if (config.battery.enable)
+                      ValueListenableBuilder<BatterySnapshot?>(
+                        valueListenable: snapshotState.battery,
+                        builder: (context, battery, _) => _probe(
+                          'battery',
+                          TopBarBatteryModule(battery: battery),
+                        ),
+                      ),
                     ValueListenableBuilder<NetworkSnapshot>(
                       valueListenable: snapshotState.network,
                       builder: (context, network, _) => _probe(

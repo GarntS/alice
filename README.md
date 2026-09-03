@@ -79,6 +79,13 @@ network:
   # Whether to show the SSID or status label next to the network icon.
   show_label: true
 
+battery:
+  # Enabled by default. Set false to hide the battery metric.
+  enable: true
+  # Optional sysfs device name (for example BAT0). Omit to auto-detect the
+  # first /sys/class/power_supply entry whose type is Battery.
+  # device_name: BAT0
+
 tray:
   # Once this many tray items are visible, the remainder are collapsed into an
   # overflow panel. The bar shows N-1 items and an overflow toggle.

@@ -7,6 +7,7 @@ pub struct BarSnapshot {
     pub network: NetworkSnapshot,
     pub clock: ClockSnapshot,
     pub weather: Option<WeatherSnapshot>,
+    pub battery: Option<BatterySnapshot>,
     pub tray_items: Vec<TrayItemSnapshot>,
     pub notifications: Vec<NotificationSnapshot>,
     pub tasks: Vec<crate::caldav::NormalizedTask>,
@@ -51,6 +52,12 @@ pub struct ClockSnapshot {
     pub time_zone_code: String,
     pub date_label: String,
     pub time_label: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BatterySnapshot {
+    pub capacity: u8,
+    pub status: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]

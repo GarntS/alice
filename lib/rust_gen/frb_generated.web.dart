@@ -53,7 +53,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BarViewLifecycle dco_decode_bar_view_lifecycle(dynamic raw);
 
   @protected
+  BatteryConfig dco_decode_battery_config(dynamic raw);
+
+  @protected
+  BatterySnapshot dco_decode_battery_snapshot(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
+
+  @protected
+  BatterySnapshot dco_decode_box_autoadd_battery_snapshot(dynamic raw);
 
   @protected
   CalDavUiConfig dco_decode_box_autoadd_cal_dav_ui_config(dynamic raw);
@@ -182,6 +191,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
+  BatterySnapshot? dco_decode_opt_box_autoadd_battery_snapshot(dynamic raw);
+
+  @protected
   CalDavUiConfig? dco_decode_opt_box_autoadd_cal_dav_ui_config(dynamic raw);
 
   @protected
@@ -291,7 +303,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BarViewLifecycle sse_decode_bar_view_lifecycle(SseDeserializer deserializer);
 
   @protected
+  BatteryConfig sse_decode_battery_config(SseDeserializer deserializer);
+
+  @protected
+  BatterySnapshot sse_decode_battery_snapshot(SseDeserializer deserializer);
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  BatterySnapshot sse_decode_box_autoadd_battery_snapshot(
+    SseDeserializer deserializer,
+  );
 
   @protected
   CalDavUiConfig sse_decode_box_autoadd_cal_dav_ui_config(
@@ -454,6 +477,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
+  BatterySnapshot? sse_decode_opt_box_autoadd_battery_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   CalDavUiConfig? sse_decode_opt_box_autoadd_cal_dav_ui_config(
     SseDeserializer deserializer,
   );
@@ -585,7 +613,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_battery_config(BatteryConfig self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_battery_snapshot(
+    BatterySnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_battery_snapshot(
+    BatterySnapshot self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_cal_dav_ui_config(
@@ -796,6 +839,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_battery_snapshot(
+    BatterySnapshot? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_opt_box_autoadd_cal_dav_ui_config(
