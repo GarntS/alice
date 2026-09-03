@@ -114,6 +114,21 @@ pub extern "C" fn alice_notify_panel_hide() {
     runtime::push_panel_hide();
 }
 
+/// Replace the retained native bar-view snapshot. Called after startup bars
+/// have received their Flutter view IDs.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn alice_set_bar_view_ids(view_ids: *const i64, count: usize) {
+    if view_ids.is_null() && count != 0 {
+        return;
+    }
+    let ids = if count == 0 {
+        Vec::new()
+    } else {
+        unsafe { std::slice::from_raw_parts(view_ids, count) }.to_vec()
+    };
+    runtime::set_bar_view_ids(ids);
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------

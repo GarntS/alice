@@ -94,7 +94,10 @@ class TopBar extends StatelessWidget {
                             'media',
                             TopBarMediaModule(
                               media: media,
-                              highlighted: highlighted,
+                              highlighted:
+                                  highlighted &&
+                                  panelController.sourceViewId ==
+                                      View.of(context).viewId,
                               onToggle: (anchor) => panelController.toggle(
                                 AlicePanel.media,
                                 anchor,
@@ -152,7 +155,10 @@ class TopBar extends StatelessWidget {
                                     config.localTimeZoneLabel ??
                                     clock.timeZoneCode,
                                 clock: clock,
-                                highlighted: highlighted,
+                                highlighted:
+                                    highlighted &&
+                                    panelController.sourceViewId ==
+                                        View.of(context).viewId,
                                 onToggle: (anchor) => panelController.toggle(
                                   AlicePanel.clock,
                                   anchor,
@@ -171,7 +177,10 @@ class TopBar extends StatelessWidget {
                                 'weather',
                                 TopBarWeatherModule(
                                   weather: weather,
-                                  highlighted: highlighted,
+                                  highlighted:
+                                      highlighted &&
+                                      panelController.sourceViewId ==
+                                          View.of(context).viewId,
                                   onToggle: (anchor) => panelController.toggle(
                                     AlicePanel.weather,
                                     anchor,
@@ -184,6 +193,7 @@ class TopBar extends StatelessWidget {
                       visibleTrayItems: snapshotState.visibleTrayItems,
                       trayOverflowCount: snapshotState.trayOverflowCount,
                       trayOverflowOpen: panelController.trayOverflowOpen,
+                      panelController: panelController,
                       onTrayItemTap: onTrayItemTap,
                       onTrayOverflowToggle: (anchor) => panelController.toggle(
                         AlicePanel.trayOverflow,
@@ -200,7 +210,10 @@ class TopBar extends StatelessWidget {
                               'notifications',
                               TopBarNotificationModule(
                                 unreadCount: unreadCount,
-                                highlighted: highlighted,
+                                highlighted:
+                                    highlighted &&
+                                    panelController.sourceViewId ==
+                                        View.of(context).viewId,
                                 onToggle: (anchor) => panelController.toggle(
                                   AlicePanel.notifications,
                                   anchor,
@@ -214,7 +227,10 @@ class TopBar extends StatelessWidget {
                       builder: (context, highlighted, _) => _probe(
                         'power',
                         TopBarPowerModule(
-                          highlighted: highlighted,
+                          highlighted:
+                              highlighted &&
+                              panelController.sourceViewId ==
+                                  View.of(context).viewId,
                           onToggle: (anchor) =>
                               panelController.toggle(AlicePanel.power, anchor),
                         ),
@@ -257,7 +273,9 @@ class _TaskModuleBindings extends StatelessWidget {
               dueTodayCount: dueToday,
               overdueCount: overdue,
               syncState: syncState,
-              highlighted: highlighted,
+              highlighted:
+                  highlighted &&
+                  panelController.sourceViewId == View.of(context).viewId,
               onToggle: (anchor) =>
                   panelController.toggle(AlicePanel.tasks, anchor),
             ),
@@ -273,6 +291,7 @@ class _TrayCluster extends StatelessWidget {
     required this.visibleTrayItems,
     required this.trayOverflowCount,
     required this.trayOverflowOpen,
+    required this.panelController,
     required this.onTrayItemTap,
     required this.onTrayOverflowToggle,
     required this.probe,
@@ -281,6 +300,7 @@ class _TrayCluster extends StatelessWidget {
   final ValueListenable<List<TrayItemSnapshot>> visibleTrayItems;
   final ValueListenable<int> trayOverflowCount;
   final ValueListenable<bool> trayOverflowOpen;
+  final PanelController panelController;
   final ValueChanged<TrayItemSnapshot> onTrayItemTap;
   final ValueChanged<PanelAnchor> onTrayOverflowToggle;
   final Widget Function(String name, Widget child) probe;
@@ -313,7 +333,10 @@ class _TrayCluster extends StatelessWidget {
                     'trayOverflow',
                     TopBarTrayOverflowModule(
                       overflowCount: overflowCount,
-                      highlighted: highlighted,
+                      highlighted:
+                          highlighted &&
+                          panelController.sourceViewId ==
+                              View.of(context).viewId,
                       onToggle: onTrayOverflowToggle,
                     ),
                   ),

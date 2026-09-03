@@ -2,6 +2,7 @@
 #define ALICE_PLATFORM_BRIDGE_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -30,6 +31,9 @@ void alice_notify_panel_show(const char* panel_id,
  * the panel Flutter app to hide its content.
  */
 void alice_notify_panel_hide(void);
+
+/** Replace the retained snapshot of native bar Flutter view IDs. */
+void alice_set_bar_view_ids(const int64_t* view_ids, size_t count);
 
 #ifdef __cplusplus
 }

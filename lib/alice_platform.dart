@@ -111,6 +111,7 @@ class AlicePlatform {
 
   Future<void> showPanel(
     String panelId, {
+    int sourceViewId = 0,
     required double anchorX,
     required double anchorY,
     required String alignment,
@@ -121,6 +122,7 @@ class AlicePlatform {
   }) {
     return _methodChannel.invokeMethod<void>('showPanel', <String, Object?>{
       'panelId': panelId,
+      'sourceViewId': sourceViewId,
       'anchorX': anchorX,
       'anchorY': anchorY,
       'alignment': alignment,

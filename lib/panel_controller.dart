@@ -25,8 +25,14 @@ AlicePanel? alicePanelFromId(String? panelId) {
 enum PanelAlignment { center, right }
 
 class PanelAnchor {
-  const PanelAnchor({required this.globalPosition, required this.alignment});
+  const PanelAnchor({
+    required this.globalPosition,
+    required this.alignment,
+    this.sourceViewId = 0,
+  });
 
+  /// Native bar view that produced this output-local anchor.
+  final int sourceViewId;
   final Offset globalPosition;
   final PanelAlignment alignment;
 }
@@ -41,6 +47,7 @@ class PanelController extends ChangeNotifier {
 
   AlicePanel? get openPanel => _openPanel;
   PanelAnchor? get anchor => _anchor;
+  int? get sourceViewId => _anchor?.sourceViewId;
 
   ValueListenable<bool> get mediaOpen => openListenable(AlicePanel.media);
   ValueListenable<bool> get clockOpen => openListenable(AlicePanel.clock);
@@ -57,16 +64,27 @@ class PanelController extends ChangeNotifier {
 
   bool isOpen(AlicePanel panel) => _openPanel == panel;
 
+  bool isOpenFor(AlicePanel panel, int viewId) =>
+      _openPanel == panel && _anchor?.sourceViewId == viewId;
+
   void toggle(AlicePanel panel, PanelAnchor anchor) {
     final previous = _openPanel;
-    if (_openPanel == panel) {
+    if (_openPanel == panel && _anchor?.sourceViewId == anchor.sourceViewId) {
       _openPanel = null;
       _anchor = null;
+      _notifyGranular(previous, null);
     } else {
       _openPanel = panel;
       _anchor = anchor;
+      // Re-notify the same panel when its owning bar changes so every bar
+      // recomputes source-specific feedback.
+      if (previous == panel) {
+        _notifyGranular(previous, null);
+        _notifyGranular(null, panel);
+      } else {
+        _notifyGranular(previous, panel);
+      }
     }
-    _notifyGranular(previous, _openPanel);
     notifyListeners();
   }
 

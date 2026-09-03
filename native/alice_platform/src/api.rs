@@ -96,6 +96,10 @@ pub fn init_app() {
 
 /// A command forwarded to Dart via `watch_panel_commands` whenever a panel
 /// should be shown. `view_id` identifies the Flutter view to render into.
+pub struct BarViewLifecycle {
+    pub view_ids: Vec<i64>,
+}
+
 pub struct PanelCommand {
     pub panel_id: String,
     pub view_id: i64,
@@ -130,6 +134,15 @@ pub fn watch_panel_commands(
     sink: crate::frb_generated::StreamSink<Option<PanelCommand>>,
 ) -> anyhow::Result<()> {
     crate::runtime::set_panel_command_sink(sink);
+    Ok(())
+}
+
+/// Stream the retained set of native bar Flutter view IDs. Subscribers receive
+/// the startup snapshot immediately, preventing secondary-view startup races.
+pub fn watch_bar_view_lifecycle(
+    sink: crate::frb_generated::StreamSink<BarViewLifecycle>,
+) -> anyhow::Result<()> {
+    crate::runtime::set_bar_view_lifecycle_sink(sink);
     Ok(())
 }
 

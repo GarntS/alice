@@ -5,6 +5,7 @@
 #include <gtk-layer-shell.h>
 
 #include <cstring>
+#include <vector>
 
 #include "alice_layer_shell_bridge.h"
 #include "alice_platform_bridge.h"
@@ -14,11 +15,19 @@ namespace {
 
 constexpr char kPlatformChannelName[] = "alice/platform";
 
-void configure_layer_shell_bar_window(GtkWindow* window) {
+// Wayland backends may not designate a primary output. In that case the first
+// GDK monitor is the root bar's deterministic startup output.
+GdkMonitor* root_monitor_for_display(GdkDisplay* display) {
+  if (display == nullptr) return nullptr;
+  GdkMonitor* primary = gdk_display_get_primary_monitor(display);
+  if (primary != nullptr) return primary;
+  return gdk_display_get_n_monitors(display) > 0
+      ? gdk_display_get_monitor(display, 0)
+      : nullptr;
+}
+
+void configure_layer_shell_bar_window(GtkWindow* window, GdkMonitor* monitor) {
   AliceSurfacePlacementFFI bar_placement = alice_layer_shell_bar_placement();
-  GdkDisplay* display = gdk_display_get_default();
-  GdkMonitor* monitor =
-      display == nullptr ? nullptr : gdk_display_get_primary_monitor(display);
   gint monitor_width = 1280;
 
   if (monitor != nullptr) {
@@ -57,17 +66,13 @@ void configure_layer_shell_bar_window(GtkWindow* window) {
   gtk_window_set_skip_pager_hint(window, TRUE);
 }
 
-void configure_bar_fallback_window(GtkWindow* window) {
+void configure_bar_fallback_window(GtkWindow* window, GdkMonitor* monitor) {
   AliceSurfacePlacementFFI bar_placement = alice_layer_shell_bar_placement();
-  GdkDisplay* display = gdk_display_get_default();
   gint width = 1280;
-  if (display != nullptr) {
-    GdkMonitor* monitor = gdk_display_get_primary_monitor(display);
-    if (monitor != nullptr) {
-      GdkRectangle geometry;
-      gdk_monitor_get_geometry(monitor, &geometry);
-      width = geometry.width;
-    }
+  if (monitor != nullptr) {
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(monitor, &geometry);
+    width = geometry.width;
   }
 
   gtk_window_set_default_size(window, width, static_cast<gint>(bar_placement.height));
@@ -88,6 +93,14 @@ void configure_bar_fallback_window(GtkWindow* window) {
 typedef struct _AlicePanel AlicePanel;
 typedef struct _AliceApplication AliceApplication;
 
+struct _AliceBar {
+  GtkWindow* window;
+  FlView* fl_view;
+  GdkMonitor* monitor;
+  int64_t view_id;
+};
+typedef struct _AliceBar AliceBar;
+
 struct _AlicePanel {
   GtkApplicationWindow* gtk_window;
   FlView*               fl_view;
@@ -101,6 +114,7 @@ struct _AlicePanel {
   gchar*                alignment;
   gboolean              include_icon_bytes;
   gint                  panel_top_gap_px;
+  AliceBar*             source_bar;
   // Back-references
   _AliceApplication*    app;
 };
@@ -119,8 +133,10 @@ struct _AliceApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
   FlMethodChannel* platform_channel;
-  GtkWindow* bar_window;
+  GtkWindow* bar_window;  // Root bar retained as the engine owner.
   FlView*    bar_fl_view;
+  GPtrArray* bars;        // AliceBar*, one for each startup monitor.
+  GHashTable* bars_by_view_id;  // int64_t* → AliceBar*
   GHashTable* panels;          // gchar* panel_id → AlicePanel*
   AliceNotificationPopup* notification_popup;
   GtkWindow* dismiss_window;
@@ -153,15 +169,31 @@ static void alice_notification_popup_free(AliceNotificationPopup* popup) {
   g_free(popup);
 }
 
+static void alice_bar_free(gpointer data) {
+  g_free(data);
+}
+
+static AliceBar* find_bar_by_view_id(AliceApplication* self, int64_t view_id) {
+  return static_cast<AliceBar*>(g_hash_table_lookup(self->bars_by_view_id,
+                                                     &view_id));
+}
+
+static void publish_bar_view_ids(AliceApplication* self) {
+  std::vector<int64_t> ids;
+  for (guint i = 0; i < self->bars->len; ++i) {
+    AliceBar* bar = static_cast<AliceBar*>(g_ptr_array_index(self->bars, i));
+    bar->view_id = fl_view_get_id(bar->fl_view);
+    ids.push_back(bar->view_id);
+  }
+  alice_set_bar_view_ids(ids.data(), ids.size());
+}
+
 // ---------------------------------------------------------------------------
 // Layer-shell helpers
 // ---------------------------------------------------------------------------
 
-static void configure_layer_shell_panel_window(GtkWindow* window) {
+static void configure_layer_shell_panel_window(GtkWindow* window, GdkMonitor* monitor) {
   AliceSurfacePlacementFFI placement = alice_layer_shell_panel_placement();
-  GdkDisplay* display = gdk_display_get_default();
-  GdkMonitor* monitor =
-      display == nullptr ? nullptr : gdk_display_get_primary_monitor(display);
 
   gtk_layer_init_for_window(window);
   gtk_layer_set_namespace(window, "alice-panel");
@@ -192,10 +224,7 @@ static void configure_layer_shell_panel_window(GtkWindow* window) {
   gtk_window_set_accept_focus(window, FALSE);
 }
 
-static void configure_layer_shell_dismiss_window(GtkWindow* window) {
-  GdkDisplay* display = gdk_display_get_default();
-  GdkMonitor* monitor =
-      display == nullptr ? nullptr : gdk_display_get_primary_monitor(display);
+static void configure_layer_shell_dismiss_window(GtkWindow* window, GdkMonitor* monitor) {
 
   gtk_layer_init_for_window(window);
   gtk_layer_set_namespace(window, "alice-panel-dismiss");
@@ -317,48 +346,18 @@ static void update_panel_window_geometry(AliceApplication* self, AlicePanel* pan
     placement.height = static_cast<uint32_t>(panel->height);
   }
 
-  GdkDisplay* display = gdk_display_get_default();
-  GdkMonitor* monitor = nullptr;
-  gint monitor_width = 1280;
-  gint monitor_height = 720;
-  gint monitor_x = 0;
-  if (display != nullptr) {
-    const gint monitor_count = gdk_display_get_n_monitors(display);
-    for (gint index = 0; index < monitor_count; index++) {
-      GdkMonitor* candidate = gdk_display_get_monitor(display, index);
-      if (candidate == nullptr) {
-        continue;
-      }
-      GdkRectangle geometry;
-      gdk_monitor_get_geometry(candidate, &geometry);
-      const gboolean in_x =
-          panel->anchor_x >= geometry.x &&
-          panel->anchor_x < geometry.x + geometry.width;
-      const gboolean in_y =
-          panel->anchor_y >= geometry.y &&
-          panel->anchor_y < geometry.y + geometry.height;
-      if (in_x && in_y) {
-        monitor = candidate;
-        monitor_x = geometry.x;
-        monitor_width = geometry.width;
-        monitor_height = geometry.height;
-        break;
-      }
-    }
+  // The Dart anchor is local to its source bar. Never infer a monitor from
+  // virtual-desktop coordinates or fall back to the primary monitor.
+  GdkMonitor* monitor = panel->source_bar == nullptr ? nullptr
+                                                       : panel->source_bar->monitor;
+  if (monitor == nullptr) {
+    return;
   }
-  if (monitor == nullptr && display != nullptr) {
-    monitor = gdk_display_get_primary_monitor(display);
-    if (monitor != nullptr) {
-      GdkRectangle geometry;
-      gdk_monitor_get_geometry(monitor, &geometry);
-      monitor_x = geometry.x;
-      monitor_width = geometry.width;
-      monitor_height = geometry.height;
-    }
-  }
-
-  const gint relative_anchor_x =
-      static_cast<gint>(panel->anchor_x) - monitor_x;
+  GdkRectangle geometry;
+  gdk_monitor_get_geometry(monitor, &geometry);
+  const gint monitor_width = geometry.width;
+  const gint monitor_height = geometry.height;
+  const gint relative_anchor_x = static_cast<gint>(panel->anchor_x);
   // On wlroots/Sway, layer-shell margins are measured from the edge of the
   // usable area (after exclusive zones), not the raw monitor origin.  The bar
   // has already claimed 44 px of exclusive zone at the top, so margin_top = 0
@@ -538,7 +537,7 @@ static AlicePanel* ensure_panel(AliceApplication* self, const gchar* panel_id) {
   gtk_window_set_title(win, "alice-panel");
 
   if (self->layer_shell_supported && gtk_layer_is_supported()) {
-    configure_layer_shell_panel_window(win);
+    configure_layer_shell_panel_window(win, nullptr);
   } else {
     configure_panel_fallback_window(win);
   }
@@ -626,6 +625,20 @@ static void platform_method_call_cb(FlMethodChannel* channel,
       FlValue* panel_id_val = fl_value_lookup_string(args, "panelId");
       if (panel_id_val != nullptr) {
         const gchar* panel_id_str = fl_value_get_string(panel_id_val);
+        FlValue* source_view_id_value =
+            fl_value_lookup_string(args, "sourceViewId");
+        if (source_view_id_value == nullptr) {
+          response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+              "panel_show_failed", "Missing source bar view", nullptr));
+          goto respond;
+        }
+        AliceBar* source_bar = find_bar_by_view_id(
+            self, static_cast<int64_t>(fl_value_get_int(source_view_id_value)));
+        if (source_bar == nullptr) {
+          response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+              "panel_show_failed", "Source bar view is unavailable", nullptr));
+          goto respond;
+        }
         FlValue* anchor_x_value = fl_value_lookup_string(args, "anchorX");
         FlValue* anchor_y_value = fl_value_lookup_string(args, "anchorY");
         FlValue* alignment_value = fl_value_lookup_string(args, "alignment");
@@ -674,6 +687,7 @@ static void platform_method_call_cb(FlMethodChannel* channel,
         panel->alignment = g_strdup(alignment);
         panel->include_icon_bytes = include_bytes;
         panel->panel_top_gap_px = panel_gap;
+        panel->source_bar = source_bar;
 
         // Update current panel
         g_free(self->current_panel_id);
@@ -766,6 +780,7 @@ static void platform_method_call_cb(FlMethodChannel* channel,
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }
 
+respond:
   g_autoptr(GError) error = nullptr;
   if (!fl_method_call_respond(method_call, response, &error)) {
     g_warning("Failed to send method response: %s", error->message);
@@ -822,12 +837,14 @@ static void create_main_window(AliceApplication* self) {
   gboolean use_header_bar = TRUE;
 
   if (self->layer_shell_supported && gtk_layer_is_supported()) {
-    configure_layer_shell_bar_window(window);
-    configure_layer_shell_dismiss_window(self->dismiss_window);
+    GdkDisplay* display = gdk_display_get_default();
+    GdkMonitor* monitor = root_monitor_for_display(display);
+    configure_layer_shell_bar_window(window, monitor);
+    configure_layer_shell_dismiss_window(self->dismiss_window, monitor);
     use_header_bar = FALSE;
   } else if (self->layer_shell_supported) {
     g_warning("Rust layer-shell probe succeeded but gtk-layer-shell is unavailable; using GTK fallback window");
-    configure_bar_fallback_window(window);
+    configure_bar_fallback_window(window, nullptr);
     use_header_bar = FALSE;
   } else {
     gtk_window_set_default_size(window, 1280, 720);
@@ -857,7 +874,7 @@ static void create_main_window(AliceApplication* self) {
   if (self->layer_shell_supported) {
     GdkDisplay* display = gdk_display_get_default();
     if (display != nullptr) {
-      GdkMonitor* monitor = gdk_display_get_primary_monitor(display);
+      GdkMonitor* monitor = root_monitor_for_display(display);
       if (monitor != nullptr) {
         GdkRectangle geometry;
         gdk_monitor_get_geometry(monitor, &geometry);
@@ -884,6 +901,60 @@ static void create_main_window(AliceApplication* self) {
 
   gtk_widget_show_all(GTK_WIDGET(window));
   gtk_widget_grab_focus(GTK_WIDGET(view));
+
+  GdkDisplay* display = gdk_display_get_default();
+  GdkMonitor* primary = root_monitor_for_display(display);
+  if (display != nullptr) {
+    const gint monitor_count = gdk_display_get_n_monitors(display);
+    g_message("Alice startup monitors: count=%d primary=%p", monitor_count,
+              static_cast<void*>(primary));
+    for (gint i = 0; i < monitor_count; ++i) {
+      GdkMonitor* monitor = gdk_display_get_monitor(display, i);
+      g_message("Alice startup monitor[%d]=%p is_primary=%d", i,
+                static_cast<void*>(monitor),
+                monitor != nullptr && gdk_monitor_is_primary(monitor));
+    }
+  }
+  AliceBar* root_bar = g_new0(AliceBar, 1);
+  root_bar->window = window;
+  root_bar->fl_view = view;
+  root_bar->monitor = primary;
+  root_bar->view_id = fl_view_get_id(view);
+  g_ptr_array_add(self->bars, root_bar);
+  g_hash_table_insert(self->bars_by_view_id, &root_bar->view_id, root_bar);
+
+  // Topology is intentionally sampled only at startup. The root view owns the
+  // engine; every extra monitor gets a lightweight secondary FlView.
+  if (self->layer_shell_supported && gtk_layer_is_supported() && display != nullptr) {
+    const gint monitor_count = gdk_display_get_n_monitors(display);
+    for (gint i = 0; i < monitor_count; ++i) {
+      GdkMonitor* monitor = gdk_display_get_monitor(display, i);
+      // Skip the monitor already hosting the root Flutter view. This pointer
+      // is taken from the same monitor list when Wayland has no primary output.
+      if (monitor == nullptr || monitor == primary ||
+          gdk_monitor_is_primary(monitor)) continue;
+      GtkWindow* bar_window = GTK_WINDOW(
+          gtk_application_window_new(GTK_APPLICATION(self)));
+      gtk_widget_set_app_paintable(GTK_WIDGET(bar_window), TRUE);
+      configure_layer_shell_bar_window(bar_window, monitor);
+      gtk_window_set_title(bar_window, "alice");
+      FlView* bar_view = fl_view_new_for_engine(fl_view_get_engine(view));
+      GdkRGBA transparent = {0.0, 0.0, 0.0, 0.0};
+      fl_view_set_background_color(bar_view, &transparent);
+      gtk_widget_set_hexpand(GTK_WIDGET(bar_view), TRUE);
+      gtk_widget_set_vexpand(GTK_WIDGET(bar_view), TRUE);
+      gtk_container_add(GTK_CONTAINER(bar_window), GTK_WIDGET(bar_view));
+      gtk_widget_show_all(GTK_WIDGET(bar_window));
+      AliceBar* bar = g_new0(AliceBar, 1);
+      bar->window = bar_window;
+      bar->fl_view = bar_view;
+      bar->monitor = monitor;
+      bar->view_id = fl_view_get_id(bar_view);
+      g_ptr_array_add(self->bars, bar);
+      g_hash_table_insert(self->bars_by_view_id, &bar->view_id, bar);
+    }
+  }
+  publish_bar_view_ids(self);
 }
 
 // ---------------------------------------------------------------------------
@@ -957,6 +1028,8 @@ static void alice_application_dispose(GObject* object) {
   g_clear_object(&self->platform_channel);
   g_clear_pointer(&self->current_panel_id, g_free);
   g_clear_pointer(&self->panels, g_hash_table_destroy);
+  g_clear_pointer(&self->bars_by_view_id, g_hash_table_destroy);
+  g_clear_pointer(&self->bars, g_ptr_array_unref);
   g_clear_pointer(&self->notification_popup, alice_notification_popup_free);
   G_OBJECT_CLASS(alice_application_parent_class)->dispose(object);
 }
@@ -973,6 +1046,8 @@ static void alice_application_class_init(AliceApplicationClass* klass) {
 static void alice_application_init(AliceApplication* self) {
   self->bar_window = nullptr;
   self->bar_fl_view = nullptr;
+  self->bars = g_ptr_array_new_with_free_func(alice_bar_free);
+  self->bars_by_view_id = g_hash_table_new(g_int64_hash, g_int64_equal);
   self->panels = g_hash_table_new_full(g_str_hash, g_str_equal,
                                        g_free, alice_panel_free);
   self->notification_popup = nullptr;

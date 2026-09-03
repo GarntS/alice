@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -751678668;
+  int get rustContentHash => 622855883;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -124,6 +124,8 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Stream<BarSnapshot> crateApiWatchBarSnapshots();
+
+  Stream<BarViewLifecycle> crateApiWatchBarViewLifecycle();
 
   Stream<PanelCommand?> crateApiWatchPanelCommands();
 }
@@ -595,6 +597,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "watch_bar_snapshots", argNames: ["sink"]);
 
   @override
+  Stream<BarViewLifecycle> crateApiWatchBarViewLifecycle() {
+    final sink = RustStreamSink<BarViewLifecycle>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_StreamSink_bar_view_lifecycle_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 16,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiWatchBarViewLifecycleConstMeta,
+          argValues: [sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiWatchBarViewLifecycleConstMeta =>
+      const TaskConstMeta(
+        debugName: "watch_bar_view_lifecycle",
+        argNames: ["sink"],
+      );
+
+  @override
   Stream<PanelCommand?> crateApiWatchPanelCommands() {
     final sink = RustStreamSink<PanelCommand?>();
     unawaited(
@@ -609,7 +646,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 16,
+              funcId: 17,
               port: port_,
             );
           },
@@ -639,6 +676,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   RustStreamSink<BarSnapshot> dco_decode_StreamSink_bar_snapshot_Sse(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
+  }
+
+  @protected
+  RustStreamSink<BarViewLifecycle> dco_decode_StreamSink_bar_view_lifecycle_Sse(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -702,6 +747,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       tasks: dco_decode_list_normalized_task(arr[9]),
       caldavSyncState: dco_decode_cal_dav_sync_state(arr[10]),
     );
+  }
+
+  @protected
+  BarViewLifecycle dco_decode_bar_view_lifecycle(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return BarViewLifecycle(viewIds: dco_decode_list_prim_i_64_strict(arr[0]));
   }
 
   @protected
@@ -908,6 +962,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return (raw as List<dynamic>)
         .map(dco_decode_notification_snapshot)
         .toList();
+  }
+
+  @protected
+  Int64List dco_decode_list_prim_i_64_strict(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeInt64List(raw);
   }
 
   @protected
@@ -1349,6 +1409,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  RustStreamSink<BarViewLifecycle> sse_decode_StreamSink_bar_view_lifecycle_Sse(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
+  }
+
+  @protected
   RustStreamSink<PanelCommand?>
   sse_decode_StreamSink_opt_box_autoadd_panel_command_Sse(
     SseDeserializer deserializer,
@@ -1428,6 +1496,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       tasks: var_tasks,
       caldavSyncState: var_caldavSyncState,
     );
+  }
+
+  @protected
+  BarViewLifecycle sse_decode_bar_view_lifecycle(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_viewIds = sse_decode_list_prim_i_64_strict(deserializer);
+    return BarViewLifecycle(viewIds: var_viewIds);
   }
 
   @protected
@@ -1687,6 +1762,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       ans_.add(sse_decode_notification_snapshot(deserializer));
     }
     return ans_;
+  }
+
+  @protected
+  Int64List sse_decode_list_prim_i_64_strict(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var len_ = sse_decode_i_32(deserializer);
+    return deserializer.buffer.getInt64List(len_);
   }
 
   @protected
@@ -2300,6 +2382,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_StreamSink_bar_view_lifecycle_Sse(
+    RustStreamSink<BarViewLifecycle> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bar_view_lifecycle,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
+  }
+
+  @protected
   void sse_encode_StreamSink_opt_box_autoadd_panel_command_Sse(
     RustStreamSink<PanelCommand?> self,
     SseSerializer serializer,
@@ -2359,6 +2458,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_notification_snapshot(self.notifications, serializer);
     sse_encode_list_normalized_task(self.tasks, serializer);
     sse_encode_cal_dav_sync_state(self.caldavSyncState, serializer);
+  }
+
+  @protected
+  void sse_encode_bar_view_lifecycle(
+    BarViewLifecycle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_prim_i_64_strict(self.viewIds, serializer);
   }
 
   @protected
@@ -2588,6 +2696,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     for (final item in self) {
       sse_encode_notification_snapshot(item, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_list_prim_i_64_strict(
+    Int64List self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    serializer.buffer.putInt64List(self);
   }
 
   @protected

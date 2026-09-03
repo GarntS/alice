@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -751678668;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 622855883;
 
 // Section: executor
 
@@ -586,6 +586,44 @@ fn wire__crate__api__watch_bar_snapshots_impl(
         },
     )
 }
+fn wire__crate__api__watch_bar_view_lifecycle_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "watch_bar_view_lifecycle",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_sink = <StreamSink<
+                crate::api::BarViewLifecycle,
+                flutter_rust_bridge::for_generated::SseCodec,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::watch_bar_view_lifecycle(api_sink)?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__watch_panel_commands_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -637,6 +675,16 @@ impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
 
 impl SseDecode
     for StreamSink<crate::state::BarSnapshot, flutter_rust_bridge::for_generated::SseCodec>
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <String>::sse_decode(deserializer);
+        return StreamSink::deserialize(inner);
+    }
+}
+
+impl SseDecode
+    for StreamSink<crate::api::BarViewLifecycle, flutter_rust_bridge::for_generated::SseCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -729,6 +777,16 @@ impl SseDecode for crate::state::BarSnapshot {
             notifications: var_notifications,
             tasks: var_tasks,
             caldav_sync_state: var_caldavSyncState,
+        };
+    }
+}
+
+impl SseDecode for crate::api::BarViewLifecycle {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_viewIds = <Vec<i64>>::sse_decode(deserializer);
+        return crate::api::BarViewLifecycle {
+            view_ids: var_viewIds,
         };
     }
 }
@@ -941,6 +999,18 @@ impl SseDecode for Vec<crate::state::NotificationSnapshot> {
             ans_.push(<crate::state::NotificationSnapshot>::sse_decode(
                 deserializer,
             ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<i64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<i64>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -1586,7 +1656,8 @@ fn pde_ffi_dispatcher_primary_impl(
         13 => wire__crate__api__send_tray_action_impl(port, ptr, rust_vec_len, data_len),
         14 => wire__crate__api__set_caldav_task_completed_impl(port, ptr, rust_vec_len, data_len),
         15 => wire__crate__api__watch_bar_snapshots_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__watch_panel_commands_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__watch_bar_view_lifecycle_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__watch_panel_commands_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1656,6 +1727,20 @@ impl flutter_rust_bridge::IntoDart for crate::state::BarSnapshot {
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::state::BarSnapshot {}
 impl flutter_rust_bridge::IntoIntoDart<crate::state::BarSnapshot> for crate::state::BarSnapshot {
     fn into_into_dart(self) -> crate::state::BarSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::BarViewLifecycle {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.view_ids.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::BarViewLifecycle {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::BarViewLifecycle>
+    for crate::api::BarViewLifecycle
+{
+    fn into_into_dart(self) -> crate::api::BarViewLifecycle {
         self
     }
 }
@@ -2324,6 +2409,15 @@ impl SseEncode
 }
 
 impl SseEncode
+    for StreamSink<crate::api::BarViewLifecycle, flutter_rust_bridge::for_generated::SseCodec>
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        unimplemented!("")
+    }
+}
+
+impl SseEncode
     for StreamSink<Option<crate::api::PanelCommand>, flutter_rust_bridge::for_generated::SseCodec>
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -2374,6 +2468,13 @@ impl SseEncode for crate::state::BarSnapshot {
         <Vec<crate::state::NotificationSnapshot>>::sse_encode(self.notifications, serializer);
         <Vec<crate::caldav::models::NormalizedTask>>::sse_encode(self.tasks, serializer);
         <crate::caldav::models::CalDavSyncState>::sse_encode(self.caldav_sync_state, serializer);
+    }
+}
+
+impl SseEncode for crate::api::BarViewLifecycle {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<i64>>::sse_encode(self.view_ids, serializer);
     }
 }
 
@@ -2534,6 +2635,16 @@ impl SseEncode for Vec<crate::state::NotificationSnapshot> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::state::NotificationSnapshot>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<i64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <i64>::sse_encode(item, serializer);
         }
     }
 }

@@ -30,6 +30,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustStreamSink<BarViewLifecycle> dco_decode_StreamSink_bar_view_lifecycle_Sse(
+    dynamic raw,
+  );
+
+  @protected
   RustStreamSink<PanelCommand?>
   dco_decode_StreamSink_opt_box_autoadd_panel_command_Sse(dynamic raw);
 
@@ -41,6 +46,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BarSnapshot dco_decode_bar_snapshot(dynamic raw);
+
+  @protected
+  BarViewLifecycle dco_decode_bar_view_lifecycle(dynamic raw);
 
   @protected
   bool dco_decode_bool(dynamic raw);
@@ -117,6 +125,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<NotificationSnapshot> dco_decode_list_notification_snapshot(dynamic raw);
+
+  @protected
+  Int64List dco_decode_list_prim_i_64_strict(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
@@ -255,6 +266,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustStreamSink<BarViewLifecycle> sse_decode_StreamSink_bar_view_lifecycle_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustStreamSink<PanelCommand?>
   sse_decode_StreamSink_opt_box_autoadd_panel_command_Sse(
     SseDeserializer deserializer,
@@ -268,6 +284,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BarSnapshot sse_decode_bar_snapshot(SseDeserializer deserializer);
+
+  @protected
+  BarViewLifecycle sse_decode_bar_view_lifecycle(SseDeserializer deserializer);
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
@@ -362,6 +381,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<NotificationSnapshot> sse_decode_list_notification_snapshot(
     SseDeserializer deserializer,
   );
+
+  @protected
+  Int64List sse_decode_list_prim_i_64_strict(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
@@ -534,6 +556,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_StreamSink_bar_view_lifecycle_Sse(
+    RustStreamSink<BarViewLifecycle> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_StreamSink_opt_box_autoadd_panel_command_Sse(
     RustStreamSink<PanelCommand?> self,
     SseSerializer serializer,
@@ -547,6 +575,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_bar_snapshot(BarSnapshot self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bar_view_lifecycle(
+    BarViewLifecycle self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
@@ -665,6 +699,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_notification_snapshot(
     List<NotificationSnapshot> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_prim_i_64_strict(
+    Int64List self,
     SseSerializer serializer,
   );
 

@@ -94,6 +94,34 @@ void main() {
     controller.dispose();
   });
 
+  test('open state is scoped to the bar that supplied the anchor', () {
+    final controller = PanelController();
+    const anchor = PanelAnchor(
+      sourceViewId: 42,
+      globalPosition: Offset(10, 20),
+      alignment: PanelAlignment.right,
+    );
+
+    controller.toggle(AlicePanel.power, anchor);
+
+    expect(controller.sourceViewId, 42);
+    expect(controller.isOpenFor(AlicePanel.power, 42), isTrue);
+    expect(controller.isOpenFor(AlicePanel.power, 7), isFalse);
+    expect(controller.isOpenFor(AlicePanel.clock, 42), isFalse);
+
+    controller.toggle(
+      AlicePanel.power,
+      const PanelAnchor(
+        sourceViewId: 7,
+        globalPosition: Offset(30, 20),
+        alignment: PanelAlignment.right,
+      ),
+    );
+    expect(controller.isOpenFor(AlicePanel.power, 42), isFalse);
+    expect(controller.isOpenFor(AlicePanel.power, 7), isTrue);
+    controller.dispose();
+  });
+
   test('granular open-state listeners notify only changed panels', () {
     final controller = PanelController();
     final mediaAnchor = PanelAnchor(

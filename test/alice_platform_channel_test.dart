@@ -22,6 +22,7 @@ void main() {
     final platform = AlicePlatform(methodChannel: channel);
     await platform.showPanel(
       'trayOverflow',
+      sourceViewId: 42,
       anchorX: 100.5,
       anchorY: 44,
       alignment: 'right',
@@ -39,6 +40,7 @@ void main() {
     expect(calls[0].method, 'showPanel');
     expect(calls[0].arguments, <String, Object?>{
       'panelId': 'trayOverflow',
+      'sourceViewId': 42,
       'anchorX': 100.5,
       'anchorY': 44.0,
       'alignment': 'right',

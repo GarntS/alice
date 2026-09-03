@@ -1,15 +1,4 @@
-# Layer Shell Windowing Specification
-
-## Purpose
-Define native window creation, layer-shell integration, panel placement, and GTK fallback behavior.
-## Requirements
-### Requirement: Layer-shell capability detection
-Alice SHALL detect whether the Wayland compositor advertises `zwlr_layer_shell_v1` through the Rust layer-shell library.
-
-#### Scenario: Application activates
-- **WHEN** the GTK application activates
-- **THEN** Alice SHALL call the Rust FFI capability probe
-- **AND** Alice SHALL use layer-shell configuration when both the Rust probe and `gtk-layer-shell` support are available
+## MODIFIED Requirements
 
 ### Requirement: Bar window configuration
 Alice SHALL configure each main bar window as a top layer-shell surface on its associated monitor when layer-shell is supported.
@@ -35,14 +24,6 @@ Alice SHALL create floating panel windows lazily and position them relative to t
 - **THEN** the panel SHALL remain positioned relative to the source bar's monitor
 - **AND** its placement SHALL not depend on that monitor's virtual-desktop origin
 
-### Requirement: Single visible native panel
-Alice SHALL ensure only one native panel window is visible at a time.
-
-#### Scenario: A second panel is opened
-- **WHEN** `showPanel` is called for one panel id
-- **THEN** the runner SHALL hide any other visible panel windows
-- **AND** the runner SHALL record the requested panel as current
-
 ### Requirement: Dismiss overlay
 Alice SHALL provide a native click target that dismisses the current panel when the user clicks outside the panel on its source monitor.
 
@@ -54,11 +35,3 @@ Alice SHALL provide a native click target that dismisses the current panel when 
 - **WHEN** the dismiss overlay receives a button press
 - **THEN** Alice SHALL hide the current panel and dismiss overlay
 - **AND** Alice SHALL notify Dart that the panel has hidden
-
-### Requirement: Fallback GTK windows
-Alice SHALL fall back to non-layer-shell GTK window configuration when layer-shell support is unavailable.
-
-#### Scenario: Layer-shell is unavailable
-- **WHEN** layer-shell support is not detected or `gtk-layer-shell` is unavailable
-- **THEN** Alice SHALL configure undecorated GTK windows with keep-above behavior where implemented
-

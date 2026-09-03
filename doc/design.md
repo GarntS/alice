@@ -28,6 +28,20 @@ Supported options:
 - The bar supports a light theme, a dark theme, and a user-configurable accent colour.
 - Only one panel may be open at a time.
 
+### Startup monitor topology
+
+When layer-shell is available, Alice samples monitors once at startup and creates
+one 44 px bar per monitor. Bars share the same Rust snapshot state and Flutter
+engine. A panel retains the Flutter bar view that opened it, so its panel and
+dismiss overlay are attached to that monitor and use output-local placement.
+
+Monitor hot-plug is intentionally unsupported until restart. Per-output Sway
+workspace filtering, per-output notification popup placement, and multi-monitor
+behavior in the non-layer-shell GTK fallback are also deferred. Automated
+validation covers the Flutter view routing and Rust layer-shell contracts;
+release validation on Sway must still exercise panel alignment and dismissal on
+one output and on differently sized outputs with a non-zero virtual origin.
+
 ## Layout
 
 The bar is anchored to the top of the output at 44 px tall, split into three layout groups.

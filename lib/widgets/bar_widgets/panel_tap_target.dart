@@ -36,6 +36,7 @@ class _TopBarPanelTapTargetState extends State<TopBarPanelTapTarget> {
       return PanelAnchor(
         globalPosition: Offset.zero,
         alignment: widget.alignment,
+        sourceViewId: View.of(context).viewId,
       );
     }
 
@@ -48,6 +49,7 @@ class _TopBarPanelTapTargetState extends State<TopBarPanelTapTarget> {
     return PanelAnchor(
       globalPosition: Offset(anchorX, anchorY),
       alignment: widget.alignment,
+      sourceViewId: View.of(context).viewId,
     );
   }
 }

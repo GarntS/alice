@@ -44,6 +44,7 @@ class _AliceAppState extends State<AliceApp> {
   late final PanelController _panelController = PanelController();
   late final StreamSubscription<BarSnapshot> _snapshotSubscription;
   late final StreamSubscription<frb.PanelCommand?> _panelCommandSubscription;
+  late final StreamSubscription<frb.BarViewLifecycle> _barViewSubscription;
 
   AliceConfig _config = AliceConfig.fallback();
   late final AliceSnapshotState _snapshotState = AliceSnapshotState(
@@ -57,6 +58,7 @@ class _AliceAppState extends State<AliceApp> {
   late final NotificationPopupState _notificationPopupState;
   int? _notificationPopupViewId;
   int _viewCount = 0;
+  Set<int> _barViewIds = const {};
 
   @override
   void initState() {
@@ -67,6 +69,14 @@ class _AliceAppState extends State<AliceApp> {
     _snapshotState.media.addListener(_syncMediaPanelSize);
     _snapshotState.trayOverflowCount.addListener(_syncTrayPanelSize);
     _loadConfig();
+
+    _barViewSubscription = frb.watchBarViewLifecycle().listen((lifecycle) {
+      if (mounted) {
+        setState(
+          () => _barViewIds = lifecycle.viewIds.map((id) => id.toInt()).toSet(),
+        );
+      }
+    }, onError: (_, _) {});
 
     _panelCommandSubscription = frb.watchPanelCommands().listen((cmd) {
       if (!mounted) return;
@@ -126,6 +136,7 @@ class _AliceAppState extends State<AliceApp> {
       await _platform
           .showPanel(
             panelId,
+            sourceViewId: anchor.sourceViewId,
             anchorX: anchor.globalPosition.dx,
             anchorY: anchor.globalPosition.dy,
             alignment: switch (anchor.alignment) {
@@ -274,6 +285,7 @@ class _AliceAppState extends State<AliceApp> {
 
   @override
   void dispose() {
+    _barViewSubscription.cancel();
     _panelCommandSubscription.cancel();
     _snapshotSubscription.cancel();
     _notificationPopupState.removeListener(_syncNotificationPopupState);
@@ -377,11 +389,13 @@ class _AliceAppState extends State<AliceApp> {
     final views = WidgetsBinding.instance.platformDispatcher.views.toList();
     return ViewCollection(
       views: views.map((v) {
-        final child = v.viewId == 0
+        final child = _barViewIds.contains(v.viewId)
             ? _buildBar()
             : v.viewId == _notificationPopupViewId
             ? _buildNotificationPopups()
-            : _buildPanel(_viewPanelMap[v.viewId]);
+            : _viewPanelMap.containsKey(v.viewId)
+            ? _buildPanel(_viewPanelMap[v.viewId])
+            : const SizedBox.shrink();
         return View(view: v, child: child);
       }).toList(),
     );

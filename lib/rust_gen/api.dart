@@ -26,6 +26,11 @@ Stream<BarSnapshot> watchBarSnapshots() =>
 Stream<PanelCommand?> watchPanelCommands() =>
     RustLib.instance.api.crateApiWatchPanelCommands();
 
+/// Stream the retained set of native bar Flutter view IDs. Subscribers receive
+/// the startup snapshot immediately, preventing secondary-view startup races.
+Stream<BarViewLifecycle> watchBarViewLifecycle() =>
+    RustLib.instance.api.crateApiWatchBarViewLifecycle();
+
 /// Load the user's config file (or defaults if missing / unreadable).
 Future<AliceUiConfig> loadConfig() => RustLib.instance.api.crateApiLoadConfig();
 
@@ -189,6 +194,24 @@ class AliceUiConfig {
           weather == other.weather;
 }
 
+/// A command forwarded to Dart via `watch_panel_commands` whenever a panel
+/// should be shown. `view_id` identifies the Flutter view to render into.
+class BarViewLifecycle {
+  final Int64List viewIds;
+
+  const BarViewLifecycle({required this.viewIds});
+
+  @override
+  int get hashCode => viewIds.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BarViewLifecycle &&
+          runtimeType == other.runtimeType &&
+          viewIds == other.viewIds;
+}
+
 /// Non-secret CalDAV settings needed to decide whether and how to render UI.
 class CalDavUiConfig {
   final String principalUrl;
@@ -229,8 +252,6 @@ class CalDavUiConfig {
           caCertificatePath == other.caCertificatePath;
 }
 
-/// A command forwarded to Dart via `watch_panel_commands` whenever a panel
-/// should be shown. `view_id` identifies the Flutter view to render into.
 class PanelCommand {
   final String panelId;
   final PlatformInt64 viewId;

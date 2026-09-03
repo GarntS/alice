@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use crate::frb_generated::StreamSink;
 use tokio::sync::mpsc;
 
-use crate::api::PanelCommand;
+use crate::api::{BarViewLifecycle, PanelCommand};
 use crate::state::BarSnapshot;
 
 // ---------------------------------------------------------------------------
@@ -23,6 +23,9 @@ pub(crate) fn tokio_handle() -> Option<tokio::runtime::Handle> {
 // ---------------------------------------------------------------------------
 
 static PANEL_SINK: OnceLock<Mutex<Option<StreamSink<Option<PanelCommand>>>>> = OnceLock::new();
+static BAR_VIEW_IDS: OnceLock<Mutex<Vec<i64>>> = OnceLock::new();
+static BAR_VIEW_LIFECYCLE_SINK: OnceLock<Mutex<Option<StreamSink<BarViewLifecycle>>>> =
+    OnceLock::new();
 
 pub fn set_panel_command_sink(sink: StreamSink<Option<PanelCommand>>) {
     let cell = PANEL_SINK.get_or_init(|| Mutex::new(None));
@@ -62,6 +65,35 @@ pub fn push_panel_hide() {
         if let Ok(guard) = cell.lock() {
             if let Some(sink) = guard.as_ref() {
                 let _ = sink.add(None);
+            }
+        }
+    }
+}
+
+pub fn set_bar_view_lifecycle_sink(sink: StreamSink<BarViewLifecycle>) {
+    let ids = BAR_VIEW_IDS
+        .get_or_init(|| Mutex::new(Vec::new()))
+        .lock()
+        .map(|ids| ids.clone())
+        .unwrap_or_default();
+    let cell = BAR_VIEW_LIFECYCLE_SINK.get_or_init(|| Mutex::new(None));
+    if let Ok(mut guard) = cell.lock() {
+        *guard = Some(sink);
+        if let Some(sink) = guard.as_ref() {
+            let _ = sink.add(BarViewLifecycle { view_ids: ids });
+        }
+    }
+}
+
+pub fn set_bar_view_ids(view_ids: Vec<i64>) {
+    let ids = BAR_VIEW_IDS.get_or_init(|| Mutex::new(Vec::new()));
+    if let Ok(mut guard) = ids.lock() {
+        *guard = view_ids.clone();
+    }
+    if let Some(cell) = BAR_VIEW_LIFECYCLE_SINK.get() {
+        if let Ok(guard) = cell.lock() {
+            if let Some(sink) = guard.as_ref() {
+                let _ = sink.add(BarViewLifecycle { view_ids });
             }
         }
     }
