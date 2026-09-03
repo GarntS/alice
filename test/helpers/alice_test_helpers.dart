@@ -5,6 +5,7 @@ import 'package:alicebar/alice_theme.dart';
 import 'package:alicebar/rust_gen/caldav/models.dart';
 import 'package:alicebar/rust_gen/state.dart';
 import 'package:alicebar/snapshot_state.dart';
+import 'package:alicebar/widgets/alice_icon.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,6 +15,8 @@ AliceConfig testConfig({
   int maxVisibleTrayItems = 3,
   bool showNetworkLabel = true,
   bool transparentTopBar = false,
+  bool useDuotoneIcons = true,
+  bool useAccentOnIcons = true,
   CalendarConfig? calendar,
   CalDavConfig? caldav,
   WeatherConfig weather = const WeatherConfig(
@@ -37,6 +40,8 @@ AliceConfig testConfig({
     themeMode: ThemeMode.light,
     accentColor: const Color(0xFF4C956C),
     transparentTopBar: transparentTopBar,
+    useDuotoneIcons: useDuotoneIcons,
+    useAccentOnIcons: useAccentOnIcons,
     showNetworkLabel: showNetworkLabel,
     maxVisibleTrayItems: maxVisibleTrayItems,
     localTimeZoneLabel: 'LOCAL',
@@ -284,6 +289,7 @@ Future<void> pumpAliceWidget(
   WidgetTester tester,
   Widget child, {
   AliceConfig? config,
+  Brightness brightness = Brightness.light,
   Size size = const Size(1200, 800),
 }) async {
   await tester.binding.setSurfaceSize(size);
@@ -292,10 +298,20 @@ Future<void> pumpAliceWidget(
   final c = config ?? testConfig();
   await tester.pumpWidget(
     MaterialApp(
-      theme: buildAliceTheme(c, Brightness.light),
-      home: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(child: child),
+      themeMode: brightness == Brightness.dark
+          ? ThemeMode.dark
+          : ThemeMode.light,
+      theme: buildAliceTheme(c, brightness),
+      darkTheme: buildAliceTheme(c, brightness),
+      home: Theme(
+        data: buildAliceTheme(c, brightness),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: AliceIconTheme(
+            config: c,
+            child: Center(child: child),
+          ),
+        ),
       ),
     ),
   );

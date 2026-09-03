@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../alice_icon.dart';
+
 import '../../panel_controller.dart';
 import 'panel_tap_target.dart';
 import 'pill.dart';
@@ -26,7 +28,7 @@ class TopBarNotificationModule extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           TopBarPill(
-            icon: Icons.notifications_rounded,
+            icon: AliceIcons.bell,
             label: '',
             highlighted: highlighted,
           ),

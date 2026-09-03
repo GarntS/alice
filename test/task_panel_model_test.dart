@@ -63,34 +63,41 @@ void main() {
     ]);
   });
 
-  test('full-month headers omit current year, include other year, and no time', () {
-    expect(
-      formatShortTaskDate(DateTime(2026, 7, 20, 23, 59), today),
-      '20 July',
-    );
-    expect(
-      formatShortTaskDate(DateTime(2025, 12, 1, 8, 30), today),
-      '1 December 2025',
-    );
-    expect(
-      taskSectionHeader(
-        TaskSection(kind: TaskSectionKind.today, date: today, tasks: const []),
-        today,
-      ),
-      'Today - 20 July',
-    );
-    expect(
-      taskSectionHeader(
-        const TaskSection(
-          kind: TaskSectionKind.completedToday,
-          date: null,
-          tasks: [],
+  test(
+    'full-month headers omit current year, include other year, and no time',
+    () {
+      expect(
+        formatShortTaskDate(DateTime(2026, 7, 20, 23, 59), today),
+        '20 July',
+      );
+      expect(
+        formatShortTaskDate(DateTime(2025, 12, 1, 8, 30), today),
+        '1 December 2025',
+      );
+      expect(
+        taskSectionHeader(
+          TaskSection(
+            kind: TaskSectionKind.today,
+            date: today,
+            tasks: const [],
+          ),
+          today,
         ),
-        today,
-      ),
-      'Completed today',
-    );
-  });
+        'Today - 20 July',
+      );
+      expect(
+        taskSectionHeader(
+          const TaskSection(
+            kind: TaskSectionKind.completedToday,
+            date: null,
+            tasks: [],
+          ),
+          today,
+        ),
+        'Completed today',
+      );
+    },
+  );
 }
 
 NormalizedTask task(

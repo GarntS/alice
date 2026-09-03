@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'alice_icon.dart';
+
 String degreeLabel(double? value) => value == null ? '-' : '${value.round()}°';
 
 String degreeUnitLabel(double? value, String units) =>
@@ -109,56 +111,55 @@ String windSpeedLabel(double? value, String units, {double? bearing}) {
   return '$prefix${value.ceil()} ${windUnitLabel(units)}';
 }
 
-IconData weatherIcon(String icon, {double? moonPhase}) {
-  return switch (icon) {
-    'clear-day' => Icons.wb_sunny_rounded,
-    'clear-night' => moonPhaseIcon(moonPhase),
-    'rain' => Icons.water_drop_rounded,
-    'snow' => Icons.ac_unit_rounded,
-    'sleet' => Icons.grain_rounded,
-    'wind' => Icons.air_rounded,
-    'fog' => Icons.foggy,
-    'cloudy' => Icons.cloud_rounded,
-    'partly-cloudy-day' => Icons.wb_cloudy_rounded,
-    'partly-cloudy-night' => Icons.nights_stay_rounded,
-    _ => Icons.cloud_rounded,
+AliceIconDescriptor weatherIcon(String icon, {double? moonPhase}) =>
+    switch (icon) {
+      'clear-day' => AliceIcons.sun,
+      'clear-night' => moonPhaseIcon(moonPhase),
+      'rain' || 'sleet' => AliceIcons.cloudRain,
+      'snow' => AliceIcons.cloudSnow,
+      'wind' => AliceIcons.wind,
+      'fog' => AliceIcons.cloudFog,
+      'cloudy' => AliceIcons.cloud,
+      'partly-cloudy-day' => AliceIcons.cloudSun,
+      'partly-cloudy-night' => AliceIcons.cloudMoon,
+      _ => AliceIcons.cloud,
+    };
+
+AliceIconDescriptor moonPhaseIcon(double? phase) {
+  if (phase == null) return AliceIcons.moon;
+  final normalized = phase % 1;
+  return switch (normalized) {
+    < 0.06 => AliceIcons.circle,
+    < 0.25 => AliceIcons.moon,
+    < 0.31 => AliceIcons.circleHalf,
+    < 0.44 => AliceIcons.moon,
+    < 0.56 => AliceIcons.circle,
+    < 0.75 => AliceIcons.moon,
+    < 0.81 => AliceIcons.circleHalf,
+    _ => AliceIcons.moon,
   };
 }
 
-IconData moonPhaseIcon(double? phase) {
-  if (phase == null) return Icons.nightlight_round;
-  if (phase < 0.06 || phase >= 0.94)
-    return Icons.radio_button_unchecked_rounded;
-  if (phase < 0.25) return Icons.brightness_2_rounded;
-  if (phase < 0.31) return Icons.contrast_rounded;
-  if (phase < 0.44) return Icons.brightness_3_rounded;
-  if (phase < 0.56) return Icons.circle_rounded;
-  if (phase < 0.75) return Icons.brightness_3_rounded;
-  if (phase < 0.81) return Icons.contrast_rounded;
-  return Icons.brightness_2_rounded;
+AliceIconDescriptor humidityIcon(double? humidity) {
+  if (humidity == null) return AliceIcons.dropSimple;
+  if (humidity >= 0.75) return AliceIcons.drop;
+  if (humidity >= 0.5) return AliceIcons.dropHalf;
+  if (humidity >= 0.25) return AliceIcons.dropSimple;
+  return AliceIcons.dropSlash;
 }
 
-IconData humidityIcon(double? humidity) {
-  if (humidity == null) return Icons.water_drop_outlined;
-  if (humidity >= 0.75) return Icons.water_drop_rounded;
-  if (humidity >= 0.5) return Icons.opacity_rounded;
-  if (humidity >= 0.25) return Icons.opacity_outlined;
-  return Icons.dry_rounded;
-}
-
-IconData windDirectionIcon(double? bearing) {
-  if (bearing == null) return Icons.explore_rounded;
-  final rounded = ((bearing / 45).round() * 45) % 360;
-  return switch (rounded) {
-    0 => Icons.north_rounded,
-    45 => Icons.north_east_rounded,
-    90 => Icons.east_rounded,
-    135 => Icons.south_east_rounded,
-    180 => Icons.south_rounded,
-    225 => Icons.south_west_rounded,
-    270 => Icons.west_rounded,
-    315 => Icons.north_west_rounded,
-    _ => Icons.explore_rounded,
+AliceIconDescriptor windDirectionIcon(double? bearing) {
+  if (bearing == null) return AliceIcons.compass;
+  return switch (((bearing / 45).round() * 45) % 360) {
+    0 => AliceIcons.arrowUp,
+    45 => AliceIcons.arrowUpRight,
+    90 => AliceIcons.arrowRight,
+    135 => AliceIcons.arrowDownRight,
+    180 => AliceIcons.arrowDown,
+    225 => AliceIcons.arrowDownLeft,
+    270 => AliceIcons.arrowLeft,
+    315 => AliceIcons.arrowUpLeft,
+    _ => AliceIcons.compass,
   };
 }
 

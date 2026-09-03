@@ -196,6 +196,8 @@ class AlicePlatform {
       },
       accentColor: _colorFromHex(r.accentColor),
       transparentTopBar: r.transparentTopBar,
+      useDuotoneIcons: r.useDuotoneIcons,
+      useAccentOnIcons: r.useAccentOnIcons,
       showNetworkLabel: r.showNetworkLabel,
       maxVisibleTrayItems: r.maxVisibleTrayItems,
       localTimeZoneLabel: r.localTimeZoneLabel,

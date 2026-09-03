@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:alicebar/alice_config.dart';
+import 'package:alicebar/widgets/alice_icon.dart';
 import 'package:alicebar/widgets/panels/clock_panel.dart';
 import 'package:alicebar/panel_controller.dart';
 import 'package:alicebar/widgets/panels/media_panel.dart';
@@ -11,6 +12,7 @@ import 'package:alicebar/widgets/panels/power_panel.dart';
 import 'package:alicebar/widgets/panels/tray_panel.dart';
 import 'package:alicebar/widgets/panels/weather_panel.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers/alice_test_helpers.dart';
@@ -51,7 +53,8 @@ void main() {
         cardSize.height,
         lessThan(alicePanelSize(AlicePanel.media).height),
       );
-      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+      expect(find.byIcon(PhosphorIconsRegular.pause), findsNothing);
+      expect(find.byType(PhosphorIcon), findsWidgets);
     },
   );
 
@@ -90,7 +93,11 @@ void main() {
     expect(find.text('A Very Testable Song'), findsOneWidget);
     expect(find.text('Alice Artist'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.pause_rounded));
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) => widget is AliceIcon && widget.icon == AliceIcons.pause,
+      ),
+    );
     await tester.pump();
     expect(actions, contains('playPause'));
   });
@@ -300,12 +307,20 @@ void main() {
     );
     expect(indicatorDots, findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) => widget is AliceIcon && widget.icon == AliceIcons.caretLeft,
+      ),
+    );
     await tester.pump();
     expect(displayedMonths, [DateTime(2026, 4)]);
     expect(find.textContaining('April', findRichText: true), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) => widget is AliceIcon && widget.icon == AliceIcons.caretRight,
+      ),
+    );
     await tester.pump();
     expect(displayedMonths, [DateTime(2026, 4), DateTime(2026, 5)]);
     expect(find.textContaining('May', findRichText: true), findsOneWidget);

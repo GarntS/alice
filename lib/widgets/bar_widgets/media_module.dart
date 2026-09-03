@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../alice_icon.dart';
+
 import '../../rust_gen/state.dart';
 import '../../panel_controller.dart';
 import 'panel_tap_target.dart';
@@ -27,7 +29,7 @@ class TopBarMediaModule extends StatelessWidget {
       alignment: PanelAlignment.center,
       onTap: onToggle,
       child: TopBarPill(
-        icon: media!.isPlaying ? Icons.play_arrow_rounded : Icons.pause_rounded,
+        icon: media!.isPlaying ? AliceIcons.play : AliceIcons.pause,
         label:
             '${media!.title} - ${media!.artist} - ${media!.positionLabel}/${media!.lengthLabel}',
         highlighted: highlighted,

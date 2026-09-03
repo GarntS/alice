@@ -5,6 +5,8 @@ class AliceConfig {
     required this.themeMode,
     required this.accentColor,
     required this.transparentTopBar,
+    required this.useDuotoneIcons,
+    required this.useAccentOnIcons,
     required this.showNetworkLabel,
     required this.maxVisibleTrayItems,
     required this.localTimeZoneLabel,
@@ -20,6 +22,8 @@ class AliceConfig {
   final ThemeMode themeMode;
   final Color accentColor;
   final bool transparentTopBar;
+  final bool useDuotoneIcons;
+  final bool useAccentOnIcons;
   final bool showNetworkLabel;
   final int maxVisibleTrayItems;
   final String? localTimeZoneLabel;
@@ -36,6 +40,8 @@ class AliceConfig {
       themeMode: ThemeMode.system,
       accentColor: Color(0xFF4C956C),
       transparentTopBar: false,
+      useDuotoneIcons: true,
+      useAccentOnIcons: true,
       showNetworkLabel: true,
       maxVisibleTrayItems: 5,
       localTimeZoneLabel: null,

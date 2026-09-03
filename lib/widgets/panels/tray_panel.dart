@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:material_ui/material_ui.dart';
 
 import '../../rust_gen/state.dart';
+import '../alice_icon.dart';
 import 'panel_shell.dart';
 
 class TrayPanel extends StatelessWidget {
@@ -72,7 +73,7 @@ class _TrayItemIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (iconPngBytes == null || iconPngBytes!.isEmpty) {
-      return const Icon(Icons.apps_rounded, size: 18);
+      return const AliceIcon(AliceIcons.dotsNine, size: 18);
     }
 
     return Image.memory(
@@ -81,7 +82,7 @@ class _TrayItemIcon extends StatelessWidget {
       height: 18,
       fit: BoxFit.contain,
       errorBuilder: (context, error, stackTrace) {
-        return const Icon(Icons.apps_rounded, size: 18);
+        return const AliceIcon(AliceIcons.dotsNine, size: 18);
       },
     );
   }

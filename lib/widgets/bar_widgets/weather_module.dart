@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../alice_icon.dart';
+
 import '../../panel_controller.dart';
 import '../../rust_gen/state.dart';
 import '../weather_format.dart';
@@ -25,7 +27,7 @@ class TopBarWeatherModule extends StatelessWidget {
       alignment: PanelAlignment.right,
       onTap: onToggle,
       child: TopBarPill(
-        icon: current == null ? Icons.cloud_rounded : weatherIcon(current.icon),
+        icon: current == null ? AliceIcons.cloud : weatherIcon(current.icon),
         label: current == null ? '-' : '',
         labelWidget: current == null
             ? null

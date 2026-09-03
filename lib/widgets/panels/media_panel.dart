@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 
 import '../../rust_gen/state.dart';
+import '../alice_icon.dart';
 import 'panel_shell.dart';
 
 class MediaPanel extends StatefulWidget {
@@ -164,20 +165,18 @@ class _MediaPanelState extends State<MediaPanel> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _ActionButton(
-                icon: Icons.skip_previous_rounded,
+                icon: AliceIcons.skipBack,
                 onPressed: () => widget.onAction('previous'),
               ),
               const SizedBox(width: 8),
               _ActionButton(
-                icon: media.isPlaying
-                    ? Icons.pause_rounded
-                    : Icons.play_arrow_rounded,
+                icon: media.isPlaying ? AliceIcons.pause : AliceIcons.play,
                 onPressed: () => widget.onAction('playPause'),
                 filled: true,
               ),
               const SizedBox(width: 8),
               _ActionButton(
-                icon: Icons.skip_next_rounded,
+                icon: AliceIcons.skipForward,
                 onPressed: () => widget.onAction('next'),
               ),
             ],
@@ -230,7 +229,10 @@ class _AlbumArtFallback extends StatelessWidget {
       width: size,
       height: size,
       color: theme.colorScheme.secondary.withValues(alpha: 0.6),
-      child: Icon(Icons.album_rounded, color: theme.colorScheme.onSurface),
+      child: AliceIcon(
+        AliceIcons.musicNote,
+        color: theme.colorScheme.onSurface,
+      ),
     );
   }
 }
@@ -242,7 +244,7 @@ class _ActionButton extends StatelessWidget {
     this.filled = false,
   });
 
-  final IconData icon;
+  final AliceIconDescriptor icon;
   final VoidCallback onPressed;
   final bool filled;
 
@@ -261,7 +263,7 @@ class _ActionButton extends StatelessWidget {
               : theme.colorScheme.secondary.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon),
+        child: AliceIcon(icon),
       ),
     );
   }

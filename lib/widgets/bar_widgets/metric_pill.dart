@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../alice_icon.dart';
+
 class TopBarMetricPill extends StatelessWidget {
   const TopBarMetricPill({
     super.key,
@@ -9,7 +11,7 @@ class TopBarMetricPill extends StatelessWidget {
     required this.warning,
   });
 
-  final IconData icon;
+  final AliceIconDescriptor icon;
   final String label;
   final bool alert;
   final bool warning;
@@ -36,7 +38,7 @@ class TopBarMetricPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: foreground),
+          AliceIcon(icon, size: 16, color: foreground),
           const SizedBox(width: 6),
           Text(
             label,

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../alice_icon.dart';
+
 import '../../panel_controller.dart';
 import 'panel_tap_target.dart';
 import 'pill.dart';
@@ -20,7 +22,7 @@ class TopBarPowerModule extends StatelessWidget {
       alignment: PanelAlignment.right,
       onTap: onToggle,
       child: TopBarPill(
-        icon: Icons.power_settings_new_rounded,
+        icon: AliceIcons.power,
         label: '',
         highlighted: highlighted,
       ),

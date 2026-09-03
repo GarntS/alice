@@ -9,9 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_rust_bridge: 2.11.1
+  flutter_rust_bridge: 2.12.0
   intl: ^0.20.2
   material_ui: ^0.0.1
+  phosphoricons_flutter: ^1.0.0
 
 dev_dependencies:
   flutter_test:
@@ -29,4 +30,3 @@ flutter:
         - asset: fonts/NimbusSans-BoldItalic.ttf
           weight: 700
           style: italic
-  uses-material-design: true

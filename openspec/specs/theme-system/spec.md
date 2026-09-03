@@ -2,9 +2,7 @@
 
 ## Purpose
 Define Alice's implemented Material theme behavior, accent color usage, and shared widget visual states.
-
 ## Requirements
-
 ### Requirement: Theme mode selection
 Alice SHALL support Flutter `system`, `light`, and `dark` theme modes based on configuration.
 
@@ -41,3 +39,15 @@ Metric widgets SHALL use warning and alert colors when their implemented thresho
 - **THEN** the CPU pill SHALL use the warning color
 - **WHEN** CPU usage is at least 3.2 aggregate cores
 - **THEN** the CPU pill SHALL use the alert color
+
+### Requirement: Non-accent duotone secondary colors
+Alice SHALL define fixed gray colors for the secondary layer of duotone icons when accent-colored icon layers are disabled.
+
+#### Scenario: Light theme uses a gray secondary layer
+- **WHEN** Alice renders a duotone icon in the light theme with `theme.use_accent_on_icons` set to `false`
+- **THEN** the icon's secondary layer SHALL use Alice's fixed dark gray token
+
+#### Scenario: Dark theme uses a gray secondary layer
+- **WHEN** Alice renders a duotone icon in the dark theme with `theme.use_accent_on_icons` set to `false`
+- **THEN** the icon's secondary layer SHALL use Alice's fixed light gray token
+

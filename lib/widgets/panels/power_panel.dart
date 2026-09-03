@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../alice_icon.dart';
 import 'panel_shell.dart';
 
 class PowerPanel extends StatelessWidget {
@@ -16,25 +17,25 @@ class PowerPanel extends StatelessWidget {
         children: [
           _PowerButton(
             label: 'Lock',
-            icon: Icons.lock_outline_rounded,
+            icon: AliceIcons.lock,
             onPressed: () => onAction('lock'),
           ),
           const SizedBox(height: 6),
           _PowerButton(
             label: 'Lock + Suspend',
-            icon: Icons.bedtime_rounded,
+            icon: AliceIcons.bed,
             onPressed: () => onAction('lockAndSuspend'),
           ),
           const SizedBox(height: 6),
           _PowerButton(
             label: 'Restart',
-            icon: Icons.restart_alt_rounded,
+            icon: AliceIcons.refresh,
             onPressed: () => onAction('restart'),
           ),
           const SizedBox(height: 6),
           _PowerButton(
             label: 'Power Off',
-            icon: Icons.power_settings_new_rounded,
+            icon: AliceIcons.power,
             onPressed: () => onAction('poweroff'),
             destructive: true,
           ),
@@ -53,7 +54,7 @@ class _PowerButton extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final AliceIconDescriptor icon;
   final VoidCallback onPressed;
   final bool destructive;
 
@@ -78,7 +79,7 @@ class _PowerButton extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: foreground),
+            AliceIcon(icon, color: foreground),
             const SizedBox(width: 10),
             Text(
               label,

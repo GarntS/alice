@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../alice_config.dart';
 import '../../rust_gen/state.dart';
+import '../alice_icon.dart';
 import '../weather_format.dart';
 
 class WeatherPanel extends StatelessWidget {
@@ -66,7 +67,7 @@ class _CurrentHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(weatherIcon(weather.currently.icon), size: 64),
+        AliceIcon(weatherIcon(weather.currently.icon), size: 64),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -167,7 +168,7 @@ class _MetricsCard extends StatelessWidget {
 class _MetricColumn extends StatelessWidget {
   const _MetricColumn({required this.icon, required this.label});
 
-  final IconData icon;
+  final AliceIconDescriptor icon;
   final String label;
 
   @override
@@ -175,7 +176,7 @@ class _MetricColumn extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 32),
+        AliceIcon(icon, size: 32),
         const SizedBox(height: 8),
         Text(
           label,
@@ -343,7 +344,7 @@ class _WeatherCard extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final AliceIconDescriptor icon;
   final String temperature;
   final String? lowTemperature;
   final bool highlighted;
@@ -385,7 +386,7 @@ class _WeatherCard extends StatelessWidget {
               softWrap: false,
             ),
             const SizedBox(height: 8),
-            Icon(icon, size: 30, color: foreground),
+            AliceIcon(icon, size: 30, color: foreground),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

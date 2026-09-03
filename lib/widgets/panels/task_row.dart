@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../rust_gen/caldav/models.dart';
+import '../alice_icon.dart';
 
 class CalDavTaskRow extends StatelessWidget {
   const CalDavTaskRow({
@@ -77,8 +78,8 @@ class CalDavTaskRow extends StatelessWidget {
                     children: [
                       TaskPriorityChip(priority: task.priority),
                       const SizedBox(width: 7),
-                      Icon(
-                        Icons.folder_outlined,
+                      AliceIcon(
+                        AliceIcons.folder,
                         size: 12,
                         color: muted.withValues(alpha: completed ? 0.45 : 0.7),
                       ),

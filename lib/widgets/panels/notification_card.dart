@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 
 import '../../rust_gen/state.dart';
+import '../alice_icon.dart';
 
 class NotificationCard extends StatefulWidget {
   const NotificationCard({
@@ -132,8 +133,8 @@ class _NotificationCardState extends State<NotificationCard> {
                       color: theme.colorScheme.outline.withValues(alpha: 0.5),
                     ),
                   ),
-                  child: Icon(
-                    Icons.close_rounded,
+                  child: AliceIcon(
+                    AliceIcons.close,
                     size: 13,
                     color: theme.colorScheme.onSurface,
                   ),
@@ -212,7 +213,7 @@ class _NotificationIcon extends StatelessWidget {
   }
 
   Widget _fallback() {
-    return const Icon(Icons.notifications_rounded, size: 24);
+    return const AliceIcon(AliceIcons.bell, size: 24);
   }
 }
 
@@ -291,8 +292,8 @@ class _SplitActionButton extends StatelessWidget {
             child: Container(
               color: theme.colorScheme.secondaryContainer,
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-              child: Icon(
-                Icons.keyboard_arrow_down_rounded,
+              child: AliceIcon(
+                AliceIcons.caretDown,
                 size: 16,
                 color: theme.colorScheme.onSecondaryContainer,
               ),

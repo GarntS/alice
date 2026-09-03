@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../alice_icon.dart';
+
 import '../../rust_gen/state.dart';
 import '../../panel_controller.dart';
 import 'panel_tap_target.dart';
@@ -25,7 +27,7 @@ class TopBarClockModule extends StatelessWidget {
       alignment: PanelAlignment.right,
       onTap: onToggle,
       child: TopBarPill(
-        icon: Icons.schedule_rounded,
+        icon: AliceIcons.clock,
         label: '$localTimeZoneLabel ${clock.dateLabel} ${clock.timeLabel}',
         highlighted: highlighted,
       ),

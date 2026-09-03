@@ -29,7 +29,6 @@ const NOTIFICATION_ICON_THUMBNAIL_PX: u32 = 96;
 struct StoredNotification {
     snapshot: NotificationSnapshot,
     activation_identity: Option<String>,
-    received_at: std::time::Instant,
 }
 
 // ---------------------------------------------------------------------------
@@ -187,7 +186,6 @@ impl NotificationServer {
                 image_path,
             },
             activation_identity,
-            received_at: std::time::Instant::now(),
         };
 
         let _effective_timeout_ms = if expire_timeout < 0 {
@@ -684,7 +682,6 @@ mod tests {
             store.add_or_replace(StoredNotification {
                 snapshot: initial.clone(),
                 activation_identity: None,
-                received_at: std::time::Instant::now(),
             }),
             7
         );
@@ -694,7 +691,6 @@ mod tests {
         store.add_or_replace(StoredNotification {
             snapshot: replacement.clone(),
             activation_identity: None,
-            received_at: std::time::Instant::now(),
         });
         assert_eq!(store.get_all(), vec![replacement.clone()]);
 
@@ -752,14 +748,12 @@ mod tests {
         store.add_or_replace(StoredNotification {
             snapshot: snapshot(11, "initial"),
             activation_identity: Some("old.app".to_string()),
-            received_at: std::time::Instant::now(),
         });
 
         let replacement = snapshot(11, "replacement");
         store.add_or_replace(StoredNotification {
             snapshot: replacement.clone(),
             activation_identity: Some("new.app".to_string()),
-            received_at: std::time::Instant::now(),
         });
 
         assert_eq!(store.activation_identity(11).as_deref(), Some("new.app"));
@@ -769,21 +763,14 @@ mod tests {
     #[test]
     fn store_only_metadata_does_not_change_snapshot_payload() {
         let payload = snapshot(9, "same payload");
-        let recent = std::time::Instant::now();
-        let earlier = recent
-            .checked_sub(std::time::Duration::from_secs(60))
-            .expect("recent instant should support a one-minute subtraction");
         let earlier_record = StoredNotification {
             snapshot: payload.clone(),
             activation_identity: None,
-            received_at: earlier,
         };
         let recent_record = StoredNotification {
             snapshot: payload.clone(),
             activation_identity: Some("internal.app".to_string()),
-            received_at: recent,
         };
-        assert_ne!(earlier_record.received_at, recent_record.received_at);
         assert_ne!(
             earlier_record.activation_identity,
             recent_record.activation_identity

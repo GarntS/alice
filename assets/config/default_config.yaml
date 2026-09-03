@@ -14,6 +14,12 @@ theme:
   # Whether the outer top bar shell should omit its background and border.
   transparent_top_bar: false
 
+  # Render Alice-owned icons in the Phosphor duotone style. Default: true
+  use_duotone_icons: true
+
+  # Use the accent color for duotone icon secondary layers. Default: true
+  use_accent_on_icons: true
+
   # Gap in pixels between the bottom of the bar and the top of panel windows.
   # Default: 8
   panel_top_gap_px: 8

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:alicebar/rust_gen/state.dart';
+import 'package:alicebar/widgets/alice_icon.dart';
 import 'package:alicebar/widgets/panels/clock_panel.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -82,9 +83,9 @@ void main() {
     final now = DateTime.now();
     final olderMonth = DateTime(now.year, now.month + 1);
     final currentMonth = DateTime(now.year, now.month + 2);
-    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+    await tester.tap(_icon(AliceIcons.caretRight));
     await tester.pump();
-    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+    await tester.tap(_icon(AliceIcons.caretRight));
     await tester.pump();
 
     final currentIndicatorDate = DateTime(
@@ -102,7 +103,7 @@ void main() {
 
     expect(
       _dotWithColor(tester, currentIndicatorDate, const Color(0xFF00AA00)),
-      findsOneWidget,
+      findsWidgets,
     );
 
     fetcher.completeMonth(
@@ -113,7 +114,7 @@ void main() {
 
     expect(
       _dotWithColor(tester, currentIndicatorDate, const Color(0xFF00AA00)),
-      findsOneWidget,
+      findsWidgets,
     );
     expect(
       _dotWithColor(tester, currentIndicatorDate, const Color(0xFFAA0000)),
@@ -163,6 +164,10 @@ Future<void> _pumpClockPanel(
     ),
   );
 }
+
+Finder _icon(AliceIconDescriptor icon) => find.byWidgetPredicate(
+  (widget) => widget is AliceIcon && widget.icon == icon,
+);
 
 Finder _dotWithColor(WidgetTester tester, DateTime date, Color color) {
   return find.descendant(

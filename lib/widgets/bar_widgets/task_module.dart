@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../alice_icon.dart';
+
 import '../../panel_controller.dart';
 import '../../rust_gen/caldav/models.dart';
 import 'panel_tap_target.dart';
@@ -35,12 +37,12 @@ class TopBarTaskModule extends StatelessWidget {
         alignment: PanelAlignment.right,
         onTap: onToggle,
         child: TopBarPill(
-          icon: Icons.checklist_rounded,
+          icon: AliceIcons.listChecks,
           label: '',
           highlighted: highlighted,
           labelWidget: hasError
-              ? Icon(
-                  Icons.error_outline_rounded,
+              ? AliceIcon(
+                  AliceIcons.warningCircle,
                   key: const ValueKey('task-module-error'),
                   size: 16,
                   color: Theme.of(context).colorScheme.error,

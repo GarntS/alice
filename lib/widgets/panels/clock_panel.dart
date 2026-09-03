@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../alice_config.dart';
 import '../../rust_gen/api.dart' show fetchCalendarEvents;
 import '../../rust_gen/state.dart';
+import '../alice_icon.dart';
 import 'panel_shell.dart';
 
 Color _onAccent(Color accent) =>
@@ -387,7 +388,7 @@ class _AliceCalendarState extends State<AliceCalendar> {
               child: const SizedBox(
                 width: 28,
                 height: 28,
-                child: Icon(Icons.chevron_left_rounded, size: 18),
+                child: AliceIcon(AliceIcons.caretLeft, size: 18),
               ),
             ),
             InkWell(
@@ -396,7 +397,7 @@ class _AliceCalendarState extends State<AliceCalendar> {
               child: const SizedBox(
                 width: 28,
                 height: 28,
-                child: Icon(Icons.chevron_right_rounded, size: 18),
+                child: AliceIcon(AliceIcons.caretRight, size: 18),
               ),
             ),
           ],
@@ -611,7 +612,7 @@ class _AuthPrompt extends StatelessWidget {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.copy_rounded, size: 14),
+                  AliceIcon(AliceIcons.copy, size: 14),
                   SizedBox(width: 6),
                   Text('Copy Link to Clipboard'),
                 ],
@@ -633,7 +634,7 @@ class _AuthPrompt extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   IconButton(
-                    icon: const Icon(Icons.copy_rounded, size: 16),
+                    icon: const AliceIcon(AliceIcons.copy, size: 16),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     visualDensity: VisualDensity.compact,

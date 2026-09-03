@@ -1,8 +1,9 @@
 import 'package:alicebar/panel_controller.dart';
 import 'package:alicebar/rust_gen/caldav/models.dart';
+import 'package:alicebar/widgets/alice_icon.dart';
 import 'package:alicebar/widgets/bar_widgets/task_module.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'helpers/alice_test_helpers.dart';
 
@@ -42,7 +43,13 @@ void main() {
       await pump();
       expect(find.text('2'), findsNothing);
       expect(find.text('3'), findsNothing);
-      expect(find.byIcon(Icons.checklist_rounded), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is AliceIcon && widget.icon == AliceIcons.listChecks,
+        ),
+        findsOneWidget,
+      );
 
       await pump(freshness: CalDavFreshness.error, highlighted: true);
       expect(find.byKey(const ValueKey('task-module-error')), findsOneWidget);

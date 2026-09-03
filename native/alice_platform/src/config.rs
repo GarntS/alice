@@ -16,6 +16,8 @@ pub struct AliceConfig {
     pub theme_mode: ThemeMode,
     pub accent_color: String,
     pub transparent_top_bar: bool,
+    pub use_duotone_icons: bool,
+    pub use_accent_on_icons: bool,
     pub show_network_label: bool,
     pub max_visible_tray_items: u32,
     pub local_time_zone_label: Option<String>,
@@ -254,6 +256,8 @@ impl AliceConfig {
             theme_mode: ThemeMode::System,
             accent_color: "#4C956C".into(),
             transparent_top_bar: false,
+            use_duotone_icons: true,
+            use_accent_on_icons: true,
             show_network_label: true,
             max_visible_tray_items: 5,
             local_time_zone_label: None,
@@ -485,6 +489,14 @@ impl RawConfig {
                 .theme
                 .transparent_top_bar
                 .unwrap_or(defaults.transparent_top_bar),
+            use_duotone_icons: self
+                .theme
+                .use_duotone_icons
+                .unwrap_or(defaults.use_duotone_icons),
+            use_accent_on_icons: self
+                .theme
+                .use_accent_on_icons
+                .unwrap_or(defaults.use_accent_on_icons),
             show_network_label: self
                 .network
                 .show_label
@@ -581,6 +593,8 @@ struct RawThemeConfig {
     mode: Option<ThemeMode>,
     accent: Option<String>,
     transparent_top_bar: Option<bool>,
+    use_duotone_icons: Option<bool>,
+    use_accent_on_icons: Option<bool>,
     panel_top_gap_px: Option<u32>,
 }
 
@@ -791,6 +805,8 @@ mod tests {
         assert_eq!(config.theme_mode, ThemeMode::System);
         assert_eq!(config.accent_color, "#4C956C");
         assert!(!config.transparent_top_bar);
+        assert!(config.use_duotone_icons);
+        assert!(config.use_accent_on_icons);
         assert!(config.show_network_label);
         assert_eq!(config.max_visible_tray_items, 5);
         assert_eq!(config.panel_top_gap_px, 8);
@@ -1080,6 +1096,21 @@ caldav:
         let debug = format!("{:?}", config.caldav.unwrap());
         assert!(debug.contains("[REDACTED]"));
         assert!(!debug.contains("never-log-me"));
+    }
+
+    #[test]
+    fn parses_explicit_icon_presentation_preferences() {
+        let config = AliceConfig::from_yaml_str(
+            r##"
+theme:
+  use_duotone_icons: false
+  use_accent_on_icons: false
+"##,
+        )
+        .expect("yaml should parse");
+
+        assert!(!config.use_duotone_icons);
+        assert!(!config.use_accent_on_icons);
     }
 
     #[test]

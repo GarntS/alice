@@ -9,6 +9,8 @@ void main() {
       themeMode: rust_config.ThemeMode.system,
       accentColor: '#4C956C',
       transparentTopBar: false,
+      useDuotoneIcons: false,
+      useAccentOnIcons: false,
       showNetworkLabel: true,
       maxVisibleTrayItems: 5,
       timeZones: [],
@@ -45,6 +47,8 @@ void main() {
 
     final mapped = AlicePlatform().mapConfigForTesting(rust);
 
+    expect(mapped.useDuotoneIcons, isFalse);
+    expect(mapped.useAccentOnIcons, isFalse);
     expect(mapped.caldav, isNotNull);
     expect(mapped.caldav!.username, 'alice');
     expect(mapped.caldav!.allowHttp, isFalse);

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../alice_icon.dart';
+
 import 'metric_pill.dart';
 
 class TopBarCpuModule extends StatelessWidget {
@@ -10,7 +12,7 @@ class TopBarCpuModule extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TopBarMetricPill(
-      icon: Icons.developer_board_rounded,
+      icon: AliceIcons.cpu,
       label: cpuUsageCores.toStringAsFixed(1),
       alert: cpuUsageCores >= 3.2,
       warning: cpuUsageCores >= 2.4,

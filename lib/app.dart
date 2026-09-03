@@ -10,6 +10,7 @@ import 'panel_controller.dart';
 import 'alice_theme.dart';
 import 'notification_popup_state.dart';
 import 'snapshot_state.dart';
+import 'widgets/alice_icon.dart';
 import 'widgets/notification_popups.dart';
 import 'widgets/panels/panel_host.dart';
 import 'widgets/panels/panel_sizes.dart';
@@ -295,13 +296,16 @@ class _AliceAppState extends State<AliceApp> {
       darkTheme: _darkTheme,
       home: Scaffold(
         backgroundColor: Colors.transparent,
-        body: TopBar(
+        body: AliceIconTheme(
           config: _config,
-          snapshotState: _snapshotState,
-          panelController: _panelController,
-          onWorkspaceTap: _handleWorkspaceFocus,
-          onTrayItemTap: _handleTrayActivate,
-          onBackgroundTap: _closePanel,
+          child: TopBar(
+            config: _config,
+            snapshotState: _snapshotState,
+            panelController: _panelController,
+            onWorkspaceTap: _handleWorkspaceFocus,
+            onTrayItemTap: _handleTrayActivate,
+            onBackgroundTap: _closePanel,
+          ),
         ),
       ),
     );
@@ -316,25 +320,28 @@ class _AliceAppState extends State<AliceApp> {
       darkTheme: _darkTheme,
       home: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Align(
-          alignment: Alignment.topRight,
-          child: panel == null
-              ? const SizedBox.shrink()
-              : AlicePanelCard(
-                  panel: panel,
-                  config: _config,
-                  snapshotState: _snapshotState,
-                  onPowerAction: _handlePowerAction,
-                  onMediaAction: _handleMediaAction,
-                  onSeekMedia: _handleMediaSeek,
-                  onTrayAction: _handleTrayActivate,
-                  onDismissNotification: _handleDismissNotification,
-                  onDismissAllNotifications: _handleDismissAllNotifications,
-                  onMarkAllNotificationsRead: _handleMarkAllNotificationsRead,
-                  onInvokeNotificationAction: _handleInvokeNotificationAction,
-                  onTaskRefresh: _handleTaskRefresh,
-                  onTaskCompletion: _handleTaskCompletion,
-                ),
+        body: AliceIconTheme(
+          config: _config,
+          child: Align(
+            alignment: Alignment.topRight,
+            child: panel == null
+                ? const SizedBox.shrink()
+                : AlicePanelCard(
+                    panel: panel,
+                    config: _config,
+                    snapshotState: _snapshotState,
+                    onPowerAction: _handlePowerAction,
+                    onMediaAction: _handleMediaAction,
+                    onSeekMedia: _handleMediaSeek,
+                    onTrayAction: _handleTrayActivate,
+                    onDismissNotification: _handleDismissNotification,
+                    onDismissAllNotifications: _handleDismissAllNotifications,
+                    onMarkAllNotificationsRead: _handleMarkAllNotificationsRead,
+                    onInvokeNotificationAction: _handleInvokeNotificationAction,
+                    onTaskRefresh: _handleTaskRefresh,
+                    onTaskCompletion: _handleTaskCompletion,
+                  ),
+          ),
         ),
       ),
     );
@@ -348,14 +355,17 @@ class _AliceAppState extends State<AliceApp> {
       darkTheme: _darkTheme,
       home: Scaffold(
         backgroundColor: Colors.transparent,
-        body: ValueListenableBuilder<List<NotificationSnapshot>>(
-          valueListenable: _snapshotState.popupNotifications,
-          builder: (context, notifications, _) => NotificationPopupStack(
-            notifications: notifications,
-            onDismissPopupRead: _handleDismissPopupRead,
-            onDismissNotification: _handlePopupDismissNotification,
-            onMarkRead: _handleMarkNotificationRead,
-            onInvokeAction: _handlePopupAction,
+        body: AliceIconTheme(
+          config: _config,
+          child: ValueListenableBuilder<List<NotificationSnapshot>>(
+            valueListenable: _snapshotState.popupNotifications,
+            builder: (context, notifications, _) => NotificationPopupStack(
+              notifications: notifications,
+              onDismissPopupRead: _handleDismissPopupRead,
+              onDismissNotification: _handlePopupDismissNotification,
+              onMarkRead: _handleMarkNotificationRead,
+              onInvokeAction: _handlePopupAction,
+            ),
           ),
         ),
       ),

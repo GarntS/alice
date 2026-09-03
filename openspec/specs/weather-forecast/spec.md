@@ -99,7 +99,7 @@ Alice SHALL render an enabled weather bar widget to the right of the clock.
 #### Scenario: Weather data is available
 - **WHEN** weather is enabled and a weather snapshot is available
 - **THEN** the top bar SHALL render a weather widget immediately to the right of the clock
-- **AND** the widget SHALL show a Material icon representing current weather
+- **AND** the widget SHALL show a Phosphor icon representing current weather
 - **AND** the widget SHALL show the current temperature value followed by a degree symbol
 - **AND** the widget tooltip SHALL contain `Last Updated <timestamp>` using the cached last-updated timestamp
 
@@ -165,7 +165,7 @@ Alice SHALL render hourly and daily forecast entries as horizontally-scrollable 
 - **AND** Alice SHALL show a scrollbar while scrolling and hide it when not moving
 
 ### Requirement: Weather icon presentation
-Alice SHALL map Pirate Weather icon strings and weather metrics to Material Icons.
+Alice SHALL map Pirate Weather icon strings and weather metrics to Phosphor icons.
 
 #### Scenario: Current or forecast weather icon is rendered
 - **WHEN** Alice renders weather with a Pirate Weather icon string
@@ -187,7 +187,7 @@ Alice SHALL map Pirate Weather icon strings and weather metrics to Material Icon
 #### Scenario: Wind direction icon is rendered
 - **WHEN** Alice renders a wind direction icon with a wind bearing
 - **THEN** Alice SHALL round the bearing to the nearest 45 degrees
-- **AND** Alice SHALL use a corresponding pre-rotated Material direction icon such as west or north_west
+- **AND** Alice SHALL use a corresponding pre-rotated Phosphor direction icon such as west or north-west
 - **AND** the icon SHALL indicate the direction the wind is blowing toward
 
 ### Requirement: Weather units and formatting

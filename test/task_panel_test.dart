@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:alicebar/rust_gen/caldav/models.dart';
+import 'package:alicebar/widgets/alice_icon.dart';
 import 'package:alicebar/widgets/panels/task_panel.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -120,7 +121,7 @@ void main() {
     expect(tester.widget(summary), isA<Padding>());
     expect(tester.getSize(summary).height, lessThan(30));
     expect(
-      find.descendant(of: summary, matching: find.byType(Icon)),
+      find.descendant(of: summary, matching: find.byType(AliceIcon)),
       findsNWidgets(3),
     );
     final activeSummary = tester.widget<Text>(

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../../rust_gen/caldav/models.dart';
+import '../alice_icon.dart';
 import 'task_panel_model.dart';
 import 'task_row.dart';
 
@@ -35,6 +36,7 @@ class TaskPanelState extends State<TaskPanel> {
   bool _refreshPending = false;
   String? _actionError;
   Timer? _dateTimer;
+  final ScrollController _taskScrollController = ScrollController();
   late DateTime _today;
 
   DateTime get _now => (widget.now ?? DateTime.now)();
@@ -63,6 +65,7 @@ class TaskPanelState extends State<TaskPanel> {
   @override
   void dispose() {
     _dateTimer?.cancel();
+    _taskScrollController.dispose();
     super.dispose();
   }
 
@@ -199,7 +202,7 @@ class TaskPanelState extends State<TaskPanel> {
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.refresh_rounded),
+                    : const AliceIcon(AliceIcons.refresh),
               ),
             ],
           ),
@@ -214,40 +217,42 @@ class TaskPanelState extends State<TaskPanel> {
         if (widget.syncState.freshness == CalDavFreshness.stale)
           const _StateBanner(
             key: ValueKey('task-panel-stale'),
-            icon: Icons.cloud_off_rounded,
+            icon: AliceIcons.cloudSlash,
             message: 'Showing stale cached tasks',
           ),
         if (widget.syncState.freshness == CalDavFreshness.error)
           _StateBanner(
             key: const ValueKey('task-panel-sync-error'),
-            icon: Icons.error_outline_rounded,
+            icon: AliceIcons.warningCircle,
             message: widget.syncState.error ?? 'Task synchronization failed',
             error: true,
           ),
         if (_actionError != null)
           _StateBanner(
             key: const ValueKey('task-panel-action-error'),
-            icon: Icons.warning_amber_rounded,
+            icon: AliceIcons.warningCircle,
             message: _actionError!,
             error: true,
           ),
         if (noCacheLoading)
           const _PanelPlaceholder(
             key: ValueKey('task-panel-loading'),
-            icon: Icons.sync_rounded,
+            icon: AliceIcons.sync,
             message: 'Loading tasks…',
             loading: true,
           )
         else if (currentEmpty)
           const _PanelPlaceholder(
             key: ValueKey('task-panel-empty'),
-            icon: Icons.task_alt_rounded,
+            icon: AliceIcons.checkCircle,
             message: 'No tasks to show',
           )
         else
           Flexible(
             child: Scrollbar(
+              controller: _taskScrollController,
               child: ListView.builder(
+                controller: _taskScrollController,
                 key: const ValueKey('task-panel-list'),
                 shrinkWrap: true,
                 padding: EdgeInsets.zero,
@@ -296,8 +301,9 @@ class _TaskSectionView extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _TaskSectionTitle(section: section, today: today),
-              const Spacer(),
+              Expanded(
+                child: _TaskSectionTitle(section: section, today: today),
+              ),
               Text(
                 '${section.tasks.length} ${section.tasks.length == 1 ? 'task' : 'tasks'}',
                 style: theme.textTheme.labelSmall?.copyWith(
@@ -387,7 +393,7 @@ class _TaskSummary extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: _TaskMetric(
-                icon: Icons.checklist_rounded,
+                icon: AliceIcons.listChecks,
                 value: activeCount,
                 label: 'Active',
                 color: colors.primary,
@@ -398,7 +404,7 @@ class _TaskSummary extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: _TaskMetric(
-                icon: Icons.today_rounded,
+                icon: AliceIcons.calendar,
                 value: dueToday,
                 label: 'Today',
                 color: colors.tertiary,
@@ -409,7 +415,7 @@ class _TaskSummary extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: _TaskMetric(
-                icon: Icons.warning_amber_rounded,
+                icon: AliceIcons.warningCircle,
                 value: overdue,
                 label: 'Overdue',
                 color: colors.error,
@@ -430,7 +436,7 @@ class _TaskMetric extends StatelessWidget {
     required this.color,
   });
 
-  final IconData icon;
+  final AliceIconDescriptor icon;
   final int value;
   final String label;
   final Color color;
@@ -441,7 +447,7 @@ class _TaskMetric extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 15, color: color),
+        AliceIcon(icon, size: 15, color: color),
         const SizedBox(width: 4),
         Text.rich(
           TextSpan(
@@ -475,7 +481,7 @@ class _PanelPlaceholder extends StatelessWidget {
     this.loading = false,
   });
 
-  final IconData icon;
+  final AliceIconDescriptor icon;
   final String message;
   final bool loading;
 
@@ -493,7 +499,7 @@ class _PanelPlaceholder extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           else
-            Icon(icon, color: theme.colorScheme.primary),
+            AliceIcon(icon, color: theme.colorScheme.primary),
           const SizedBox(height: 8),
           Text(
             message,
@@ -521,8 +527,8 @@ class _LastSyncFooter extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.cloud_done_outlined,
+          AliceIcon(
+            AliceIcons.cloudCheck,
             size: 13,
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -551,7 +557,7 @@ class _StateBanner extends StatelessWidget {
     this.error = false,
   });
 
-  final IconData icon;
+  final AliceIconDescriptor icon;
   final String message;
   final bool error;
 
@@ -564,7 +570,7 @@ class _StateBanner extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 3, 4, 9),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: color),
+          AliceIcon(icon, size: 16, color: color),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

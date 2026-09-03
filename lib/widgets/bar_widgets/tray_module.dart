@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../alice_icon.dart';
+
 import '../../rust_gen/state.dart';
 import '../../panel_controller.dart';
 import 'panel_tap_target.dart';
@@ -20,7 +22,7 @@ class TopBarTrayGroupModule extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TopBarPill(
-      icon: Icons.apps_rounded,
+      icon: AliceIcons.dotsNine,
       label: '',
       leading: Row(
         mainAxisSize: MainAxisSize.min,
@@ -71,7 +73,7 @@ class _TrayIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (iconPngBytes == null || iconPngBytes!.isEmpty) {
-      return const Icon(Icons.apps_rounded, size: 16);
+      return const AliceIcon(AliceIcons.dotsNine, size: 16);
     }
 
     return Image.memory(
@@ -81,7 +83,7 @@ class _TrayIcon extends StatelessWidget {
       fit: BoxFit.contain,
       gaplessPlayback: true,
       errorBuilder: (context, error, stackTrace) {
-        return const Icon(Icons.apps_rounded, size: 16);
+        return const AliceIcon(AliceIcons.dotsNine, size: 16);
       },
     );
   }
@@ -105,7 +107,7 @@ class TopBarTrayOverflowModule extends StatelessWidget {
       alignment: PanelAlignment.right,
       onTap: onToggle,
       child: TopBarPill(
-        icon: Icons.expand_more_rounded,
+        icon: AliceIcons.caretDown,
         label: '$overflowCount more',
         highlighted: highlighted,
       ),
