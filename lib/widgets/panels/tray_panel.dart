@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../../alice_theme.dart';
 import '../../rust_gen/state.dart';
 import '../alice_icon.dart';
 import 'panel_shell.dart';
@@ -43,9 +44,7 @@ class TrayPanel extends StatelessWidget {
                             vertical: 10,
                           ),
                           decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.secondary.withValues(alpha: 0.6),
+                            color: AliceColorTokens.of(context).raisedContainer,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(

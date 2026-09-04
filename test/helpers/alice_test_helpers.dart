@@ -17,6 +17,7 @@ AliceConfig testConfig({
   bool transparentTopBar = false,
   bool useDuotoneIcons = true,
   bool useAccentOnIcons = true,
+  Color accentColor = const Color(0xFF4C956C),
   CalendarConfig? calendar,
   CalDavConfig? caldav,
   WeatherConfig weather = const WeatherConfig(
@@ -38,7 +39,7 @@ AliceConfig testConfig({
 }) {
   return AliceConfig(
     themeMode: ThemeMode.light,
-    accentColor: const Color(0xFF4C956C),
+    accentColor: accentColor,
     transparentTopBar: transparentTopBar,
     useDuotoneIcons: useDuotoneIcons,
     useAccentOnIcons: useAccentOnIcons,

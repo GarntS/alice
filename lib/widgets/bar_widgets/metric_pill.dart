@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../alice_theme.dart';
 import '../alice_icon.dart';
 
 class TopBarMetricPill extends StatelessWidget {
@@ -19,11 +20,12 @@ class TopBarMetricPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
     final background = alert
-        ? const Color(0xFFD1495B)
+        ? colors.error
         : warning
-        ? const Color(0xFFE9B44C)
-        : theme.colorScheme.secondary.withValues(alpha: 0.75);
+        ? colors.warning
+        : colors.raisedContainer;
     final foreground = alert || warning
         ? Colors.black
         : theme.colorScheme.onSurface;

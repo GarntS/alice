@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../../alice_theme.dart';
 import '../../rust_gen/state.dart';
 import '../alice_icon.dart';
 
@@ -29,11 +30,12 @@ class _NotificationCardState extends State<NotificationCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
     final n = widget.notification;
     final body = Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.secondary.withValues(alpha: 0.9),
+        color: colors.raisedContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

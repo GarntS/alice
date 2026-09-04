@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../alice_theme.dart';
 import '../alice_icon.dart';
 import 'panel_shell.dart';
 
@@ -61,12 +62,11 @@ class _PowerButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
     final background = destructive
-        ? const Color(0xFFD1495B).withValues(alpha: 0.15)
-        : theme.colorScheme.secondary.withValues(alpha: 0.55);
-    final foreground = destructive
-        ? const Color(0xFFD1495B)
-        : theme.colorScheme.onSurface;
+        ? theme.colorScheme.errorContainer
+        : colors.raisedContainer;
+    final foreground = destructive ? colors.error : theme.colorScheme.onSurface;
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(12),

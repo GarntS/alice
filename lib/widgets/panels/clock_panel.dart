@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import '../../alice_config.dart';
+import '../../alice_theme.dart';
 import '../../rust_gen/api.dart' show fetchCalendarEvents;
 import '../../rust_gen/state.dart';
 import '../alice_icon.dart';
@@ -267,13 +268,13 @@ class _ClockRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: highlighted
           ? BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.12),
+              color: colors.accentSubtle,
               borderRadius: BorderRadius.circular(12),
             )
           : null,

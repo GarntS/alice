@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../../alice_theme.dart';
 import '../../rust_gen/state.dart';
 import '../alice_icon.dart';
 import 'panel_shell.dart';
@@ -225,10 +226,11 @@ class _AlbumArtFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
     return Container(
       width: size,
       height: size,
-      color: theme.colorScheme.secondary.withValues(alpha: 0.6),
+      color: colors.raisedContainer,
       child: AliceIcon(
         AliceIcons.musicNote,
         color: theme.colorScheme.onSurface,
@@ -250,7 +252,7 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(12),
@@ -258,9 +260,7 @@ class _ActionButton extends StatelessWidget {
         width: 48,
         height: 44,
         decoration: BoxDecoration(
-          color: filled
-              ? theme.colorScheme.primary.withValues(alpha: 0.18)
-              : theme.colorScheme.secondary.withValues(alpha: 0.55),
+          color: filled ? colors.accentSubtle : colors.raisedContainer,
           borderRadius: BorderRadius.circular(12),
         ),
         child: AliceIcon(icon),

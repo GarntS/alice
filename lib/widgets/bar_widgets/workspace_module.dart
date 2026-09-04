@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../alice_theme.dart';
 import '../../rust_gen/state.dart';
 
 class TopBarWorkspaceModule extends StatelessWidget {
@@ -18,7 +19,7 @@ class TopBarWorkspaceModule extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -26,7 +27,7 @@ class TopBarWorkspaceModule extends StatelessWidget {
         key: const ValueKey('top-bar-workspace-group-background'),
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
-          color: theme.colorScheme.secondary.withValues(alpha: 0.75),
+          color: colors.raisedContainer,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Wrap(
@@ -56,10 +57,11 @@ class _TopBarWorkspaceChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
     final background = workspace.isFocused
-        ? theme.colorScheme.primary
+        ? colors.accent
         : workspace.isVisible
-        ? theme.colorScheme.secondary
+        ? colors.raisedContainer
         : Colors.transparent;
     final foreground = workspace.isFocused
         ? theme.colorScheme.onPrimary
@@ -68,6 +70,12 @@ class _TopBarWorkspaceChip extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
+      overlayColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.pressed)) return colors.accentPressed;
+        if (states.contains(WidgetState.hovered)) return colors.accentHover;
+        if (states.contains(WidgetState.focused)) return colors.accentFocus;
+        return null;
+      }),
       child: Container(
         constraints: const BoxConstraints(minHeight: 28),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

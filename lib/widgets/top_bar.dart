@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../alice_config.dart';
+import '../alice_theme.dart';
 import '../rust_gen/caldav/models.dart';
 import '../rust_gen/state.dart';
 import '../panel_controller.dart';
@@ -47,6 +48,7 @@ class TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -61,9 +63,7 @@ class TopBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(0),
           border: config.transparentTopBar
               ? null
-              : Border.all(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.35),
-                ),
+              : Border.all(color: colors.accentBorder),
         ),
         child: DefaultTextStyle(
           style: (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(

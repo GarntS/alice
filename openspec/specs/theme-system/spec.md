@@ -11,12 +11,17 @@ Alice SHALL support Flutter `system`, `light`, and `dark` theme modes based on c
 - **THEN** Alice SHALL set `MaterialApp.themeMode` to system, light, or dark accordingly
 
 ### Requirement: Accent-derived Material theme
-Alice SHALL build Material 3 color schemes from the configured accent color for both light and dark themes.
+Alice SHALL build explicit light and dark Material color schemes from Alice-owned color tokens instead of a Material 3 seeded palette. Each scheme SHALL retain Flutter Material theme compatibility while mapping the configured exact accent to `primary`, the subtle accent token to `primaryContainer`, and the neutral raised-container token to `secondaryContainer`.
 
 #### Scenario: Theme is built
 - **WHEN** Alice builds a light or dark theme
-- **THEN** Alice SHALL use `ColorScheme.fromSeed` with the configured accent color
-- **AND** Alice SHALL apply Alice-specific surface, foreground, secondary, and transparent scaffold colors
+- **THEN** it SHALL NOT derive the color scheme with `ColorScheme.fromSeed`
+- **AND** it SHALL use Alice-defined neutral surface, foreground, and secondary colors
+- **AND** it SHALL expose an explicit Material color scheme and transparent scaffold colors
+
+#### Scenario: Material component consumes theme roles
+- **WHEN** an Alice or stock Material component reads a mapped primary, container, surface, outline, error, or warning theme role
+- **THEN** it SHALL receive the corresponding explicit Alice color token
 
 ### Requirement: Highlighted panel targets
 Bar controls associated with open panels SHALL expose a highlighted visual state.

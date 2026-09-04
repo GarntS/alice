@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:intl/intl.dart';
 
 import '../../alice_config.dart';
+import '../../alice_theme.dart';
 import '../../rust_gen/state.dart';
 import '../alice_icon.dart';
 import '../weather_format.dart';
@@ -108,15 +109,14 @@ class _MetricsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
     final current = weather.currently;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-        color: theme.colorScheme.secondary.withValues(alpha: 0.45),
+        color: colors.raisedContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.18),
-        ),
+        border: Border.all(color: colors.accentBorder),
       ),
       child: Row(
         children: [
@@ -353,9 +353,8 @@ class _WeatherCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final background = highlighted
-        ? accentColor
-        : theme.colorScheme.secondary.withValues(alpha: 0.42);
+    final colors = AliceColorTokens.of(context);
+    final background = highlighted ? accentColor : colors.raisedContainer;
     final foreground = highlighted
         ? (ThemeData.estimateBrightnessForColor(accentColor) == Brightness.dark
               ? Colors.white

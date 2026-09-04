@@ -96,7 +96,8 @@ void main() {
     );
 
     final context = tester.element(find.byKey(const ValueKey('task-panel')));
-    final primary = Theme.of(context).colorScheme.primary;
+    final colors = Theme.of(context).colorScheme;
+    final primary = colors.primary;
     expect(
       tester
           .widget<Text>(find.byKey(const ValueKey('task-panel-title')))
@@ -105,7 +106,7 @@ void main() {
       primary,
     );
     final sectionTitle = tester.widget<Text>(find.text('Today - 20 July'));
-    expect(sectionTitle.style?.color, Colors.black);
+    expect(sectionTitle.style?.color, colors.onSurface);
     expect(sectionTitle.style?.fontSize, 15);
     expect(sectionTitle.style?.fontWeight, FontWeight.w700);
     final titleSpans = (sectionTitle.textSpan! as TextSpan).children!;
@@ -130,7 +131,13 @@ void main() {
     expect(activeSummary.textSpan!.toPlainText(), '1 Active');
     final activeSpans = (activeSummary.textSpan! as TextSpan).children!;
     expect(activeSpans[0].style?.color, primary);
-    expect(activeSpans[1].style?.color, Colors.black);
+    expect(activeSpans[1].style?.color, primary);
+    final todaySummary = tester.widget<Text>(
+      find.byKey(const ValueKey('task-summary-today')),
+    );
+    final todaySpans = (todaySummary.textSpan! as TextSpan).children!;
+    expect(todaySpans[0].style?.color, colors.onSurface);
+    expect(todaySpans[1].style?.color, colors.onSurface);
     final sectionPadding = tester.widget<Padding>(sectionLabel);
     expect(sectionPadding.padding, const EdgeInsets.fromLTRB(2, 9, 2, 4));
     expect(

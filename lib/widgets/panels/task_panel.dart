@@ -365,7 +365,7 @@ class _TaskSectionTitle extends StatelessWidget {
           if (date.year != today.year) TextSpan(text: ' ${date.year}'),
         ],
       ),
-      style: baseStyle?.copyWith(color: Colors.black),
+      style: baseStyle?.copyWith(color: theme.colorScheme.onSurface),
     );
   }
 }
@@ -407,7 +407,7 @@ class _TaskSummary extends StatelessWidget {
                 icon: AliceIcons.calendar,
                 value: dueToday,
                 label: 'Today',
-                color: colors.tertiary,
+                color: colors.onSurface,
               ),
             ),
           ),
@@ -458,10 +458,7 @@ class _TaskMetric extends StatelessWidget {
               ),
               TextSpan(
                 text: ' $label',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(color: color, fontWeight: FontWeight.w500),
               ),
             ],
           ),

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../alice_theme.dart';
 import '../alice_icon.dart';
 
 class TopBarPill extends StatelessWidget {
@@ -20,21 +21,15 @@ class TopBarPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final colors = AliceColorTokens.of(context);
 
     return Container(
       constraints: const BoxConstraints(minHeight: 28),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: highlighted
-            ? theme.colorScheme.primary.withValues(alpha: 0.75)
-            : theme.colorScheme.secondary.withValues(alpha: 0.75),
+        color: highlighted ? colors.accentSubtle : colors.raisedContainer,
         borderRadius: BorderRadius.circular(10),
-        border: highlighted
-            ? Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.5),
-              )
-            : null,
+        border: highlighted ? Border.all(color: colors.accentBorder) : null,
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 220),

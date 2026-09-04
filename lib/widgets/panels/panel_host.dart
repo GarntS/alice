@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../alice_config.dart';
+import '../../alice_theme.dart';
 import '../../rust_gen/caldav/models.dart';
 import '../../rust_gen/state.dart';
 import '../../panel_controller.dart';
@@ -104,6 +105,7 @@ class AlicePanelCard extends StatelessWidget {
         ),
     };
 
+    final colors = AliceColorTokens.of(context);
     return Material(
       color: Colors.transparent,
       child: Container(
@@ -113,11 +115,7 @@ class AlicePanelCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.25),
-          ),
+          border: Border.all(color: colors.accentBorder),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.18),
