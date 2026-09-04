@@ -4,8 +4,7 @@
 //! regenerate `frb_generated.rs` and the Dart bindings in `lib/rust_gen/`.
 
 pub use crate::config::{
-    BatteryConfig, CalendarConfig, NotificationConfig, PowerCommandConfig, ThemeMode,
-    TimeZoneConfig, WeatherConfig,
+    BatteryConfig, NotificationConfig, PowerCommandConfig, ThemeMode, TimeZoneConfig, WeatherConfig,
 };
 
 /// Secret-free configuration contract returned to Flutter.
@@ -21,11 +20,24 @@ pub struct AliceUiConfig {
     pub time_zones: Vec<TimeZoneConfig>,
     pub power_commands: PowerCommandConfig,
     pub panel_top_gap_px: u32,
-    pub calendar: Option<CalendarConfig>,
+    pub calendar: Option<CalendarUiConfig>,
     pub caldav: Option<CalDavUiConfig>,
     pub notifications: NotificationConfig,
     pub weather: WeatherConfig,
     pub battery: BatteryConfig,
+}
+
+/// Secret-free calendar metadata required by the Flutter UI.
+pub struct CalendarUiConfig {
+    pub calendars: Vec<CalendarEntryUiConfig>,
+}
+
+pub struct CalendarEntryUiConfig {
+    pub id: String,
+    pub entry_type: String,
+    pub color: Option<String>,
+    pub poll_interval_secs: u32,
+    pub notify_for_events: Option<bool>,
 }
 
 /// Non-secret CalDAV settings needed to decide whether and how to render UI.
@@ -40,6 +52,27 @@ pub struct CalDavUiConfig {
 
 impl From<crate::config::AliceConfig> for AliceUiConfig {
     fn from(config: crate::config::AliceConfig) -> Self {
+        let calendar = config.calendar.map(|calendar| CalendarUiConfig {
+            calendars: calendar
+                .calendars
+                .into_iter()
+                .map(|entry| {
+                    let (entry_type, notify_for_events) = match entry.kind {
+                        crate::config::CalendarEntryKind::Google { .. } => ("google".into(), None),
+                        crate::config::CalendarEntryKind::Ics {
+                            notify_for_events, ..
+                        } => ("ics".into(), Some(notify_for_events)),
+                    };
+                    CalendarEntryUiConfig {
+                        id: entry.id,
+                        entry_type,
+                        color: entry.color,
+                        poll_interval_secs: entry.poll_interval_secs,
+                        notify_for_events,
+                    }
+                })
+                .collect(),
+        });
         let caldav = config
             .caldav
             .as_ref()
@@ -67,7 +100,7 @@ impl From<crate::config::AliceConfig> for AliceUiConfig {
             time_zones: config.time_zones,
             power_commands: config.power_commands,
             panel_top_gap_px: config.panel_top_gap_px,
-            calendar: config.calendar,
+            calendar,
             caldav,
             notifications: config.notifications,
             weather: config.weather,

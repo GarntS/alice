@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf};
 
 use crate::{PlatformError, config::BatteryConfig, state::BatterySnapshot};
 
@@ -73,6 +70,7 @@ impl crate::providers::BatteryProvider for SysfsBatteryProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
     use tempfile::TempDir;
 
     fn device(root: &Path, name: &str, kind: &str, capacity: &str, status: &str) {

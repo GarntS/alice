@@ -8,7 +8,12 @@
 //! - Subsequent calls while polling return the same URL.
 //! - Once authorised, calls proceed to the Calendar API.
 
-use std::{collections::HashMap, path::PathBuf, sync::Mutex, sync::OnceLock, time::Duration};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{LazyLock, Mutex, OnceLock},
+    time::Duration,
+};
 
 // ---------------------------------------------------------------------------
 // Shared tokio runtime + stored authenticator
@@ -25,7 +30,8 @@ type CalendarAuth = yup_oauth2::authenticator::Authenticator<
 >;
 
 static CALENDAR_RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
-static CALENDAR_AUTH: Mutex<Option<CalendarAuth>> = Mutex::new(None);
+static CALENDAR_AUTH: LazyLock<Mutex<HashMap<String, CalendarAuth>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 fn calendar_runtime() -> &'static tokio::runtime::Runtime {
     CALENDAR_RUNTIME.get_or_init(|| {
@@ -38,7 +44,7 @@ fn calendar_runtime() -> &'static tokio::runtime::Runtime {
 }
 
 use crate::{
-    config::CalendarConfig,
+    config::{CalendarConfig, CalendarEntry, CalendarEntryKind},
     state::{CalendarEvent, CalendarFetchResult},
 };
 
@@ -61,8 +67,10 @@ struct EventCache {
     cal_meta: HashMap<String, (String, String)>,
 }
 
-static EVENT_CACHE: Mutex<Option<EventCache>> = Mutex::new(None);
-static POLL_ABORT: Mutex<Option<tokio::task::AbortHandle>> = Mutex::new(None);
+static EVENT_CACHE: LazyLock<Mutex<HashMap<String, EventCache>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+static POLL_ABORT: LazyLock<Mutex<HashMap<String, tokio::task::AbortHandle>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 // ---------------------------------------------------------------------------
 // Global auth state
@@ -75,13 +83,14 @@ enum AuthState {
     Failed(String),
 }
 
-static AUTH_STATE: Mutex<AuthState> = Mutex::new(AuthState::Uninitiated);
+static AUTH_STATE: LazyLock<Mutex<HashMap<String, AuthState>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 // ---------------------------------------------------------------------------
 // Token storage path
 // ---------------------------------------------------------------------------
 
-fn token_path() -> PathBuf {
+fn token_path(source_id: &str) -> PathBuf {
     let base = match std::env::var_os("XDG_CONFIG_HOME") {
         Some(p) if !p.is_empty() => PathBuf::from(p),
         _ => {
@@ -89,7 +98,9 @@ fn token_path() -> PathBuf {
             PathBuf::from(home).join(".config")
         }
     };
-    base.join("alice").join("calendar_token.json")
+    base.join("alice")
+        .join("calendar_tokens")
+        .join(format!("{source_id}.json"))
 }
 
 // ---------------------------------------------------------------------------
@@ -97,13 +108,41 @@ fn token_path() -> PathBuf {
 // ---------------------------------------------------------------------------
 
 pub fn fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
-    let tp = token_path();
-
+    let date_naive = match chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d") {
+        Ok(date) => date,
+        Err(_) => return err_result(format!("invalid date: {date}")),
+    };
+    // Source workers own ICS acquisition. Date requests only query their
+    // merged snapshot and therefore never cause an ICS network request.
+    let merged_events = crate::calendar_sources::global_coordinator()
+        .map(|coordinator| coordinator.events_for_date(date_naive))
+        .unwrap_or_default();
+    let has_google = config
+        .calendars
+        .iter()
+        .any(|entry| matches!(entry.kind, CalendarEntryKind::Google { .. }));
+    if !has_google {
+        return CalendarFetchResult {
+            status: "ready".into(),
+            events: merged_events,
+            ..Default::default()
+        };
+    }
+    // Google authorization remains panel-driven; its results are merged by the
+    // source coordinator once a source has completed device authorization.
+    let Some(config) = config
+        .calendars
+        .iter()
+        .find(|entry| matches!(entry.kind, CalendarEntryKind::Google { .. }))
+    else {
+        unreachable!("has_google was checked above");
+    };
+    let tp = token_path(&config.id);
     // If a token file already exists, ensure state reflects that.
     {
-        let mut s = AUTH_STATE.lock().unwrap();
-        if matches!(&*s, AuthState::Uninitiated) && tp.exists() {
-            *s = AuthState::Authorized;
+        let mut states = AUTH_STATE.lock().unwrap();
+        if !states.contains_key(&config.id) && tp.exists() {
+            states.insert(config.id.clone(), AuthState::Authorized);
         }
     }
 
@@ -115,8 +154,8 @@ pub fn fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult 
         Failed(String),
     }
     let snap = {
-        let s = AUTH_STATE.lock().unwrap();
-        match &*s {
+        let states = AUTH_STATE.lock().unwrap();
+        match states.get(&config.id).unwrap_or(&AuthState::Uninitiated) {
             AuthState::Uninitiated => Snap::Uninitiated,
             AuthState::PendingFlow { url } => Snap::Pending(url.clone()),
             AuthState::Authorized => Snap::Authorized,
@@ -133,15 +172,16 @@ pub fn fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult 
 
             // Cache hit: return immediately without any network call.
             {
-                let cache = EVENT_CACHE.lock().unwrap();
-                if let Some(ref c) = *cache {
-                    if date_naive >= c.window_start && date_naive < c.window_end {
-                        return CalendarFetchResult {
-                            status: "ready".into(),
-                            events: filter_for_date(&c.entries, date_naive),
-                            ..Default::default()
-                        };
-                    }
+                let caches = EVENT_CACHE.lock().unwrap();
+                if let Some(c) = caches.get(&config.id)
+                    && date_naive >= c.window_start
+                    && date_naive < c.window_end
+                {
+                    return CalendarFetchResult {
+                        status: "ready".into(),
+                        events: merged_events_for_date(&c.entries, date_naive),
+                        ..Default::default()
+                    };
                 }
             }
 
@@ -160,8 +200,10 @@ pub fn fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult 
             // Reset so the next open of the panel retries rather than staying
             // stuck in the failed state permanently.
             {
-                let mut s = AUTH_STATE.lock().unwrap();
-                *s = AuthState::Uninitiated;
+                AUTH_STATE
+                    .lock()
+                    .unwrap()
+                    .insert(config.id.clone(), AuthState::Uninitiated);
             }
             CalendarFetchResult {
                 status: "error".into(),
@@ -173,16 +215,19 @@ pub fn fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult 
         Snap::Uninitiated => {
             // Mark as pending (empty URL until the background thread fills it).
             {
-                let mut s = AUTH_STATE.lock().unwrap();
-                *s = AuthState::PendingFlow { url: String::new() };
+                AUTH_STATE.lock().unwrap().insert(
+                    config.id.clone(),
+                    AuthState::PendingFlow { url: String::new() },
+                );
             }
 
             let (tx, rx) = std::sync::mpsc::channel::<String>();
             let cfg = config.clone();
+            let source_id = config.id.clone();
             let tp_clone = tp.clone();
             std::thread::Builder::new()
                 .name("alice-calendar-auth".into())
-                .spawn(move || run_device_auth(cfg, tp_clone, tx))
+                .spawn(move || run_device_auth(cfg, source_id, tp_clone, tx))
                 .ok();
 
             // Wait up to 15 s for the installed-flow URL (network round-trip).
@@ -190,8 +235,10 @@ pub fn fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult 
             match rx.recv_timeout(Duration::from_secs(15)) {
                 Ok(url) => {
                     {
-                        let mut s = AUTH_STATE.lock().unwrap();
-                        *s = AuthState::PendingFlow { url: url.clone() };
+                        AUTH_STATE.lock().unwrap().insert(
+                            config.id.clone(),
+                            AuthState::PendingFlow { url: url.clone() },
+                        );
                     }
                     CalendarFetchResult {
                         status: "needs_auth".into(),
@@ -206,8 +253,10 @@ pub fn fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult 
                     );
                     let msg = "Timed out waiting for Google authorisation URL".to_string();
                     {
-                        let mut s = AUTH_STATE.lock().unwrap();
-                        *s = AuthState::Failed(msg.clone());
+                        AUTH_STATE
+                            .lock()
+                            .unwrap()
+                            .insert(config.id.clone(), AuthState::Failed(msg.clone()));
                     }
                     CalendarFetchResult {
                         status: "error".into(),
@@ -225,7 +274,8 @@ pub fn fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult 
 // ---------------------------------------------------------------------------
 
 fn run_device_auth(
-    config: CalendarConfig,
+    config: CalendarEntry,
+    source_id: String,
     token_path: PathBuf,
     url_tx: std::sync::mpsc::Sender<String>,
 ) {
@@ -249,8 +299,10 @@ fn run_device_auth(
             Ok(a) => a,
             Err(e) => {
                 eprintln!("[alice/calendar] auth build failed: {e}");
-                let mut s = AUTH_STATE.lock().unwrap();
-                *s = AuthState::Failed(format!("auth build failed: {e}"));
+                AUTH_STATE.lock().unwrap().insert(
+                    source_id.clone(),
+                    AuthState::Failed(format!("auth build failed: {e}")),
+                );
                 return;
             }
         };
@@ -260,14 +312,21 @@ fn run_device_auth(
             Ok(_) => {
                 // Store auth before marking Authorized so do_fetch_events
                 // always finds a live instance with the token in memory.
-                *CALENDAR_AUTH.lock().unwrap() = Some(auth);
-                let mut s = AUTH_STATE.lock().unwrap();
-                *s = AuthState::Authorized;
+                CALENDAR_AUTH
+                    .lock()
+                    .unwrap()
+                    .insert(source_id.clone(), auth);
+                AUTH_STATE
+                    .lock()
+                    .unwrap()
+                    .insert(source_id.clone(), AuthState::Authorized);
             }
             Err(e) => {
                 eprintln!("[alice/calendar] token request failed: {e}");
-                let mut s = AUTH_STATE.lock().unwrap();
-                *s = AuthState::Failed(format!("auth failed: {e}"));
+                AUTH_STATE
+                    .lock()
+                    .unwrap()
+                    .insert(source_id, AuthState::Failed(format!("auth failed: {e}")));
             }
         }
     });
@@ -372,8 +431,8 @@ fn build_hub(
 // Fetch events from the Calendar API — 60-day window
 // ---------------------------------------------------------------------------
 
-fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
-    let tp = token_path();
+fn do_fetch_events(date: &str, config: &CalendarEntry) -> CalendarFetchResult {
+    let tp = token_path(&config.id);
     let secret = make_app_secret(config);
     let interval_secs = config.poll_interval_secs as u64;
     let date_owned = date.to_owned();
@@ -384,7 +443,7 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
         // Interactive + NoAuthDelegate so that if the token is somehow missing
         // we fail cleanly instead of trying to bind port 8085.
         let auth: CalendarAuth = {
-            let maybe = CALENDAR_AUTH.lock().unwrap().clone();
+            let maybe = CALENDAR_AUTH.lock().unwrap().get(&config.id).cloned();
             match maybe {
                 Some(a) => a,
                 None => {
@@ -398,7 +457,10 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
                     .await
                     {
                         Ok(a) => {
-                            *CALENDAR_AUTH.lock().unwrap() = Some(a.clone());
+                            CALENDAR_AUTH
+                                .lock()
+                                .unwrap()
+                                .insert(config.id.clone(), a.clone());
                             a
                         }
                         Err(e) => return err_result(format!("auth error: {e}")),
@@ -459,31 +521,49 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
             }
 
             for event in event_list.items.unwrap_or_default() {
-                if let Some(mapped_event) = map_event(&event, &cal_name, &cal_color) {
+                if let Some(mapped_event) =
+                    map_event(&event, &cal_name, &cal_color, config.color.as_deref())
+                {
                     entries.push(mapped_event);
                 }
             }
         }
 
         // Populate the cache.
-        *EVENT_CACHE.lock().unwrap() = Some(EventCache {
-            window_start,
-            window_end,
-            entries: entries.clone(),
-            sync_tokens,
-            cal_meta,
-        });
+        EVENT_CACHE.lock().unwrap().insert(
+            config.id.clone(),
+            EventCache {
+                window_start,
+                window_end,
+                entries: entries.clone(),
+                sync_tokens,
+                cal_meta,
+            },
+        );
 
-        // Cancel any previous poll task and start a fresh one.
-        if let Some(handle) = POLL_ABORT.lock().unwrap().take() {
+        // Cancel only this source's previous poll task and start a fresh one.
+        if let Some(handle) = POLL_ABORT.lock().unwrap().remove(&config.id) {
             handle.abort();
         }
-        let join_handle = tokio::task::spawn(run_poll_loop(interval_secs));
-        *POLL_ABORT.lock().unwrap() = Some(join_handle.abort_handle());
+        let source_id = config.id.clone();
+        let source_color = config.color.clone();
+        let join_handle = tokio::task::spawn(run_poll_loop(
+            source_id.clone(),
+            interval_secs,
+            source_color,
+        ));
+        POLL_ABORT
+            .lock()
+            .unwrap()
+            .insert(source_id, join_handle.abort_handle());
+
+        if let Some(coordinator) = crate::calendar_sources::global_coordinator() {
+            coordinator.replace_events(&config.id, entries.clone());
+        }
 
         CalendarFetchResult {
             status: "ready".into(),
-            events: filter_for_date(&entries, date_naive),
+            events: merged_events_for_date(&entries, date_naive),
             ..Default::default()
         }
     })
@@ -493,27 +573,30 @@ fn do_fetch_events(date: &str, config: &CalendarConfig) -> CalendarFetchResult {
 // Incremental sync background task
 // ---------------------------------------------------------------------------
 
-async fn run_poll_loop(interval_secs: u64) {
+async fn run_poll_loop(source_id: String, interval_secs: u64, entry_color: Option<String>) {
     let mut interval = tokio::time::interval(Duration::from_secs(interval_secs));
     loop {
         interval.tick().await;
-        if let Err(e) = do_poll_incremental().await {
+        if let Err(e) = do_poll_incremental(&source_id, entry_color.as_deref()).await {
             eprintln!("[alice/calendar] incremental poll error: {e}");
         }
     }
 }
 
-async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn do_poll_incremental(
+    source_id: &str,
+    entry_color: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Clone auth — return early if not yet available.
-    let auth = match CALENDAR_AUTH.lock().unwrap().clone() {
+    let auth = match CALENDAR_AUTH.lock().unwrap().get(source_id).cloned() {
         Some(a) => a,
         None => return Ok(()),
     };
 
     // Snapshot sync tokens — return early if there is no cache yet.
     let sync_tokens: HashMap<String, String> = {
-        let cache = EVENT_CACHE.lock().unwrap();
-        match &*cache {
+        let caches = EVENT_CACHE.lock().unwrap();
+        match caches.get(source_id) {
             Some(c) if !c.sync_tokens.is_empty() => c.sync_tokens.clone(),
             _ => return Ok(()),
         }
@@ -536,7 +619,7 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
                 // 410 Gone means the sync token has expired; clear the cache
                 // so that the next fetch_events call triggers a full re-fetch.
                 if e_str.contains("410") || e_str.contains("Gone") {
-                    *EVENT_CACHE.lock().unwrap() = None;
+                    EVENT_CACHE.lock().unwrap().remove(source_id);
                     return Ok(());
                 }
                 eprintln!("[alice/calendar] incremental sync error for {cal_id}: {e}");
@@ -545,7 +628,7 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
                 let new_sync_token = event_list.next_sync_token.clone();
 
                 let mut cache_lock = EVENT_CACHE.lock().unwrap();
-                if let Some(ref mut cache) = *cache_lock {
+                if let Some(cache) = cache_lock.get_mut(source_id) {
                     for event in event_list.items.unwrap_or_default() {
                         let event_id = event.id.clone().unwrap_or_default();
 
@@ -563,7 +646,9 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
                         if !is_cancelled {
                             let (cal_name, cal_color) =
                                 cache.cal_meta.get(&cal_id).cloned().unwrap_or_default();
-                            if let Some(mapped_event) = map_event(&event, &cal_name, &cal_color) {
+                            if let Some(mapped_event) =
+                                map_event(&event, &cal_name, &cal_color, entry_color)
+                            {
                                 cache.entries.push(mapped_event);
                             }
                         }
@@ -581,6 +666,9 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
                             (false, true) => std::cmp::Ordering::Greater,
                             _ => a.start_label.cmp(&b.start_label),
                         });
+                    if let Some(coordinator) = crate::calendar_sources::global_coordinator() {
+                        coordinator.replace_events(source_id, cache.entries.clone());
+                    }
                 }
             }
         }
@@ -596,7 +684,8 @@ async fn do_poll_incremental() -> Result<(), Box<dyn std::error::Error + Send + 
 fn map_event(
     event: &google_calendar3::api::Event,
     calendar_name: &str,
-    calendar_color: &str,
+    remote_calendar_color: &str,
+    entry_color: Option<&str>,
 ) -> Option<(chrono::NaiveDate, CalendarEvent)> {
     let event_date = extract_event_date(event)?;
     let (is_all_day, start_label, end_label) = extract_time_labels(event);
@@ -610,15 +699,26 @@ fn map_event(
             start_label,
             end_label,
             calendar_name: calendar_name.to_owned(),
-            calendar_color: calendar_color.to_owned(),
+            calendar_color: if remote_calendar_color.is_empty() {
+                entry_color.unwrap_or_default().to_owned()
+            } else {
+                remote_calendar_color.to_owned()
+            },
         },
     ))
 }
 
-fn make_app_secret(config: &CalendarConfig) -> yup_oauth2::ApplicationSecret {
+fn make_app_secret(config: &CalendarEntry) -> yup_oauth2::ApplicationSecret {
+    let CalendarEntryKind::Google {
+        google_client_id,
+        google_client_secret,
+    } = &config.kind
+    else {
+        unreachable!("Google auth must only receive Google entries");
+    };
     yup_oauth2::ApplicationSecret {
-        client_id: config.google_client_id.clone(),
-        client_secret: config.google_client_secret.clone(),
+        client_id: google_client_id.clone(),
+        client_secret: google_client_secret.clone(),
         token_uri: "https://oauth2.googleapis.com/token".to_string(),
         auth_uri: "https://accounts.google.com/o/oauth2/auth".to_string(),
         redirect_uris: vec!["http://localhost:8085".to_string()],
@@ -649,6 +749,16 @@ fn extract_event_date(event: &google_calendar3::api::Event) -> Option<chrono::Na
 }
 
 /// Return a sorted copy of the events in `entries` that fall on `date`.
+fn merged_events_for_date(
+    entries: &[(chrono::NaiveDate, CalendarEvent)],
+    date: chrono::NaiveDate,
+) -> Vec<CalendarEvent> {
+    crate::calendar_sources::global_coordinator()
+        .map(|coordinator| coordinator.events_for_date(date))
+        .filter(|events| !events.is_empty())
+        .unwrap_or_else(|| filter_for_date(entries, date))
+}
+
 fn filter_for_date(
     entries: &[(chrono::NaiveDate, CalendarEvent)],
     date: chrono::NaiveDate,
@@ -742,7 +852,7 @@ mod tests {
         };
 
         assert_eq!(
-            map_event(&event, "Work", "#123456"),
+            map_event(&event, "Work", "#123456", None),
             Some((
                 chrono::NaiveDate::from_ymd_opt(2026, 7, 20).unwrap(),
                 CalendarEvent {
@@ -772,7 +882,7 @@ mod tests {
         };
 
         assert_eq!(
-            map_event(&event, "Personal", "#abcdef"),
+            map_event(&event, "Personal", "#abcdef", None),
             Some((
                 date,
                 CalendarEvent {
@@ -789,6 +899,32 @@ mod tests {
     }
 
     #[test]
+    fn uses_entry_color_only_when_remote_color_is_missing() {
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 7, 22).unwrap();
+        let event = Event {
+            start: Some(EventDateTime {
+                date: Some(date),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert_eq!(
+            map_event(&event, "Work", "", Some("#654321"))
+                .unwrap()
+                .1
+                .calendar_color,
+            "#654321"
+        );
+        assert_eq!(
+            map_event(&event, "Work", "#abcdef", Some("#654321"))
+                .unwrap()
+                .1
+                .calendar_color,
+            "#abcdef"
+        );
+    }
+
+    #[test]
     fn uses_missing_title_fallback() {
         let date = chrono::NaiveDate::from_ymd_opt(2026, 7, 22).unwrap();
         let event = Event {
@@ -799,13 +935,40 @@ mod tests {
             ..Default::default()
         };
 
-        let (_, mapped_event) = map_event(&event, "", "").unwrap();
+        let (_, mapped_event) = map_event(&event, "", "", None).unwrap();
         assert_eq!(mapped_event.id, "");
         assert_eq!(mapped_event.title, "(No title)");
     }
 
     #[test]
+    fn google_state_and_token_paths_are_scoped_by_entry_id() {
+        let work_path = token_path("work");
+        let personal_path = token_path("personal");
+        assert_ne!(work_path, personal_path);
+        assert!(work_path.ends_with("calendar_tokens/work.json"));
+        assert!(personal_path.ends_with("calendar_tokens/personal.json"));
+
+        let mut cache = EVENT_CACHE.lock().unwrap();
+        cache.clear();
+        for id in ["work", "personal"] {
+            cache.insert(
+                id.into(),
+                EventCache {
+                    window_start: chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    window_end: chrono::NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
+                    entries: Vec::new(),
+                    sync_tokens: HashMap::new(),
+                    cal_meta: HashMap::new(),
+                },
+            );
+        }
+        assert_eq!(cache.len(), 2);
+        assert!(cache.contains_key("work"));
+        assert!(cache.contains_key("personal"));
+    }
+
+    #[test]
     fn rejects_event_without_start() {
-        assert_eq!(map_event(&Event::default(), "Work", "#123456"), None);
+        assert_eq!(map_event(&Event::default(), "Work", "#123456", None), None);
     }
 }

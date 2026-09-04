@@ -63,10 +63,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BatterySnapshot dco_decode_box_autoadd_battery_snapshot(dynamic raw);
 
   @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw);
+
+  @protected
   CalDavUiConfig dco_decode_box_autoadd_cal_dav_ui_config(dynamic raw);
 
   @protected
-  CalendarConfig dco_decode_box_autoadd_calendar_config(dynamic raw);
+  CalendarUiConfig dco_decode_box_autoadd_calendar_ui_config(dynamic raw);
 
   @protected
   double dco_decode_box_autoadd_f_64(dynamic raw);
@@ -98,13 +101,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CalDavUiConfig dco_decode_cal_dav_ui_config(dynamic raw);
 
   @protected
-  CalendarConfig dco_decode_calendar_config(dynamic raw);
+  CalendarEntryUiConfig dco_decode_calendar_entry_ui_config(dynamic raw);
 
   @protected
   CalendarEvent dco_decode_calendar_event(dynamic raw);
 
   @protected
   CalendarFetchResult dco_decode_calendar_fetch_result(dynamic raw);
+
+  @protected
+  CalendarUiConfig dco_decode_calendar_ui_config(dynamic raw);
 
   @protected
   ClockSnapshot dco_decode_clock_snapshot(dynamic raw);
@@ -120,6 +126,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<CalendarEntryUiConfig> dco_decode_list_calendar_entry_ui_config(
+    dynamic raw,
+  );
 
   @protected
   List<CalendarEvent> dco_decode_list_calendar_event(dynamic raw);
@@ -192,10 +203,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BatterySnapshot? dco_decode_opt_box_autoadd_battery_snapshot(dynamic raw);
 
   @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
+
+  @protected
   CalDavUiConfig? dco_decode_opt_box_autoadd_cal_dav_ui_config(dynamic raw);
 
   @protected
-  CalendarConfig? dco_decode_opt_box_autoadd_calendar_config(dynamic raw);
+  CalendarUiConfig? dco_decode_opt_box_autoadd_calendar_ui_config(dynamic raw);
 
   @protected
   double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
@@ -315,12 +329,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
   CalDavUiConfig sse_decode_box_autoadd_cal_dav_ui_config(
     SseDeserializer deserializer,
   );
 
   @protected
-  CalendarConfig sse_decode_box_autoadd_calendar_config(
+  CalendarUiConfig sse_decode_box_autoadd_calendar_ui_config(
     SseDeserializer deserializer,
   );
 
@@ -360,7 +377,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CalDavUiConfig sse_decode_cal_dav_ui_config(SseDeserializer deserializer);
 
   @protected
-  CalendarConfig sse_decode_calendar_config(SseDeserializer deserializer);
+  CalendarEntryUiConfig sse_decode_calendar_entry_ui_config(
+    SseDeserializer deserializer,
+  );
 
   @protected
   CalendarEvent sse_decode_calendar_event(SseDeserializer deserializer);
@@ -369,6 +388,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CalendarFetchResult sse_decode_calendar_fetch_result(
     SseDeserializer deserializer,
   );
+
+  @protected
+  CalendarUiConfig sse_decode_calendar_ui_config(SseDeserializer deserializer);
 
   @protected
   ClockSnapshot sse_decode_clock_snapshot(SseDeserializer deserializer);
@@ -384,6 +406,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<CalendarEntryUiConfig> sse_decode_list_calendar_entry_ui_config(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<CalendarEvent> sse_decode_list_calendar_event(
@@ -480,12 +507,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
   CalDavUiConfig? sse_decode_opt_box_autoadd_cal_dav_ui_config(
     SseDeserializer deserializer,
   );
 
   @protected
-  CalendarConfig? sse_decode_opt_box_autoadd_calendar_config(
+  CalendarUiConfig? sse_decode_opt_box_autoadd_calendar_ui_config(
     SseDeserializer deserializer,
   );
 
@@ -629,14 +659,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_cal_dav_ui_config(
     CalDavUiConfig self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_box_autoadd_calendar_config(
-    CalendarConfig self,
+  void sse_encode_box_autoadd_calendar_ui_config(
+    CalendarUiConfig self,
     SseSerializer serializer,
   );
 
@@ -692,8 +725,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_calendar_config(
-    CalendarConfig self,
+  void sse_encode_calendar_entry_ui_config(
+    CalendarEntryUiConfig self,
     SseSerializer serializer,
   );
 
@@ -703,6 +736,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_calendar_fetch_result(
     CalendarFetchResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_calendar_ui_config(
+    CalendarUiConfig self,
     SseSerializer serializer,
   );
 
@@ -720,6 +759,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_calendar_entry_ui_config(
+    List<CalendarEntryUiConfig> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_calendar_event(
@@ -845,14 +890,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_cal_dav_ui_config(
     CalDavUiConfig? self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_opt_box_autoadd_calendar_config(
-    CalendarConfig? self,
+  void sse_encode_opt_box_autoadd_calendar_ui_config(
+    CalendarUiConfig? self,
     SseSerializer serializer,
   );
 

@@ -24,35 +24,6 @@ class BatteryConfig {
           deviceName == other.deviceName;
 }
 
-class CalendarConfig {
-  final String googleClientId;
-  final String googleClientSecret;
-
-  /// How often (in seconds) to poll for calendar changes via incremental sync.
-  final int pollIntervalSecs;
-
-  const CalendarConfig({
-    required this.googleClientId,
-    required this.googleClientSecret,
-    required this.pollIntervalSecs,
-  });
-
-  @override
-  int get hashCode =>
-      googleClientId.hashCode ^
-      googleClientSecret.hashCode ^
-      pollIntervalSecs.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is CalendarConfig &&
-          runtimeType == other.runtimeType &&
-          googleClientId == other.googleClientId &&
-          googleClientSecret == other.googleClientSecret &&
-          pollIntervalSecs == other.pollIntervalSecs;
-}
-
 class NotificationConfig {
   /// How long (ms) before the freedesktop server auto-dismisses. 0 = never expire.
   final int defaultTimeoutMs;

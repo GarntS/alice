@@ -6,6 +6,12 @@ use crate::{PlatformError, providers::ClockProvider, state::ClockSnapshot};
 
 pub struct LocalClockProvider;
 
+impl Default for LocalClockProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LocalClockProvider {
     pub fn new() -> Self {
         Self
@@ -28,12 +34,12 @@ fn local_time_zone_abbrev(now: &chrono::DateTime<Local>) -> String {
         return abbrev.trim().to_string();
     }
 
-    if let Some(tz_name) = system_time_zone_name() {
-        if let Ok(time_zone) = tz_name.parse::<Tz>() {
-            let tz_abbrev = now.with_timezone(&time_zone).format("%Z").to_string();
-            if is_short_time_zone_code(&tz_abbrev) {
-                return tz_abbrev.trim().to_string();
-            }
+    if let Some(tz_name) = system_time_zone_name()
+        && let Ok(time_zone) = tz_name.parse::<Tz>()
+    {
+        let tz_abbrev = now.with_timezone(&time_zone).format("%Z").to_string();
+        if is_short_time_zone_code(&tz_abbrev) {
+            return tz_abbrev.trim().to_string();
         }
     }
 

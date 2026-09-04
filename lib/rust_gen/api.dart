@@ -131,7 +131,7 @@ class AliceUiConfig {
   final List<TimeZoneConfig> timeZones;
   final PowerCommandConfig powerCommands;
   final int panelTopGapPx;
-  final CalendarConfig? calendar;
+  final CalendarUiConfig? calendar;
   final CalDavUiConfig? caldav;
   final NotificationConfig notifications;
   final WeatherConfig weather;
@@ -254,6 +254,58 @@ class CalDavUiConfig {
           collectionHrefs == other.collectionHrefs &&
           pollIntervalSecs == other.pollIntervalSecs &&
           caCertificatePath == other.caCertificatePath;
+}
+
+class CalendarEntryUiConfig {
+  final String id;
+  final String entryType;
+  final String? color;
+  final int pollIntervalSecs;
+  final bool? notifyForEvents;
+
+  const CalendarEntryUiConfig({
+    required this.id,
+    required this.entryType,
+    this.color,
+    required this.pollIntervalSecs,
+    this.notifyForEvents,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      entryType.hashCode ^
+      color.hashCode ^
+      pollIntervalSecs.hashCode ^
+      notifyForEvents.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CalendarEntryUiConfig &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          entryType == other.entryType &&
+          color == other.color &&
+          pollIntervalSecs == other.pollIntervalSecs &&
+          notifyForEvents == other.notifyForEvents;
+}
+
+/// Secret-free calendar metadata required by the Flutter UI.
+class CalendarUiConfig {
+  final List<CalendarEntryUiConfig> calendars;
+
+  const CalendarUiConfig({required this.calendars});
+
+  @override
+  int get hashCode => calendars.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CalendarUiConfig &&
+          runtimeType == other.runtimeType &&
+          calendars == other.calendars;
 }
 
 class PanelCommand {

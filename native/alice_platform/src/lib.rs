@@ -13,6 +13,7 @@ pub mod api;
 pub mod battery;
 pub mod caldav;
 pub mod calendar;
+pub(crate) mod calendar_sources;
 pub mod clock;
 pub mod config;
 pub mod mpris;
@@ -61,11 +62,9 @@ impl PlatformError {
 // ---------------------------------------------------------------------------
 
 pub(crate) fn load_native_config() -> AliceConfig {
-    match config::default_config_path().and_then(|path| AliceConfig::load_or_create_default(&path))
-    {
-        Ok(config) => config,
-        Err(_) => AliceConfig::default(),
-    }
+    config::default_config_path()
+        .and_then(|path| AliceConfig::load_or_create_default(&path))
+        .unwrap_or_default()
 }
 
 // ---------------------------------------------------------------------------
@@ -117,6 +116,10 @@ pub extern "C" fn alice_notify_panel_hide() {
 
 /// Replace the retained native bar-view snapshot. Called after startup bars
 /// have received their Flutter view IDs.
+///
+/// # Safety
+/// When `count` is nonzero, `view_ids` must point to `count` initialized
+/// `i64` values that remain valid for the duration of this call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn alice_set_bar_view_ids(view_ids: *const i64, count: usize) {
     if view_ids.is_null() && count != 0 {

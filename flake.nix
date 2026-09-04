@@ -57,6 +57,7 @@
               pkg-config
               rustc
               rustfmt
+              clippy
               wayland-scanner
             ] ++ linuxLibraries;
 

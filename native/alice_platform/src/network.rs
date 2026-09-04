@@ -14,6 +14,12 @@ pub struct SysNetworkProvider {
     net_root: PathBuf,
 }
 
+impl Default for SysNetworkProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SysNetworkProvider {
     pub fn new() -> Self {
         Self {

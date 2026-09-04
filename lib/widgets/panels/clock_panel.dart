@@ -182,48 +182,49 @@ class _ClockPanelState extends State<ClockPanel> {
     final nowUtc = DateTime.now().toUtc();
     final localTimeZoneLabel =
         widget.config.localTimeZoneLabel ?? widget.snapshot.timeZoneCode;
-    return PanelShell(
-      title: 'World Clock',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ClockRow(
-            label: localTimeZoneLabel,
-            dateLabel: widget.snapshot.dateLabel,
-            timeLabel: widget.snapshot.timeLabel,
-            highlighted: true,
-          ),
-          const SizedBox(height: 8),
-          ...widget.config.timeZones.map((zone) {
-            final zoned = nowUtc.add(Duration(hours: zone.offsetHours));
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _ClockRow(
-                label: zone.label,
-                dateLabel:
-                    '${zoned.day.toString().padLeft(2, '0')} ${_shortMonthName(zoned.month)}',
-                timeLabel:
-                    '${zoned.hour.toString().padLeft(2, '0')}:${zoned.minute.toString().padLeft(2, '0')}',
-              ),
-            );
-          }),
-          const SizedBox(height: 16),
-          AliceCalendar(
-            selectedDate: _selectedDate,
-            onDateSelected: _onDateSelected,
-            indicators: _indicators,
-            onMonthChanged: (month) {
-              _calendarMonth = month;
-              _refreshIndicators(month);
-            },
-          ),
-          const SizedBox(height: 16),
-          Flexible(
-            child: SingleChildScrollView(
-              child: _EventsSection(result: _fetchResult, loading: _loading),
+    // The fixed-height panel must accommodate six calendar rows, time zones,
+    // and an arbitrary event list. Scroll the complete clock content rather
+    // than allowing PanelShell's Column to overflow its height constraint.
+    return SingleChildScrollView(
+      child: PanelShell(
+        title: 'World Clock',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _ClockRow(
+              label: localTimeZoneLabel,
+              dateLabel: widget.snapshot.dateLabel,
+              timeLabel: widget.snapshot.timeLabel,
+              highlighted: true,
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            ...widget.config.timeZones.map((zone) {
+              final zoned = nowUtc.add(Duration(hours: zone.offsetHours));
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _ClockRow(
+                  label: zone.label,
+                  dateLabel:
+                      '${zoned.day.toString().padLeft(2, '0')} ${_shortMonthName(zoned.month)}',
+                  timeLabel:
+                      '${zoned.hour.toString().padLeft(2, '0')}:${zoned.minute.toString().padLeft(2, '0')}',
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
+            AliceCalendar(
+              selectedDate: _selectedDate,
+              onDateSelected: _onDateSelected,
+              indicators: _indicators,
+              onMonthChanged: (month) {
+                _calendarMonth = month;
+                _refreshIndicators(month);
+              },
+            ),
+            const SizedBox(height: 16),
+            _EventsSection(result: _fetchResult, loading: _loading),
+          ],
+        ),
       ),
     );
   }

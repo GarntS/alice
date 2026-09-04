@@ -12,6 +12,12 @@ pub struct ProcStatsProvider {
     proc_root: PathBuf,
 }
 
+impl Default for ProcStatsProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ProcStatsProvider {
     pub fn new() -> Self {
         Self {

@@ -725,7 +725,7 @@ impl SseDecode for crate::api::AliceUiConfig {
         let mut var_timeZones = <Vec<crate::config::TimeZoneConfig>>::sse_decode(deserializer);
         let mut var_powerCommands = <crate::config::PowerCommandConfig>::sse_decode(deserializer);
         let mut var_panelTopGapPx = <u32>::sse_decode(deserializer);
-        let mut var_calendar = <Option<crate::config::CalendarConfig>>::sse_decode(deserializer);
+        let mut var_calendar = <Option<crate::api::CalendarUiConfig>>::sse_decode(deserializer);
         let mut var_caldav = <Option<crate::api::CalDavUiConfig>>::sse_decode(deserializer);
         let mut var_notifications = <crate::config::NotificationConfig>::sse_decode(deserializer);
         let mut var_weather = <crate::config::WeatherConfig>::sse_decode(deserializer);
@@ -877,16 +877,20 @@ impl SseDecode for crate::api::CalDavUiConfig {
     }
 }
 
-impl SseDecode for crate::config::CalendarConfig {
+impl SseDecode for crate::api::CalendarEntryUiConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_googleClientId = <String>::sse_decode(deserializer);
-        let mut var_googleClientSecret = <String>::sse_decode(deserializer);
+        let mut var_id = <String>::sse_decode(deserializer);
+        let mut var_entryType = <String>::sse_decode(deserializer);
+        let mut var_color = <Option<String>>::sse_decode(deserializer);
         let mut var_pollIntervalSecs = <u32>::sse_decode(deserializer);
-        return crate::config::CalendarConfig {
-            google_client_id: var_googleClientId,
-            google_client_secret: var_googleClientSecret,
+        let mut var_notifyForEvents = <Option<bool>>::sse_decode(deserializer);
+        return crate::api::CalendarEntryUiConfig {
+            id: var_id,
+            entry_type: var_entryType,
+            color: var_color,
             poll_interval_secs: var_pollIntervalSecs,
+            notify_for_events: var_notifyForEvents,
         };
     }
 }
@@ -927,6 +931,16 @@ impl SseDecode for crate::state::CalendarFetchResult {
             auth_url: var_authUrl,
             auth_code: var_authCode,
             error_message: var_errorMessage,
+        };
+    }
+}
+
+impl SseDecode for crate::api::CalendarUiConfig {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_calendars = <Vec<crate::api::CalendarEntryUiConfig>>::sse_decode(deserializer);
+        return crate::api::CalendarUiConfig {
+            calendars: var_calendars,
         };
     }
 }
@@ -973,6 +987,20 @@ impl SseDecode for Vec<String> {
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
             ans_.push(<String>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::CalendarEntryUiConfig> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::CalendarEntryUiConfig>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
@@ -1300,6 +1328,17 @@ impl SseDecode for Option<crate::state::BatterySnapshot> {
     }
 }
 
+impl SseDecode for Option<bool> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<bool>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::CalDavUiConfig> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1311,11 +1350,11 @@ impl SseDecode for Option<crate::api::CalDavUiConfig> {
     }
 }
 
-impl SseDecode for Option<crate::config::CalendarConfig> {
+impl SseDecode for Option<crate::api::CalendarUiConfig> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::config::CalendarConfig>::sse_decode(deserializer));
+            return Some(<crate::api::CalendarUiConfig>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -1889,21 +1928,26 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::CalDavUiConfig> for crate::ap
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::config::CalendarConfig {
+impl flutter_rust_bridge::IntoDart for crate::api::CalendarEntryUiConfig {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.google_client_id.into_into_dart().into_dart(),
-            self.google_client_secret.into_into_dart().into_dart(),
+            self.id.into_into_dart().into_dart(),
+            self.entry_type.into_into_dart().into_dart(),
+            self.color.into_into_dart().into_dart(),
             self.poll_interval_secs.into_into_dart().into_dart(),
+            self.notify_for_events.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::config::CalendarConfig {}
-impl flutter_rust_bridge::IntoIntoDart<crate::config::CalendarConfig>
-    for crate::config::CalendarConfig
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::CalendarEntryUiConfig
 {
-    fn into_into_dart(self) -> crate::config::CalendarConfig {
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::CalendarEntryUiConfig>
+    for crate::api::CalendarEntryUiConfig
+{
+    fn into_into_dart(self) -> crate::api::CalendarEntryUiConfig {
         self
     }
 }
@@ -1951,6 +1995,20 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::CalendarFetchResult>
     for crate::state::CalendarFetchResult
 {
     fn into_into_dart(self) -> crate::state::CalendarFetchResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::CalendarUiConfig {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.calendars.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::CalendarUiConfig {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::CalendarUiConfig>
+    for crate::api::CalendarUiConfig
+{
+    fn into_into_dart(self) -> crate::api::CalendarUiConfig {
         self
     }
 }
@@ -2524,7 +2582,7 @@ impl SseEncode for crate::api::AliceUiConfig {
         <Vec<crate::config::TimeZoneConfig>>::sse_encode(self.time_zones, serializer);
         <crate::config::PowerCommandConfig>::sse_encode(self.power_commands, serializer);
         <u32>::sse_encode(self.panel_top_gap_px, serializer);
-        <Option<crate::config::CalendarConfig>>::sse_encode(self.calendar, serializer);
+        <Option<crate::api::CalendarUiConfig>>::sse_encode(self.calendar, serializer);
         <Option<crate::api::CalDavUiConfig>>::sse_encode(self.caldav, serializer);
         <crate::config::NotificationConfig>::sse_encode(self.notifications, serializer);
         <crate::config::WeatherConfig>::sse_encode(self.weather, serializer);
@@ -2621,12 +2679,14 @@ impl SseEncode for crate::api::CalDavUiConfig {
     }
 }
 
-impl SseEncode for crate::config::CalendarConfig {
+impl SseEncode for crate::api::CalendarEntryUiConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.google_client_id, serializer);
-        <String>::sse_encode(self.google_client_secret, serializer);
+        <String>::sse_encode(self.id, serializer);
+        <String>::sse_encode(self.entry_type, serializer);
+        <Option<String>>::sse_encode(self.color, serializer);
         <u32>::sse_encode(self.poll_interval_secs, serializer);
+        <Option<bool>>::sse_encode(self.notify_for_events, serializer);
     }
 }
 
@@ -2651,6 +2711,13 @@ impl SseEncode for crate::state::CalendarFetchResult {
         <Option<String>>::sse_encode(self.auth_url, serializer);
         <Option<String>>::sse_encode(self.auth_code, serializer);
         <Option<String>>::sse_encode(self.error_message, serializer);
+    }
+}
+
+impl SseEncode for crate::api::CalendarUiConfig {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::api::CalendarEntryUiConfig>>::sse_encode(self.calendars, serializer);
     }
 }
 
@@ -2690,6 +2757,16 @@ impl SseEncode for Vec<String> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <String>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::CalendarEntryUiConfig> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::CalendarEntryUiConfig>::sse_encode(item, serializer);
         }
     }
 }
@@ -2941,6 +3018,16 @@ impl SseEncode for Option<crate::state::BatterySnapshot> {
     }
 }
 
+impl SseEncode for Option<bool> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <bool>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::CalDavUiConfig> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2951,12 +3038,12 @@ impl SseEncode for Option<crate::api::CalDavUiConfig> {
     }
 }
 
-impl SseEncode for Option<crate::config::CalendarConfig> {
+impl SseEncode for Option<crate::api::CalendarUiConfig> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::config::CalendarConfig>::sse_encode(value, serializer);
+            <crate::api::CalendarUiConfig>::sse_encode(value, serializer);
         }
     }
 }

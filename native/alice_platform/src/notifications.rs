@@ -104,6 +104,7 @@ impl NotificationStore {
 static NOTIFICATION_STORE: OnceLock<Arc<Mutex<NotificationStore>>> = OnceLock::new();
 static NOTIFICATION_TRIGGER: OnceLock<mpsc::Sender<Trigger>> = OnceLock::new();
 static NOTIFICATION_CONNECTION: OnceLock<Arc<zbus::Connection>> = OnceLock::new();
+static INTERNAL_NOTIFICATION_ID: AtomicU32 = AtomicU32::new(1_000_000);
 
 // ---------------------------------------------------------------------------
 // D-Bus server
@@ -122,6 +123,8 @@ impl NotificationServer {
     /// Receive a new notification from an application.
     ///
     /// Returns the assigned notification ID (≥ 1).
+    // The freedesktop D-Bus interface fixes this method's parameter list.
+    #[allow(clippy::too_many_arguments)]
     async fn notify(
         &self,
         app_name: &str,
@@ -295,6 +298,39 @@ pub async fn run_notification_server(
 // Public helpers — called from api.rs and runtime.rs
 // ---------------------------------------------------------------------------
 
+/// Insert an Alice-originated notification into the canonical unread store.
+///
+/// This intentionally bypasses D-Bus: calendar workers are part of Alice and
+/// must use the same retained snapshots/popups without talking to our own
+/// notification server over the session bus.
+pub(crate) fn push_internal_notification(summary: String, body: String) -> Option<u32> {
+    let id = INTERNAL_NOTIFICATION_ID.fetch_add(1, Ordering::SeqCst);
+    let notification = StoredNotification {
+        snapshot: NotificationSnapshot {
+            id,
+            app_name: "Alice Calendar".into(),
+            app_icon: "calendar".into(),
+            summary,
+            body,
+            urgency: NotificationUrgency::Normal,
+            actions: Vec::new(),
+            category: Some("calendar.event".into()),
+            is_read: false,
+            received_at_unix_secs: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+            image_data: None,
+            image_path: None,
+        },
+        activation_identity: None,
+    };
+    let store = NOTIFICATION_STORE.get()?.clone();
+    store.lock().ok()?.add_or_replace(notification);
+    send_trigger();
+    Some(id)
+}
+
 pub fn get_notifications() -> Vec<NotificationSnapshot> {
     NOTIFICATION_STORE
         .get()
@@ -319,19 +355,17 @@ pub fn dismiss_notification_by_id(id: u32) {
 
 /// Remove all notifications and notify listeners.
 pub fn dismiss_all_notifications_impl() {
-    NOTIFICATION_STORE
-        .get()
-        .and_then(|s| s.lock().ok())
-        .map(|mut s| s.remove_all());
+    if let Some(mut s) = NOTIFICATION_STORE.get().and_then(|s| s.lock().ok()) {
+        s.remove_all()
+    }
     send_trigger();
 }
 
 /// Mark a notification as read and trigger a snapshot rebuild.
 pub fn mark_notification_read_impl(id: u32) {
-    NOTIFICATION_STORE
-        .get()
-        .and_then(|s| s.lock().ok())
-        .map(|mut s| s.mark_read(id));
+    if let Some(mut s) = NOTIFICATION_STORE.get().and_then(|s| s.lock().ok()) {
+        s.mark_read(id)
+    }
     send_trigger();
 }
 
@@ -342,9 +376,10 @@ pub fn invoke_action_impl(id: u32, action_key: String) {
         .and_then(|store| store.lock().ok())
         .and_then(|store| store.activation_identity(id));
 
-    if let Some(conn) = NOTIFICATION_CONNECTION.get().cloned() {
-        if let Some(handle) = crate::runtime::tokio_handle() {
-            handle.spawn(async move {
+    if let Some(conn) = NOTIFICATION_CONNECTION.get().cloned()
+        && let Some(handle) = crate::runtime::tokio_handle()
+    {
+        handle.spawn(async move {
                 if let Ok(iface) = conn
                     .object_server()
                     .interface::<_, NotificationServer>("/org/freedesktop/Notifications")
@@ -375,7 +410,6 @@ pub fn invoke_action_impl(id: u32, action_key: String) {
                     eprintln!("alice: notification interface unavailable for action id={id}");
                 }
             });
-        }
     }
 }
 
@@ -401,12 +435,12 @@ where
 // ---------------------------------------------------------------------------
 
 fn spawn_signal_closed(id: u32, reason: u32) {
-    if let Some(conn) = NOTIFICATION_CONNECTION.get().cloned() {
-        if let Some(handle) = crate::runtime::tokio_handle() {
-            handle.spawn(async move {
-                emit_notification_closed(&conn, id, reason).await;
-            });
-        }
+    if let Some(conn) = NOTIFICATION_CONNECTION.get().cloned()
+        && let Some(handle) = crate::runtime::tokio_handle()
+    {
+        handle.spawn(async move {
+            emit_notification_closed(&conn, id, reason).await;
+        });
     }
 }
 

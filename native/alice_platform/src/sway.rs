@@ -4,6 +4,12 @@ use crate::{PlatformError, providers::WorkspaceProvider, state::WorkspaceSnapsho
 
 pub struct SwayWorkspaceProvider;
 
+impl Default for SwayWorkspaceProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SwayWorkspaceProvider {
     pub fn new() -> Self {
         Self

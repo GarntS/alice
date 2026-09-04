@@ -130,9 +130,26 @@ Add the following section to `$XDG_CONFIG_HOME/alice/config.yaml`:
 
 ```yaml
 calendar:
-  google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
-  google_client_secret: "YOUR_CLIENT_SECRET"
+  calendars:
+    - id: work
+      type: google
+      google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
+      google_client_secret: "YOUR_CLIENT_SECRET"
+      # Optional; defaults to 600 seconds.
+      # poll_interval_secs: 600
+    - id: holidays
+      type: ics
+      # Set exactly one of path or an HTTP(S) URL.
+      url: "https://example.com/holidays.ics"
+      # Optional #RRGGBB; ICS events use red when omitted.
+      # color: "#E53935"
+      # Default: true. Creates 30-, 10-, and 2-minute event reminders.
+      # notify_for_events: true
 ```
+
+Each source ID must be unique. The former `calendar.google_client_id` and
+`calendar.google_client_secret` layout is no longer supported; move those
+credentials into a `type: google` item under `calendar.calendars`.
 
 **3. Authorise on first run**
 

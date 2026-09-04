@@ -11,7 +11,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 
 [dependencies]
 flutter_rust_bridge = "=2.12.0"
-tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync", "time", "test-util"] }
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync", "time", "fs", "test-util"] }
 futures-util = "0.3"
 notify = "6"
 image = { version = "0.25", default-features = false, features = ["png"] }

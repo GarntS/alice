@@ -721,7 +721,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       timeZones: dco_decode_list_time_zone_config(arr[8]),
       powerCommands: dco_decode_power_command_config(arr[9]),
       panelTopGapPx: dco_decode_u_32(arr[10]),
-      calendar: dco_decode_opt_box_autoadd_calendar_config(arr[11]),
+      calendar: dco_decode_opt_box_autoadd_calendar_ui_config(arr[11]),
       caldav: dco_decode_opt_box_autoadd_cal_dav_ui_config(arr[12]),
       notifications: dco_decode_notification_config(arr[13]),
       weather: dco_decode_weather_config(arr[14]),
@@ -797,15 +797,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as bool;
+  }
+
+  @protected
   CalDavUiConfig dco_decode_box_autoadd_cal_dav_ui_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_cal_dav_ui_config(raw);
   }
 
   @protected
-  CalendarConfig dco_decode_box_autoadd_calendar_config(dynamic raw) {
+  CalendarUiConfig dco_decode_box_autoadd_calendar_ui_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_calendar_config(raw);
+    return dco_decode_calendar_ui_config(raw);
   }
 
   @protected
@@ -883,15 +889,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CalendarConfig dco_decode_calendar_config(dynamic raw) {
+  CalendarEntryUiConfig dco_decode_calendar_entry_ui_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return CalendarConfig(
-      googleClientId: dco_decode_String(arr[0]),
-      googleClientSecret: dco_decode_String(arr[1]),
-      pollIntervalSecs: dco_decode_u_32(arr[2]),
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return CalendarEntryUiConfig(
+      id: dco_decode_String(arr[0]),
+      entryType: dco_decode_String(arr[1]),
+      color: dco_decode_opt_String(arr[2]),
+      pollIntervalSecs: dco_decode_u_32(arr[3]),
+      notifyForEvents: dco_decode_opt_box_autoadd_bool(arr[4]),
     );
   }
 
@@ -924,6 +932,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       authUrl: dco_decode_opt_String(arr[2]),
       authCode: dco_decode_opt_String(arr[3]),
       errorMessage: dco_decode_opt_String(arr[4]),
+    );
+  }
+
+  @protected
+  CalendarUiConfig dco_decode_calendar_ui_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return CalendarUiConfig(
+      calendars: dco_decode_list_calendar_entry_ui_config(arr[0]),
     );
   }
 
@@ -962,6 +981,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<String> dco_decode_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
+  List<CalendarEntryUiConfig> dco_decode_list_calendar_entry_ui_config(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_calendar_entry_ui_config)
+        .toList();
   }
 
   @protected
@@ -1168,15 +1197,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bool(raw);
+  }
+
+  @protected
   CalDavUiConfig? dco_decode_opt_box_autoadd_cal_dav_ui_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_cal_dav_ui_config(raw);
   }
 
   @protected
-  CalendarConfig? dco_decode_opt_box_autoadd_calendar_config(dynamic raw) {
+  CalendarUiConfig? dco_decode_opt_box_autoadd_calendar_ui_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_calendar_config(raw);
+    return raw == null ? null : dco_decode_box_autoadd_calendar_ui_config(raw);
   }
 
   @protected
@@ -1484,7 +1519,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_timeZones = sse_decode_list_time_zone_config(deserializer);
     var var_powerCommands = sse_decode_power_command_config(deserializer);
     var var_panelTopGapPx = sse_decode_u_32(deserializer);
-    var var_calendar = sse_decode_opt_box_autoadd_calendar_config(deserializer);
+    var var_calendar = sse_decode_opt_box_autoadd_calendar_ui_config(
+      deserializer,
+    );
     var var_caldav = sse_decode_opt_box_autoadd_cal_dav_ui_config(deserializer);
     var var_notifications = sse_decode_notification_config(deserializer);
     var var_weather = sse_decode_weather_config(deserializer);
@@ -1578,6 +1615,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bool(deserializer));
+  }
+
+  @protected
   CalDavUiConfig sse_decode_box_autoadd_cal_dav_ui_config(
     SseDeserializer deserializer,
   ) {
@@ -1586,11 +1629,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CalendarConfig sse_decode_box_autoadd_calendar_config(
+  CalendarUiConfig sse_decode_box_autoadd_calendar_ui_config(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_calendar_config(deserializer));
+    return (sse_decode_calendar_ui_config(deserializer));
   }
 
   @protected
@@ -1679,15 +1722,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CalendarConfig sse_decode_calendar_config(SseDeserializer deserializer) {
+  CalendarEntryUiConfig sse_decode_calendar_entry_ui_config(
+    SseDeserializer deserializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_googleClientId = sse_decode_String(deserializer);
-    var var_googleClientSecret = sse_decode_String(deserializer);
+    var var_id = sse_decode_String(deserializer);
+    var var_entryType = sse_decode_String(deserializer);
+    var var_color = sse_decode_opt_String(deserializer);
     var var_pollIntervalSecs = sse_decode_u_32(deserializer);
-    return CalendarConfig(
-      googleClientId: var_googleClientId,
-      googleClientSecret: var_googleClientSecret,
+    var var_notifyForEvents = sse_decode_opt_box_autoadd_bool(deserializer);
+    return CalendarEntryUiConfig(
+      id: var_id,
+      entryType: var_entryType,
+      color: var_color,
       pollIntervalSecs: var_pollIntervalSecs,
+      notifyForEvents: var_notifyForEvents,
     );
   }
 
@@ -1732,6 +1781,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  CalendarUiConfig sse_decode_calendar_ui_config(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_calendars = sse_decode_list_calendar_entry_ui_config(deserializer);
+    return CalendarUiConfig(calendars: var_calendars);
+  }
+
+  @protected
   ClockSnapshot sse_decode_clock_snapshot(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_timeZoneCode = sse_decode_String(deserializer);
@@ -1770,6 +1826,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <String>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<CalendarEntryUiConfig> sse_decode_list_calendar_entry_ui_config(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <CalendarEntryUiConfig>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_calendar_entry_ui_config(deserializer));
     }
     return ans_;
   }
@@ -2085,6 +2155,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bool(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   CalDavUiConfig? sse_decode_opt_box_autoadd_cal_dav_ui_config(
     SseDeserializer deserializer,
   ) {
@@ -2098,13 +2179,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  CalendarConfig? sse_decode_opt_box_autoadd_calendar_config(
+  CalendarUiConfig? sse_decode_opt_box_autoadd_calendar_ui_config(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_calendar_config(deserializer));
+      return (sse_decode_box_autoadd_calendar_ui_config(deserializer));
     } else {
       return null;
     }
@@ -2517,7 +2598,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_time_zone_config(self.timeZones, serializer);
     sse_encode_power_command_config(self.powerCommands, serializer);
     sse_encode_u_32(self.panelTopGapPx, serializer);
-    sse_encode_opt_box_autoadd_calendar_config(self.calendar, serializer);
+    sse_encode_opt_box_autoadd_calendar_ui_config(self.calendar, serializer);
     sse_encode_opt_box_autoadd_cal_dav_ui_config(self.caldav, serializer);
     sse_encode_notification_config(self.notifications, serializer);
     sse_encode_weather_config(self.weather, serializer);
@@ -2583,6 +2664,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_cal_dav_ui_config(
     CalDavUiConfig self,
     SseSerializer serializer,
@@ -2592,12 +2679,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_calendar_config(
-    CalendarConfig self,
+  void sse_encode_box_autoadd_calendar_ui_config(
+    CalendarUiConfig self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_calendar_config(self, serializer);
+    sse_encode_calendar_ui_config(self, serializer);
   }
 
   @protected
@@ -2687,14 +2774,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_calendar_config(
-    CalendarConfig self,
+  void sse_encode_calendar_entry_ui_config(
+    CalendarEntryUiConfig self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.googleClientId, serializer);
-    sse_encode_String(self.googleClientSecret, serializer);
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.entryType, serializer);
+    sse_encode_opt_String(self.color, serializer);
     sse_encode_u_32(self.pollIntervalSecs, serializer);
+    sse_encode_opt_box_autoadd_bool(self.notifyForEvents, serializer);
   }
 
   @protected
@@ -2720,6 +2809,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.authUrl, serializer);
     sse_encode_opt_String(self.authCode, serializer);
     sse_encode_opt_String(self.errorMessage, serializer);
+  }
+
+  @protected
+  void sse_encode_calendar_ui_config(
+    CalendarUiConfig self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_calendar_entry_ui_config(self.calendars, serializer);
   }
 
   @protected
@@ -2754,6 +2852,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_calendar_entry_ui_config(
+    List<CalendarEntryUiConfig> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_calendar_entry_ui_config(item, serializer);
     }
   }
 
@@ -3018,6 +3128,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bool(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_cal_dav_ui_config(
     CalDavUiConfig? self,
     SseSerializer serializer,
@@ -3031,15 +3151,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_calendar_config(
-    CalendarConfig? self,
+  void sse_encode_opt_box_autoadd_calendar_ui_config(
+    CalendarUiConfig? self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_box_autoadd_calendar_config(self, serializer);
+      sse_encode_box_autoadd_calendar_ui_config(self, serializer);
     }
   }
 

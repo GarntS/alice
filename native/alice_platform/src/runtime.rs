@@ -43,30 +43,28 @@ pub fn push_panel_show(
     width: f64,
     height: f64,
 ) {
-    if let Some(cell) = PANEL_SINK.get() {
-        if let Ok(guard) = cell.lock() {
-            if let Some(sink) = guard.as_ref() {
-                let _ = sink.add(Some(PanelCommand {
-                    panel_id,
-                    view_id,
-                    include_icon_bytes,
-                    anchor_x,
-                    anchor_y,
-                    width,
-                    height,
-                }));
-            }
-        }
+    if let Some(cell) = PANEL_SINK.get()
+        && let Ok(guard) = cell.lock()
+        && let Some(sink) = guard.as_ref()
+    {
+        let _ = sink.add(Some(PanelCommand {
+            panel_id,
+            view_id,
+            include_icon_bytes,
+            anchor_x,
+            anchor_y,
+            width,
+            height,
+        }));
     }
 }
 
 pub fn push_panel_hide() {
-    if let Some(cell) = PANEL_SINK.get() {
-        if let Ok(guard) = cell.lock() {
-            if let Some(sink) = guard.as_ref() {
-                let _ = sink.add(None);
-            }
-        }
+    if let Some(cell) = PANEL_SINK.get()
+        && let Ok(guard) = cell.lock()
+        && let Some(sink) = guard.as_ref()
+    {
+        let _ = sink.add(None);
     }
 }
 
@@ -90,12 +88,11 @@ pub fn set_bar_view_ids(view_ids: Vec<i64>) {
     if let Ok(mut guard) = ids.lock() {
         *guard = view_ids.clone();
     }
-    if let Some(cell) = BAR_VIEW_LIFECYCLE_SINK.get() {
-        if let Ok(guard) = cell.lock() {
-            if let Some(sink) = guard.as_ref() {
-                let _ = sink.add(BarViewLifecycle { view_ids });
-            }
-        }
+    if let Some(cell) = BAR_VIEW_LIFECYCLE_SINK.get()
+        && let Ok(guard) = cell.lock()
+        && let Some(sink) = guard.as_ref()
+    {
+        let _ = sink.add(BarViewLifecycle { view_ids });
     }
 }
 
@@ -131,6 +128,13 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
             crate::foreign_toplevel::ForeignToplevelActivationService::start();
         if let Some(service) = &_foreign_toplevel_activation {
             service.install_global();
+        }
+
+        // --- Startup-owned calendar source coordinator ---
+        // ICS refreshes and reminder scheduling must not depend on opening the
+        // clock panel, so workers are installed before UI requests arrive.
+        if let Some(calendar_config) = config.calendar.as_ref() {
+            crate::calendar_sources::start_global_coordinator(calendar_config, tx.clone());
         }
 
         // --- Runtime-owned CalDAV cache and synchronization ---
@@ -237,7 +241,7 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
         let _ = tx.send(Trigger::Event).await;
 
         // Main loop with 50 ms debounce
-        while let Some(_) = rx.recv().await {
+        while rx.recv().await.is_some() {
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
             while rx.try_recv().is_ok() {}
 
@@ -325,6 +329,9 @@ fn notification_snapshots() -> Vec<crate::state::NotificationSnapshot> {
     crate::notifications::get_notifications()
 }
 
+// This deliberately accepts independent providers so tests can substitute
+// each dependency without constructing the production runtime.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn build_snapshot_from_providers<W, M, S, N, C, B, WP, T>(
     workspace_provider: &W,
     media_provider: &M,
@@ -389,7 +396,7 @@ where
 fn sway_event_watcher(tx: mpsc::Sender<Trigger>) {
     use swayipc::{Connection, EventType};
 
-    let events = match Connection::new().and_then(|conn| conn.subscribe(&[EventType::Workspace])) {
+    let events = match Connection::new().and_then(|conn| conn.subscribe([EventType::Workspace])) {
         Ok(events) => events,
         Err(error) => {
             eprintln!("alice: sway event subscription failed: {error}");

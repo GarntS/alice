@@ -157,14 +157,14 @@ impl Worker {
             let Some(read_guard) = self.event_queue.prepare_read() else {
                 continue;
             };
-            let mut poll_fds = [
-                PollFd::new(&self.event_queue, PollFlags::IN),
-                PollFd::new(&self.wake_reader, PollFlags::IN),
-            ];
-            poll(&mut poll_fds, None).map_err(|error| error.to_string())?;
-            let wayland_events = poll_fds[0].revents();
-            let wake_events = poll_fds[1].revents();
-            drop(poll_fds);
+            let (wayland_events, wake_events) = {
+                let mut poll_fds = [
+                    PollFd::new(&self.event_queue, PollFlags::IN),
+                    PollFd::new(&self.wake_reader, PollFlags::IN),
+                ];
+                poll(&mut poll_fds, None).map_err(|error| error.to_string())?;
+                (poll_fds[0].revents(), poll_fds[1].revents())
+            };
 
             if wake_events.intersects(PollFlags::IN | PollFlags::HUP | PollFlags::ERR) {
                 drop(read_guard);

@@ -122,6 +122,67 @@ void main() {
     );
   });
 
+  testWidgets('presents merged multi-source events and color indicators', (
+    tester,
+  ) async {
+    final fetcher = _ControlledCalendarFetcher();
+    await _pumpClockPanel(tester, fetcher);
+
+    final selectedDate = fetcher.requests.single;
+    fetcher.completeNext(
+      selectedDate,
+      CalendarFetchResult(
+        status: 'ready',
+        events: [
+          _event('Work meeting', '#00AA00'),
+          _event('Home calendar', '#E53935'),
+        ],
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Work meeting'), findsOneWidget);
+    expect(find.text('Home calendar'), findsOneWidget);
+
+    final month = DateTime.parse(selectedDate);
+    fetcher.completeMonth(
+      month,
+      resultForDate: (date) => _sameDate(date, month)
+          ? CalendarFetchResult(
+              status: 'ready',
+              events: [
+                _event('Work meeting', '#00AA00'),
+                _event('Home calendar', '#E53935'),
+              ],
+            )
+          : _ready(),
+    );
+    await tester.pump();
+    expect(_dotWithColor(tester, month, const Color(0xFF00AA00)), findsWidgets);
+    expect(_dotWithColor(tester, month, const Color(0xFFE53935)), findsWidgets);
+  });
+
+  testWidgets('scrolls complete calendar content within the panel height', (
+    tester,
+  ) async {
+    final fetcher = _ControlledCalendarFetcher();
+    await pumpAliceWidget(
+      tester,
+      SizedBox(
+        width: 320,
+        height: 670,
+        child: ClockPanel(
+          config: testConfig(),
+          snapshot: testSnapshot().clock,
+          calendarEventFetcher: fetcher.call,
+        ),
+      ),
+    );
+
+    expectNoFlutterErrors();
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+  });
+
   testWidgets('dispose ignores pending work and cancels polling', (
     tester,
   ) async {

@@ -147,14 +147,29 @@ class TimeZoneConfig {
   final int offsetHours;
 }
 
+/// Secret-free calendar source metadata supplied by native configuration.
 class CalendarConfig {
-  const CalendarConfig({
-    required this.googleClientId,
-    required this.googleClientSecret,
+  const CalendarConfig({required this.calendars});
+
+  final List<CalendarEntryConfig> calendars;
+}
+
+class CalendarEntryConfig {
+  const CalendarEntryConfig({
+    required this.id,
+    required this.type,
+    required this.color,
+    required this.pollIntervalSecs,
+    required this.notifyForEvents,
   });
 
-  final String googleClientId;
-  final String googleClientSecret;
+  final String id;
+  final String type;
+  final String? color;
+  final int pollIntervalSecs;
+
+  /// Null for Google entries; ICS entries always expose their effective value.
+  final bool? notifyForEvents;
 }
 
 class PowerCommandConfig {

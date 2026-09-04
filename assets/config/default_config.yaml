@@ -54,13 +54,23 @@ power:
   poweroff: "systemctl poweroff"
 
 # calendar:
-#   # Create a Google Cloud project, enable the Calendar API, and create
-#   # OAuth 2.0 credentials (TVs and Limited Input Devices type). Paste them here.
-#   # On first run, Alice will display a URL and code for device-flow auth.
-#   google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
-#   google_client_secret: "YOUR_CLIENT_SECRET"
-#   # How often (in seconds) to poll for calendar event changes. Default: 30
-#   # poll_interval_secs: 30
+#   # Every source needs a unique ID. The former top-level Google credential
+#   # fields are unsupported; migrate them into this calendars list.
+#   calendars:
+#     - id: work
+#       type: google
+#       # Create a Google Cloud device-flow OAuth credential and paste it here.
+#       google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
+#       google_client_secret: "YOUR_CLIENT_SECRET"
+#       # Optional. Default: 600 seconds.
+#       # poll_interval_secs: 600
+#     - id: holidays
+#       type: ics
+#       # Set exactly one of path or an HTTP(S) url.
+#       url: "https://example.com/holidays.ics"
+#       # Optional #RRGGBB display color; default reminders are enabled.
+#       # color: "#E53935"
+#       # notify_for_events: true
 
 # caldav:
 #   # Vikunja example: https://vikunja.example.com/dav/principals/USERNAME/

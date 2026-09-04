@@ -408,6 +408,12 @@ pub async fn run_status_notifier_watcher(
 
 pub struct StatusNotifierTrayProvider;
 
+impl Default for StatusNotifierTrayProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StatusNotifierTrayProvider {
     pub fn new() -> Self {
         Self
@@ -918,7 +924,7 @@ fn humanize_status_notifier_identifier(identifier: &str) -> Option<String> {
     }
 
     let base = trimmed.rsplit('.').next().unwrap_or(trimmed);
-    let normalized = base.replace('-', " ").replace('_', " ");
+    let normalized = base.replace(['-', '_'], " ");
     if normalized.is_empty() {
         return None;
     }

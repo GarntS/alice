@@ -241,8 +241,19 @@ class AlicePlatform {
       calendar: r.calendar == null
           ? null
           : CalendarConfig(
-              googleClientId: r.calendar!.googleClientId,
-              googleClientSecret: r.calendar!.googleClientSecret,
+              calendars: List.unmodifiable(
+                r.calendar!.calendars
+                    .map(
+                      (entry) => CalendarEntryConfig(
+                        id: entry.id,
+                        type: entry.entryType,
+                        color: entry.color,
+                        pollIntervalSecs: entry.pollIntervalSecs,
+                        notifyForEvents: entry.notifyForEvents,
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
       caldav: r.caldav == null
           ? null

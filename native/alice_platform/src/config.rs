@@ -51,10 +51,31 @@ pub struct NotificationConfig {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CalendarConfig {
-    pub google_client_id: String,
-    pub google_client_secret: String,
-    /// How often (in seconds) to poll for calendar changes via incremental sync.
+    /// Enabled, validated source entries. The legacy single-Google shape is
+    /// intentionally not represented here.
+    pub calendars: Vec<CalendarEntry>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CalendarEntry {
+    pub id: String,
+    pub color: Option<String>,
+    /// How often (in seconds) this source is refreshed.
     pub poll_interval_secs: u32,
+    pub kind: CalendarEntryKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CalendarEntryKind {
+    Google {
+        google_client_id: String,
+        google_client_secret: String,
+    },
+    Ics {
+        path: Option<PathBuf>,
+        url: Option<String>,
+        notify_for_events: bool,
+    },
 }
 
 /// Native CalDAV account settings.
@@ -443,10 +464,69 @@ struct RawNotificationConfig {
 
 #[derive(Debug, Deserialize)]
 struct RawCalendarConfig {
-    google_client_id: String,
-    google_client_secret: String,
+    /// Only this list form is supported. Keeping the old fields out of this
+    /// type makes the legacy Google layout inert rather than silently migrating it.
     #[serde(default)]
+    calendars: Vec<RawCalendarEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawCalendarEntry {
+    id: Option<String>,
+    #[serde(rename = "type")]
+    kind: Option<String>,
+    color: Option<String>,
     poll_interval_secs: Option<u32>,
+    google_client_id: Option<String>,
+    google_client_secret: Option<String>,
+    path: Option<String>,
+    url: Option<String>,
+    notify_for_events: Option<bool>,
+}
+
+fn validate_calendar_entry(
+    raw: RawCalendarEntry,
+    ids: &mut std::collections::BTreeSet<String>,
+) -> Option<CalendarEntry> {
+    let id = normalize_optional_label(raw.id)?;
+    if !ids.insert(id.clone()) || raw.poll_interval_secs == Some(0) {
+        return None;
+    }
+    let color = match raw.color {
+        Some(value) => Some(normalize_hex_color(&value)?),
+        None => None,
+    };
+    let kind = match raw.kind.as_deref() {
+        Some("google") => CalendarEntryKind::Google {
+            google_client_id: normalize_optional_label(raw.google_client_id)?,
+            google_client_secret: normalize_optional_label(raw.google_client_secret)?,
+        },
+        Some("ics") => {
+            let path = normalize_optional_label(raw.path).map(PathBuf::from);
+            let url = normalize_optional_label(raw.url);
+            // An ICS source must have precisely one supported acquisition method.
+            if path.is_some() == url.is_some()
+                || url.as_deref().is_some_and(|value| {
+                    !value.starts_with("https://") && !value.starts_with("http://")
+                })
+            {
+                return None;
+            }
+            CalendarEntryKind::Ics {
+                path,
+                url,
+                notify_for_events: raw.notify_for_events.unwrap_or(true),
+            }
+        }
+        _ => return None,
+    };
+
+    Some(CalendarEntry {
+        id,
+        color,
+        poll_interval_secs: raw.poll_interval_secs.unwrap_or(600),
+        kind,
+    })
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -539,11 +619,14 @@ impl RawConfig {
                 .theme
                 .panel_top_gap_px
                 .unwrap_or(defaults.panel_top_gap_px),
-            calendar: self.calendar.map(|c| CalendarConfig {
-                google_client_id: c.google_client_id,
-                google_client_secret: c.google_client_secret,
-                // Calendar is optional, so AliceConfig has no CalendarConfig default to own this.
-                poll_interval_secs: c.poll_interval_secs.unwrap_or(30).max(1),
+            calendar: self.calendar.and_then(|calendar| {
+                let mut ids = std::collections::BTreeSet::new();
+                let calendars = calendar
+                    .calendars
+                    .into_iter()
+                    .filter_map(|entry| validate_calendar_entry(entry, &mut ids))
+                    .collect::<Vec<_>>();
+                (!calendars.is_empty()).then_some(CalendarConfig { calendars })
             }),
             caldav: self.caldav.map(|c| CalDavConfig {
                 principal_url: c.principal_url.unwrap_or_default().trim().to_string(),
@@ -864,6 +947,71 @@ mod tests {
         assert_eq!(standard.offset_hours, 10);
         assert_eq!(daylight.label, "AEDT");
         assert_eq!(daylight.offset_hours, 11);
+    }
+
+    #[test]
+    fn parses_valid_mixed_calendar_entries_and_defaults() {
+        let config = AliceConfig::from_yaml_str(
+            r##"
+calendar:
+  calendars:
+    - id: work
+      type: google
+      google_client_id: client-id
+      google_client_secret: client-secret
+    - id: holidays
+      type: ics
+      url: https://example.test/holidays.ics
+      color: "#aa0033"
+"##,
+        )
+        .unwrap();
+        let entries = &config.calendar.unwrap().calendars;
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].poll_interval_secs, 600);
+        assert_eq!(entries[1].color.as_deref(), Some("#AA0033"));
+        assert!(matches!(
+            entries[1].kind,
+            CalendarEntryKind::Ics {
+                notify_for_events: true,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn rejects_invalid_duplicate_and_legacy_calendar_entries() {
+        let config = AliceConfig::from_yaml_str(
+            r##"
+calendar:
+  calendars:
+    - id: duplicate
+      type: ics
+      path: /tmp/a.ics
+    - id: duplicate
+      type: google
+      google_client_id: id
+      google_client_secret: secret
+    - id: invalid-color
+      type: ics
+      path: /tmp/b.ics
+      color: red
+    - id: both-inputs
+      type: ics
+      path: /tmp/c.ics
+      url: https://example.test/c.ics
+"##,
+        )
+        .unwrap();
+        assert_eq!(config.calendar.unwrap().calendars.len(), 1);
+        assert!(
+            AliceConfig::from_yaml_str(
+                "calendar:\n  google_client_id: old\n  google_client_secret: secret\n"
+            )
+            .unwrap()
+            .calendar
+            .is_none()
+        );
     }
 
     #[test]
