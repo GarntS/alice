@@ -201,7 +201,6 @@ class AlicePlatform {
       transparentTopBar: r.transparentTopBar,
       useDuotoneIcons: r.useDuotoneIcons,
       useAccentOnIcons: r.useAccentOnIcons,
-      showNetworkLabel: r.showNetworkLabel,
       maxVisibleTrayItems: r.maxVisibleTrayItems,
       localTimeZoneLabel: r.localTimeZoneLabel,
       timeZones: r.timeZones

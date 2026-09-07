@@ -7,7 +7,6 @@ class AliceConfig {
     required this.transparentTopBar,
     required this.useDuotoneIcons,
     required this.useAccentOnIcons,
-    required this.showNetworkLabel,
     required this.maxVisibleTrayItems,
     required this.localTimeZoneLabel,
     required this.timeZones,
@@ -25,7 +24,6 @@ class AliceConfig {
   final bool transparentTopBar;
   final bool useDuotoneIcons;
   final bool useAccentOnIcons;
-  final bool showNetworkLabel;
   final int maxVisibleTrayItems;
   final String? localTimeZoneLabel;
   final List<TimeZoneConfig> timeZones;
@@ -44,7 +42,6 @@ class AliceConfig {
       transparentTopBar: false,
       useDuotoneIcons: true,
       useAccentOnIcons: true,
-      showNetworkLabel: true,
       maxVisibleTrayItems: 5,
       localTimeZoneLabel: null,
       timeZones: [

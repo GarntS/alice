@@ -24,10 +24,6 @@ theme:
   # Default: 8
   panel_top_gap_px: 8
 
-network:
-  # Whether to show the SSID or status label next to the network icon.
-  show_label: true
-
 tray:
   # Once this many tray items are visible, the remainder are collapsed into an
   # overflow panel. The bar shows N-1 items and an overflow toggle.

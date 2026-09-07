@@ -125,7 +125,6 @@ class AliceUiConfig {
   final bool transparentTopBar;
   final bool useDuotoneIcons;
   final bool useAccentOnIcons;
-  final bool showNetworkLabel;
   final int maxVisibleTrayItems;
   final String? localTimeZoneLabel;
   final List<TimeZoneConfig> timeZones;
@@ -143,7 +142,6 @@ class AliceUiConfig {
     required this.transparentTopBar,
     required this.useDuotoneIcons,
     required this.useAccentOnIcons,
-    required this.showNetworkLabel,
     required this.maxVisibleTrayItems,
     this.localTimeZoneLabel,
     required this.timeZones,
@@ -163,7 +161,6 @@ class AliceUiConfig {
       transparentTopBar.hashCode ^
       useDuotoneIcons.hashCode ^
       useAccentOnIcons.hashCode ^
-      showNetworkLabel.hashCode ^
       maxVisibleTrayItems.hashCode ^
       localTimeZoneLabel.hashCode ^
       timeZones.hashCode ^
@@ -185,7 +182,6 @@ class AliceUiConfig {
           transparentTopBar == other.transparentTopBar &&
           useDuotoneIcons == other.useDuotoneIcons &&
           useAccentOnIcons == other.useAccentOnIcons &&
-          showNetworkLabel == other.showNetworkLabel &&
           maxVisibleTrayItems == other.maxVisibleTrayItems &&
           localTimeZoneLabel == other.localTimeZoneLabel &&
           timeZones == other.timeZones &&

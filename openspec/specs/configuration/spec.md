@@ -42,7 +42,7 @@ Alice SHALL define omitted optional configuration values from the typed `AliceCo
 - **THEN** Alice SHALL use that action's typed default command
 
 ### Requirement: Supported configuration model
-Alice SHALL expose typed configuration for theme mode, accent color, transparent top bar preference, panel gap, network label visibility, tray visibility limit, local and additional time zones, power commands, an optional list of typed calendar entries, optional CalDAV account settings, notification settings, and weather settings. Each calendar entry SHALL have a unique `id`, a `type` of `google` or `ics`, an optional `#RRGGBB` `color`, and an effective `poll_interval_secs` of 600 when omitted. Google entries SHALL contain Google OAuth client credentials. ICS entries SHALL contain exactly one local `path` or HTTP(S) `url` and SHALL default `notify_for_events` to true.
+Alice SHALL expose typed configuration for theme mode, accent color, transparent top bar preference, panel gap, tray visibility limit, local and additional time zones, power commands, an optional list of typed calendar entries, optional CalDAV account settings, notification settings, and weather settings. Each calendar entry SHALL have a unique `id`, a `type` of `google` or `ics`, an optional `#RRGGBB` `color`, and an effective `poll_interval_secs` of 600 when omitted. Google entries SHALL contain Google OAuth client credentials. ICS entries SHALL contain exactly one local `path` or HTTP(S) `url` and SHALL default `notify_for_events` to true.
 
 #### Scenario: Typed config is loaded by Flutter
 - **WHEN** Flutter calls `loadConfig`

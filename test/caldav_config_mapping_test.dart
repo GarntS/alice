@@ -11,7 +11,6 @@ void main() {
       transparentTopBar: false,
       useDuotoneIcons: true,
       useAccentOnIcons: true,
-      showNetworkLabel: true,
       maxVisibleTrayItems: 5,
       timeZones: [],
       powerCommands: rust_config.PowerCommandConfig(
@@ -65,7 +64,6 @@ void main() {
       transparentTopBar: false,
       useDuotoneIcons: false,
       useAccentOnIcons: false,
-      showNetworkLabel: true,
       maxVisibleTrayItems: 5,
       timeZones: [],
       powerCommands: rust_config.PowerCommandConfig(

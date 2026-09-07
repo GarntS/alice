@@ -8,6 +8,7 @@ import '../../panel_controller.dart';
 import '../../snapshot_state.dart';
 import 'panel_sizes.dart';
 import 'media_panel.dart';
+import 'network_panel.dart';
 import 'clock_panel.dart';
 import 'tray_panel.dart';
 import 'task_panel.dart';
@@ -60,6 +61,10 @@ class AlicePanelCard extends StatelessWidget {
           onAction: onMediaAction,
           onSeek: onSeekMedia,
         ),
+      ),
+      AlicePanel.network => ValueListenableBuilder<NetworkSnapshot>(
+        valueListenable: snapshotState.network,
+        builder: (context, network, _) => NetworkPanel(network: network),
       ),
       AlicePanel.clock => ValueListenableBuilder<ClockSnapshot>(
         valueListenable: snapshotState.clock,

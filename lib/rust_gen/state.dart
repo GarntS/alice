@@ -249,16 +249,91 @@ class MediaSnapshot {
           isPlaying == other.isPlaying;
 }
 
-enum NetworkKind { wifi, wired, disconnected }
+class NetworkInterfaceSnapshot {
+  final int index;
+  final String name;
+  final int flags;
+  final bool adminUp;
+  final String? operationalState;
+  final String? linkKind;
+  final bool hardwareBacked;
+  final List<String> addresses;
+  final String? preferredAddress;
+  final BigInt? rxBytes;
+  final BigInt? txBytes;
+  final WifiSnapshot? wifi;
+  final String? classificationError;
+
+  const NetworkInterfaceSnapshot({
+    required this.index,
+    required this.name,
+    required this.flags,
+    required this.adminUp,
+    this.operationalState,
+    this.linkKind,
+    required this.hardwareBacked,
+    required this.addresses,
+    this.preferredAddress,
+    this.rxBytes,
+    this.txBytes,
+    this.wifi,
+    this.classificationError,
+  });
+
+  @override
+  int get hashCode =>
+      index.hashCode ^
+      name.hashCode ^
+      flags.hashCode ^
+      adminUp.hashCode ^
+      operationalState.hashCode ^
+      linkKind.hashCode ^
+      hardwareBacked.hashCode ^
+      addresses.hashCode ^
+      preferredAddress.hashCode ^
+      rxBytes.hashCode ^
+      txBytes.hashCode ^
+      wifi.hashCode ^
+      classificationError.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NetworkInterfaceSnapshot &&
+          runtimeType == other.runtimeType &&
+          index == other.index &&
+          name == other.name &&
+          flags == other.flags &&
+          adminUp == other.adminUp &&
+          operationalState == other.operationalState &&
+          linkKind == other.linkKind &&
+          hardwareBacked == other.hardwareBacked &&
+          addresses == other.addresses &&
+          preferredAddress == other.preferredAddress &&
+          rxBytes == other.rxBytes &&
+          txBytes == other.txBytes &&
+          wifi == other.wifi &&
+          classificationError == other.classificationError;
+}
+
+enum NetworkKind { wifi, wired, wifiDisconnected, disconnected }
 
 class NetworkSnapshot {
   final NetworkKind kind;
-  final String label;
+  final List<NetworkInterfaceSnapshot> adapters;
+  final List<NetworkInterfaceSnapshot> wireguard;
+  final String? error;
 
-  const NetworkSnapshot({required this.kind, required this.label});
+  const NetworkSnapshot({
+    required this.kind,
+    required this.adapters,
+    required this.wireguard,
+    this.error,
+  });
 
   @override
-  int get hashCode => kind.hashCode ^ label.hashCode;
+  int get hashCode =>
+      kind.hashCode ^ adapters.hashCode ^ wireguard.hashCode ^ error.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -266,7 +341,9 @@ class NetworkSnapshot {
       other is NetworkSnapshot &&
           runtimeType == other.runtimeType &&
           kind == other.kind &&
-          label == other.label;
+          adapters == other.adapters &&
+          wireguard == other.wireguard &&
+          error == other.error;
 }
 
 class NotificationActionSnapshot {
@@ -587,6 +664,33 @@ class WeatherSnapshot {
           hourly == other.hourly &&
           daily == other.daily &&
           alerts == other.alerts;
+}
+
+enum WifiAssociation { associated, notAssociated, unavailable }
+
+class WifiSnapshot {
+  final WifiAssociation association;
+  final String? ssid;
+  final String? unavailableReason;
+
+  const WifiSnapshot({
+    required this.association,
+    this.ssid,
+    this.unavailableReason,
+  });
+
+  @override
+  int get hashCode =>
+      association.hashCode ^ ssid.hashCode ^ unavailableReason.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WifiSnapshot &&
+          runtimeType == other.runtimeType &&
+          association == other.association &&
+          ssid == other.ssid &&
+          unavailableReason == other.unavailableReason;
 }
 
 class WorkspaceSnapshot {

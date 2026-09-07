@@ -136,7 +136,11 @@ void main() {
     state.ingest(
       copySnapshot(
         state.currentSnapshot,
-        network: const NetworkSnapshot(kind: NetworkKind.wired, label: 'eth0'),
+        network: const NetworkSnapshot(
+          kind: NetworkKind.wired,
+          adapters: [],
+          wireguard: [],
+        ),
       ),
     );
     expect(counts['network'], 1);

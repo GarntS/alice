@@ -707,25 +707,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AliceUiConfig dco_decode_alice_ui_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 16)
-      throw Exception('unexpected arr length: expect 16 but see ${arr.length}');
+    if (arr.length != 15)
+      throw Exception('unexpected arr length: expect 15 but see ${arr.length}');
     return AliceUiConfig(
       themeMode: dco_decode_theme_mode(arr[0]),
       accentColor: dco_decode_String(arr[1]),
       transparentTopBar: dco_decode_bool(arr[2]),
       useDuotoneIcons: dco_decode_bool(arr[3]),
       useAccentOnIcons: dco_decode_bool(arr[4]),
-      showNetworkLabel: dco_decode_bool(arr[5]),
-      maxVisibleTrayItems: dco_decode_u_32(arr[6]),
-      localTimeZoneLabel: dco_decode_opt_String(arr[7]),
-      timeZones: dco_decode_list_time_zone_config(arr[8]),
-      powerCommands: dco_decode_power_command_config(arr[9]),
-      panelTopGapPx: dco_decode_u_32(arr[10]),
-      calendar: dco_decode_opt_box_autoadd_calendar_ui_config(arr[11]),
-      caldav: dco_decode_opt_box_autoadd_cal_dav_ui_config(arr[12]),
-      notifications: dco_decode_notification_config(arr[13]),
-      weather: dco_decode_weather_config(arr[14]),
-      battery: dco_decode_battery_config(arr[15]),
+      maxVisibleTrayItems: dco_decode_u_32(arr[5]),
+      localTimeZoneLabel: dco_decode_opt_String(arr[6]),
+      timeZones: dco_decode_list_time_zone_config(arr[7]),
+      powerCommands: dco_decode_power_command_config(arr[8]),
+      panelTopGapPx: dco_decode_u_32(arr[9]),
+      calendar: dco_decode_opt_box_autoadd_calendar_ui_config(arr[10]),
+      caldav: dco_decode_opt_box_autoadd_cal_dav_ui_config(arr[11]),
+      notifications: dco_decode_notification_config(arr[12]),
+      weather: dco_decode_weather_config(arr[13]),
+      battery: dco_decode_battery_config(arr[14]),
     );
   }
 
@@ -847,9 +846,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_u_64(raw);
+  }
+
+  @protected
   WeatherSnapshot dco_decode_box_autoadd_weather_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_weather_snapshot(raw);
+  }
+
+  @protected
+  WifiSnapshot dco_decode_box_autoadd_wifi_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_wifi_snapshot(raw);
   }
 
   @protected
@@ -1000,6 +1011,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<NetworkInterfaceSnapshot> dco_decode_list_network_interface_snapshot(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_network_interface_snapshot)
+        .toList();
+  }
+
+  @protected
   List<NormalizedTask> dco_decode_list_normalized_task(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_normalized_task).toList();
@@ -1093,6 +1114,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  NetworkInterfaceSnapshot dco_decode_network_interface_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    return NetworkInterfaceSnapshot(
+      index: dco_decode_u_32(arr[0]),
+      name: dco_decode_String(arr[1]),
+      flags: dco_decode_u_32(arr[2]),
+      adminUp: dco_decode_bool(arr[3]),
+      operationalState: dco_decode_opt_String(arr[4]),
+      linkKind: dco_decode_opt_String(arr[5]),
+      hardwareBacked: dco_decode_bool(arr[6]),
+      addresses: dco_decode_list_String(arr[7]),
+      preferredAddress: dco_decode_opt_String(arr[8]),
+      rxBytes: dco_decode_opt_box_autoadd_u_64(arr[9]),
+      txBytes: dco_decode_opt_box_autoadd_u_64(arr[10]),
+      wifi: dco_decode_opt_box_autoadd_wifi_snapshot(arr[11]),
+      classificationError: dco_decode_opt_String(arr[12]),
+    );
+  }
+
+  @protected
   NetworkKind dco_decode_network_kind(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return NetworkKind.values[raw as int];
@@ -1102,11 +1146,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   NetworkSnapshot dco_decode_network_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return NetworkSnapshot(
       kind: dco_decode_network_kind(arr[0]),
-      label: dco_decode_String(arr[1]),
+      adapters: dco_decode_list_network_interface_snapshot(arr[1]),
+      wireguard: dco_decode_list_network_interface_snapshot(arr[2]),
+      error: dco_decode_opt_String(arr[3]),
     );
   }
 
@@ -1239,9 +1285,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
+  }
+
+  @protected
   WeatherSnapshot? dco_decode_opt_box_autoadd_weather_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_weather_snapshot(raw);
+  }
+
+  @protected
+  WifiSnapshot? dco_decode_opt_box_autoadd_wifi_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_wifi_snapshot(raw);
   }
 
   @protected
@@ -1454,6 +1512,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  WifiAssociation dco_decode_wifi_association(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return WifiAssociation.values[raw as int];
+  }
+
+  @protected
+  WifiSnapshot dco_decode_wifi_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return WifiSnapshot(
+      association: dco_decode_wifi_association(arr[0]),
+      ssid: dco_decode_opt_String(arr[1]),
+      unavailableReason: dco_decode_opt_String(arr[2]),
+    );
+  }
+
+  @protected
   WorkspaceSnapshot dco_decode_workspace_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -1513,7 +1590,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_transparentTopBar = sse_decode_bool(deserializer);
     var var_useDuotoneIcons = sse_decode_bool(deserializer);
     var var_useAccentOnIcons = sse_decode_bool(deserializer);
-    var var_showNetworkLabel = sse_decode_bool(deserializer);
     var var_maxVisibleTrayItems = sse_decode_u_32(deserializer);
     var var_localTimeZoneLabel = sse_decode_opt_String(deserializer);
     var var_timeZones = sse_decode_list_time_zone_config(deserializer);
@@ -1532,7 +1608,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       transparentTopBar: var_transparentTopBar,
       useDuotoneIcons: var_useDuotoneIcons,
       useAccentOnIcons: var_useAccentOnIcons,
-      showNetworkLabel: var_showNetworkLabel,
       maxVisibleTrayItems: var_maxVisibleTrayItems,
       localTimeZoneLabel: var_localTimeZoneLabel,
       timeZones: var_timeZones,
@@ -1673,11 +1748,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_64(deserializer));
+  }
+
+  @protected
   WeatherSnapshot sse_decode_box_autoadd_weather_snapshot(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_weather_snapshot(deserializer));
+  }
+
+  @protected
+  WifiSnapshot sse_decode_box_autoadd_wifi_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_wifi_snapshot(deserializer));
   }
 
   @protected
@@ -1859,6 +1948,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<NetworkInterfaceSnapshot> sse_decode_list_network_interface_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <NetworkInterfaceSnapshot>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_network_interface_snapshot(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<NormalizedTask> sse_decode_list_normalized_task(
     SseDeserializer deserializer,
   ) {
@@ -2022,6 +2125,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  NetworkInterfaceSnapshot sse_decode_network_interface_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_index = sse_decode_u_32(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_flags = sse_decode_u_32(deserializer);
+    var var_adminUp = sse_decode_bool(deserializer);
+    var var_operationalState = sse_decode_opt_String(deserializer);
+    var var_linkKind = sse_decode_opt_String(deserializer);
+    var var_hardwareBacked = sse_decode_bool(deserializer);
+    var var_addresses = sse_decode_list_String(deserializer);
+    var var_preferredAddress = sse_decode_opt_String(deserializer);
+    var var_rxBytes = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_txBytes = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_wifi = sse_decode_opt_box_autoadd_wifi_snapshot(deserializer);
+    var var_classificationError = sse_decode_opt_String(deserializer);
+    return NetworkInterfaceSnapshot(
+      index: var_index,
+      name: var_name,
+      flags: var_flags,
+      adminUp: var_adminUp,
+      operationalState: var_operationalState,
+      linkKind: var_linkKind,
+      hardwareBacked: var_hardwareBacked,
+      addresses: var_addresses,
+      preferredAddress: var_preferredAddress,
+      rxBytes: var_rxBytes,
+      txBytes: var_txBytes,
+      wifi: var_wifi,
+      classificationError: var_classificationError,
+    );
+  }
+
+  @protected
   NetworkKind sse_decode_network_kind(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
@@ -2032,8 +2170,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   NetworkSnapshot sse_decode_network_snapshot(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_kind = sse_decode_network_kind(deserializer);
-    var var_label = sse_decode_String(deserializer);
-    return NetworkSnapshot(kind: var_kind, label: var_label);
+    var var_adapters = sse_decode_list_network_interface_snapshot(deserializer);
+    var var_wireguard = sse_decode_list_network_interface_snapshot(
+      deserializer,
+    );
+    var var_error = sse_decode_opt_String(deserializer);
+    return NetworkSnapshot(
+      kind: var_kind,
+      adapters: var_adapters,
+      wireguard: var_wireguard,
+      error: var_error,
+    );
   }
 
   @protected
@@ -2240,6 +2387,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   WeatherSnapshot? sse_decode_opt_box_autoadd_weather_snapshot(
     SseDeserializer deserializer,
   ) {
@@ -2247,6 +2405,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_weather_snapshot(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  WifiSnapshot? sse_decode_opt_box_autoadd_wifi_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_wifi_snapshot(deserializer));
     } else {
       return null;
     }
@@ -2501,6 +2672,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  WifiAssociation sse_decode_wifi_association(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return WifiAssociation.values[inner];
+  }
+
+  @protected
+  WifiSnapshot sse_decode_wifi_snapshot(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_association = sse_decode_wifi_association(deserializer);
+    var var_ssid = sse_decode_opt_String(deserializer);
+    var var_unavailableReason = sse_decode_opt_String(deserializer);
+    return WifiSnapshot(
+      association: var_association,
+      ssid: var_ssid,
+      unavailableReason: var_unavailableReason,
+    );
+  }
+
+  @protected
   WorkspaceSnapshot sse_decode_workspace_snapshot(
     SseDeserializer deserializer,
   ) {
@@ -2592,7 +2783,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.transparentTopBar, serializer);
     sse_encode_bool(self.useDuotoneIcons, serializer);
     sse_encode_bool(self.useAccentOnIcons, serializer);
-    sse_encode_bool(self.showNetworkLabel, serializer);
     sse_encode_u_32(self.maxVisibleTrayItems, serializer);
     sse_encode_opt_String(self.localTimeZoneLabel, serializer);
     sse_encode_list_time_zone_config(self.timeZones, serializer);
@@ -2730,12 +2920,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_weather_snapshot(
     WeatherSnapshot self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_weather_snapshot(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_wifi_snapshot(
+    WifiSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_wifi_snapshot(self, serializer);
   }
 
   @protected
@@ -2876,6 +3081,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_calendar_event(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_network_interface_snapshot(
+    List<NetworkInterfaceSnapshot> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_network_interface_snapshot(item, serializer);
     }
   }
 
@@ -3022,6 +3239,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_network_interface_snapshot(
+    NetworkInterfaceSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self.index, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_u_32(self.flags, serializer);
+    sse_encode_bool(self.adminUp, serializer);
+    sse_encode_opt_String(self.operationalState, serializer);
+    sse_encode_opt_String(self.linkKind, serializer);
+    sse_encode_bool(self.hardwareBacked, serializer);
+    sse_encode_list_String(self.addresses, serializer);
+    sse_encode_opt_String(self.preferredAddress, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.rxBytes, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.txBytes, serializer);
+    sse_encode_opt_box_autoadd_wifi_snapshot(self.wifi, serializer);
+    sse_encode_opt_String(self.classificationError, serializer);
+  }
+
+  @protected
   void sse_encode_network_kind(NetworkKind self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
@@ -3034,7 +3272,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_network_kind(self.kind, serializer);
-    sse_encode_String(self.label, serializer);
+    sse_encode_list_network_interface_snapshot(self.adapters, serializer);
+    sse_encode_list_network_interface_snapshot(self.wireguard, serializer);
+    sse_encode_opt_String(self.error, serializer);
   }
 
   @protected
@@ -3213,6 +3453,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_64(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_weather_snapshot(
     WeatherSnapshot? self,
     SseSerializer serializer,
@@ -3222,6 +3472,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_weather_snapshot(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_wifi_snapshot(
+    WifiSnapshot? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_wifi_snapshot(self, serializer);
     }
   }
 
@@ -3403,6 +3666,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_weather_point(self.hourly, serializer);
     sse_encode_list_weather_day(self.daily, serializer);
     sse_encode_list_weather_alert(self.alerts, serializer);
+  }
+
+  @protected
+  void sse_encode_wifi_association(
+    WifiAssociation self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_wifi_snapshot(WifiSnapshot self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_wifi_association(self.association, serializer);
+    sse_encode_opt_String(self.ssid, serializer);
+    sse_encode_opt_String(self.unavailableReason, serializer);
   }
 
   @protected

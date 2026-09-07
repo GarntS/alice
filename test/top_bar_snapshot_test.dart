@@ -52,7 +52,7 @@ void main() {
     expect(workspaceDecoration.color, isNotNull);
     expect(workspaceDecoration.borderRadius, BorderRadius.circular(14));
     expect(find.textContaining('A Very Testable Song'), findsOneWidget);
-    expect(find.text('alice-net'), findsOneWidget);
+    expect(find.text('alice-net'), findsNothing);
     expect(find.textContaining('09 Mar'), findsOneWidget);
     expect(find.textContaining('13:37'), findsOneWidget);
     expect(find.text('3 more'), findsOneWidget);
@@ -245,9 +245,7 @@ void main() {
     expect(builds, {'battery': 1});
   });
 
-  testWidgets('top bar tolerates hidden network label and no media', (
-    tester,
-  ) async {
+  testWidgets('top bar keeps network icon-only with no media', (tester) async {
     final controller = PanelController();
 
     await pumpAliceWidget(
@@ -256,13 +254,14 @@ void main() {
         width: 1000,
         height: 80,
         child: TopBar(
-          config: testConfig(showNetworkLabel: false),
+          config: testConfig(),
           snapshotState: testSnapshotState(
             snapshot: testSnapshot(
               media: null,
               network: const NetworkSnapshot(
                 kind: NetworkKind.disconnected,
-                label: 'Disconnected',
+                adapters: [],
+                wireguard: [],
               ),
               trayItems: const [],
               notifications: const [],

@@ -63,13 +63,29 @@ class AliceIcons {
     regular: PhosphorIconsRegular.wifiHigh,
     duotone: PhosphorIconsDuotone.wifiHigh,
   );
+  static const link = AliceIconDescriptor(
+    regular: PhosphorIconsRegular.link,
+    duotone: PhosphorIconsDuotone.link,
+  );
+  static const at = AliceIconDescriptor(
+    regular: PhosphorIconsRegular.at,
+    duotone: PhosphorIconsDuotone.at,
+  );
+  static const keyhole = AliceIconDescriptor(
+    regular: PhosphorIconsRegular.keyhole,
+    duotone: PhosphorIconsDuotone.keyhole,
+  );
   static const ethernet = AliceIconDescriptor(
     regular: PhosphorIconsRegular.network,
     duotone: PhosphorIconsDuotone.network,
   );
+  static const wifiDisconnected = AliceIconDescriptor(
+    regular: PhosphorIconsRegular.wifiX,
+    duotone: PhosphorIconsDuotone.wifiX,
+  );
   static const networkSlash = AliceIconDescriptor(
-    regular: PhosphorIconsRegular.wifiSlash,
-    duotone: PhosphorIconsDuotone.wifiSlash,
+    regular: PhosphorIconsRegular.networkX,
+    duotone: PhosphorIconsDuotone.networkX,
   );
   static const cloud = AliceIconDescriptor(
     regular: PhosphorIconsRegular.cloud,

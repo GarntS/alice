@@ -37,13 +37,58 @@ pub struct MediaSnapshot {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NetworkSnapshot {
     pub kind: NetworkKind,
-    pub label: String,
+    pub adapters: Vec<NetworkInterfaceSnapshot>,
+    pub wireguard: Vec<NetworkInterfaceSnapshot>,
+    pub error: Option<String>,
+}
+
+impl Default for NetworkSnapshot {
+    fn default() -> Self {
+        Self {
+            kind: NetworkKind::Disconnected,
+            adapters: vec![],
+            wireguard: vec![],
+            error: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NetworkInterfaceSnapshot {
+    pub index: u32,
+    pub name: String,
+    pub flags: u32,
+    pub admin_up: bool,
+    pub operational_state: Option<String>,
+    pub link_kind: Option<String>,
+    pub hardware_backed: bool,
+    pub addresses: Vec<String>,
+    pub preferred_address: Option<String>,
+    pub rx_bytes: Option<u64>,
+    pub tx_bytes: Option<u64>,
+    pub wifi: Option<WifiSnapshot>,
+    pub classification_error: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WifiSnapshot {
+    pub association: WifiAssociation,
+    pub ssid: Option<String>,
+    pub unavailable_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WifiAssociation {
+    Associated,
+    NotAssociated,
+    Unavailable,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkKind {
     Wifi,
     Wired,
+    WifiDisconnected,
     Disconnected,
 }
 

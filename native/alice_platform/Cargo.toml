@@ -13,7 +13,8 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 flutter_rust_bridge = "=2.12.0"
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync", "time", "fs", "test-util"] }
 futures-util = "0.3"
-notify = "6"
+rtnetlink = "=0.23.0"
+wl-nl80211 = "=0.7.0"
 image = { version = "0.25", default-features = false, features = ["png"] }
 anyhow = "1"
 chrono = { version = "0.4.44", features = ["clock"] }

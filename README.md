@@ -16,6 +16,15 @@ should visit.
 
 ## Project Design
 
+### Network panel
+
+The icon-only network control opens adapter and WireGuard cards. Adapter cards
+show link state, a preferred local IPv4 (otherwise IPv6) address, and Wi-Fi SSID
+availability. WireGuard cards show only generic interface state and RX/TX byte
+counts—not peer endpoints, handshakes, or reachability. Collection uses
+unprivileged Rust Netlink clients; no network commands or active Wi-Fi scans are
+run. Receive buffers are enlarged where permitted, with fresh dumps after loss.
+
 ### Overall Structure
 - The bar is logically organized out of the bar itself, **Bar Widgets**, which
 are the widgets that can be rendered directly on the bar, and **Panels**, which
@@ -74,10 +83,6 @@ theme:
   # Gap in pixels between the bottom of the bar and the top of panel windows.
   # Default: 8
   panel_top_gap_px: 8
-
-network:
-  # Whether to show the SSID or status label next to the network icon.
-  show_label: true
 
 battery:
   # Enabled by default. Set false to hide the battery metric.

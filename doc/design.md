@@ -12,7 +12,6 @@ Supported options:
 |---|---|---|
 | `theme` | `light` / `dark` / `system` | Bar colour scheme |
 | `accent_color` | hex string | Material3 colour seed |
-| `show_network_label` | bool | Show SSID / "Connected" label next to network icon |
 | `max_visible_tray_items` | int | Tray icons shown before overflow |
 | `time_zones` | list | Extra world-clock entries (label + UTC offset) |
 | `power_commands.lock` | string | Shell command for lock action |
@@ -55,7 +54,7 @@ The bar is anchored to the top of the output at 44 px tall, split into three lay
 **Right (left to right):**
 1. Memory usage — icon and percentage of system RAM in use. Colours shift to yellow above 75 % and red above 90 %.
 2. CPU usage — icon and aggregate CPU load expressed as cores (e.g. `2.4` for four cores each at 60 %). Same warning/alert colour thresholds as memory.
-3. Network status — icon and optional label. Shows Wi-Fi SSID when on wireless, "Connected" on wired, or "Disconnected" with a broken-link icon when offline. Label visibility is configurable.
+3. Network — icon-only panel control. Associated, administratively-up Wi-Fi with a local address takes precedence; otherwise usable local addressing, offline Wi-Fi hardware, or no usable network determine the icon. The scrollable panel shows hardware adapter link state, preferred IPv4/IPv6 host address, and byte-safe SSID availability. WireGuard cards show only route-derived interface state, host address, and generic RX/TX counters, never peer-health claims.
 4. Clock — timezone code, day-and-month date, and 24-hour time. Clicking opens the world-clock panel.
 5. Tray — `StatusNotifierItem`-compatible icons, limited to a configurable count. When items overflow, a badge showing the count opens an overflow panel.
 6. Power button — opens the power panel.
@@ -87,7 +86,7 @@ The Rust runtime runs a Tokio async event loop with the following providers:
 | Media | D-Bus MPRIS | MPRIS property change |
 | Memory | `/proc/meminfo` | 1 s timer |
 | CPU | `/proc/stat` | 1 s timer |
-| Network | `/sys/class/net` | `notify` file watcher |
+| Network | Rust `rtnetlink` link/address state and `wl-nl80211` cached BSS data | Subscribed, supervised Netlink connections plus periodic counter refresh; best-effort 4 MiB receive buffers |
 | Clock | `chrono` | 30 s timer |
 | Tray | D-Bus SNI watcher | SNI registration / icon change |
 

@@ -91,7 +91,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw);
+
+  @protected
   WeatherSnapshot dco_decode_box_autoadd_weather_snapshot(dynamic raw);
+
+  @protected
+  WifiSnapshot dco_decode_box_autoadd_wifi_snapshot(dynamic raw);
 
   @protected
   CalDavFreshness dco_decode_cal_dav_freshness(dynamic raw);
@@ -138,6 +144,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<CalendarEvent> dco_decode_list_calendar_event(dynamic raw);
 
   @protected
+  List<NetworkInterfaceSnapshot> dco_decode_list_network_interface_snapshot(
+    dynamic raw,
+  );
+
+  @protected
   List<NormalizedTask> dco_decode_list_normalized_task(dynamic raw);
 
   @protected
@@ -174,6 +185,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   MediaSnapshot dco_decode_media_snapshot(dynamic raw);
+
+  @protected
+  NetworkInterfaceSnapshot dco_decode_network_interface_snapshot(dynamic raw);
 
   @protected
   NetworkKind dco_decode_network_kind(dynamic raw);
@@ -226,7 +240,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PanelCommand? dco_decode_opt_box_autoadd_panel_command(dynamic raw);
 
   @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+
+  @protected
   WeatherSnapshot? dco_decode_opt_box_autoadd_weather_snapshot(dynamic raw);
+
+  @protected
+  WifiSnapshot? dco_decode_opt_box_autoadd_wifi_snapshot(dynamic raw);
 
   @protected
   Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw);
@@ -281,6 +301,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   WeatherSnapshot dco_decode_weather_snapshot(dynamic raw);
+
+  @protected
+  WifiAssociation dco_decode_wifi_association(dynamic raw);
+
+  @protected
+  WifiSnapshot dco_decode_wifi_snapshot(dynamic raw);
 
   @protected
   WorkspaceSnapshot dco_decode_workspace_snapshot(dynamic raw);
@@ -365,7 +391,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
   WeatherSnapshot sse_decode_box_autoadd_weather_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  WifiSnapshot sse_decode_box_autoadd_wifi_snapshot(
     SseDeserializer deserializer,
   );
 
@@ -420,6 +454,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<NetworkInterfaceSnapshot> sse_decode_list_network_interface_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<NormalizedTask> sse_decode_list_normalized_task(
     SseDeserializer deserializer,
   );
@@ -470,6 +509,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   MediaSnapshot sse_decode_media_snapshot(SseDeserializer deserializer);
+
+  @protected
+  NetworkInterfaceSnapshot sse_decode_network_interface_snapshot(
+    SseDeserializer deserializer,
+  );
 
   @protected
   NetworkKind sse_decode_network_kind(SseDeserializer deserializer);
@@ -538,7 +582,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
   WeatherSnapshot? sse_decode_opt_box_autoadd_weather_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  WifiSnapshot? sse_decode_opt_box_autoadd_wifi_snapshot(
     SseDeserializer deserializer,
   );
 
@@ -599,6 +651,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   WeatherSnapshot sse_decode_weather_snapshot(SseDeserializer deserializer);
+
+  @protected
+  WifiAssociation sse_decode_wifi_association(SseDeserializer deserializer);
+
+  @protected
+  WifiSnapshot sse_decode_wifi_snapshot(SseDeserializer deserializer);
 
   @protected
   WorkspaceSnapshot sse_decode_workspace_snapshot(SseDeserializer deserializer);
@@ -703,8 +761,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_weather_snapshot(
     WeatherSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_wifi_snapshot(
+    WifiSnapshot self,
     SseSerializer serializer,
   );
 
@@ -771,6 +838,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_calendar_event(
     List<CalendarEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_network_interface_snapshot(
+    List<NetworkInterfaceSnapshot> self,
     SseSerializer serializer,
   );
 
@@ -842,6 +915,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_media_snapshot(MediaSnapshot self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_network_interface_snapshot(
+    NetworkInterfaceSnapshot self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_network_kind(NetworkKind self, SseSerializer serializer);
@@ -928,8 +1007,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_weather_snapshot(
     WeatherSnapshot? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_wifi_snapshot(
+    WifiSnapshot? self,
     SseSerializer serializer,
   );
 
@@ -1004,6 +1092,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     WeatherSnapshot self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_wifi_association(
+    WifiAssociation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_wifi_snapshot(WifiSnapshot self, SseSerializer serializer);
 
   @protected
   void sse_encode_workspace_snapshot(

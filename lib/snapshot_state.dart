@@ -34,7 +34,8 @@ class AliceSnapshotState {
   final ValueNotifier<NetworkSnapshot> _network = ValueNotifier(
     const NetworkSnapshot(
       kind: NetworkKind.disconnected,
-      label: 'Disconnected',
+      adapters: [],
+      wireguard: [],
     ),
   );
   final ValueNotifier<ClockSnapshot> _clock = ValueNotifier(
@@ -143,7 +144,7 @@ class AliceSnapshotState {
       _cpuUsageCores.value = next.cpuUsageCores;
     }
     if (!networkSnapshotsEqual(_network.value, next.network)) {
-      _network.value = next.network;
+      _network.value = freezeNetworkSnapshot(next.network);
     }
     if (!clockSnapshotsEqual(_clock.value, next.clock)) {
       _clock.value = next.clock;
@@ -323,7 +324,54 @@ bool workspaceSnapshotsEqual(WorkspaceSnapshot a, WorkspaceSnapshot b) =>
 
 bool mediaSnapshotsEqual(MediaSnapshot? a, MediaSnapshot? b) => a == b;
 
-bool networkSnapshotsEqual(NetworkSnapshot a, NetworkSnapshot b) => a == b;
+bool networkSnapshotsEqual(NetworkSnapshot a, NetworkSnapshot b) =>
+    a.kind == b.kind &&
+    a.error == b.error &&
+    listEqualsBy(a.adapters, b.adapters, networkInterfacesEqual) &&
+    listEqualsBy(a.wireguard, b.wireguard, networkInterfacesEqual);
+
+bool networkInterfacesEqual(
+  NetworkInterfaceSnapshot a,
+  NetworkInterfaceSnapshot b,
+) =>
+    a.index == b.index &&
+    a.name == b.name &&
+    a.flags == b.flags &&
+    a.adminUp == b.adminUp &&
+    a.operationalState == b.operationalState &&
+    a.linkKind == b.linkKind &&
+    a.hardwareBacked == b.hardwareBacked &&
+    listEquals(a.addresses, b.addresses) &&
+    a.preferredAddress == b.preferredAddress &&
+    a.rxBytes == b.rxBytes &&
+    a.txBytes == b.txBytes &&
+    a.wifi == b.wifi &&
+    a.classificationError == b.classificationError;
+
+NetworkSnapshot freezeNetworkSnapshot(NetworkSnapshot value) => NetworkSnapshot(
+  kind: value.kind,
+  error: value.error,
+  adapters: List.unmodifiable(value.adapters.map(_freezeNetworkInterface)),
+  wireguard: List.unmodifiable(value.wireguard.map(_freezeNetworkInterface)),
+);
+
+NetworkInterfaceSnapshot _freezeNetworkInterface(
+  NetworkInterfaceSnapshot value,
+) => NetworkInterfaceSnapshot(
+  index: value.index,
+  name: value.name,
+  flags: value.flags,
+  adminUp: value.adminUp,
+  operationalState: value.operationalState,
+  linkKind: value.linkKind,
+  hardwareBacked: value.hardwareBacked,
+  addresses: List.unmodifiable(value.addresses),
+  preferredAddress: value.preferredAddress,
+  rxBytes: value.rxBytes,
+  txBytes: value.txBytes,
+  wifi: value.wifi,
+  classificationError: value.classificationError,
+);
 
 bool clockSnapshotsEqual(ClockSnapshot a, ClockSnapshot b) => a == b;
 

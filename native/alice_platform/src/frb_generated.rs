@@ -719,7 +719,6 @@ impl SseDecode for crate::api::AliceUiConfig {
         let mut var_transparentTopBar = <bool>::sse_decode(deserializer);
         let mut var_useDuotoneIcons = <bool>::sse_decode(deserializer);
         let mut var_useAccentOnIcons = <bool>::sse_decode(deserializer);
-        let mut var_showNetworkLabel = <bool>::sse_decode(deserializer);
         let mut var_maxVisibleTrayItems = <u32>::sse_decode(deserializer);
         let mut var_localTimeZoneLabel = <Option<String>>::sse_decode(deserializer);
         let mut var_timeZones = <Vec<crate::config::TimeZoneConfig>>::sse_decode(deserializer);
@@ -736,7 +735,6 @@ impl SseDecode for crate::api::AliceUiConfig {
             transparent_top_bar: var_transparentTopBar,
             use_duotone_icons: var_useDuotoneIcons,
             use_accent_on_icons: var_useAccentOnIcons,
-            show_network_label: var_showNetworkLabel,
             max_visible_tray_items: var_maxVisibleTrayItems,
             local_time_zone_label: var_localTimeZoneLabel,
             time_zones: var_timeZones,
@@ -1018,6 +1016,20 @@ impl SseDecode for Vec<crate::state::CalendarEvent> {
     }
 }
 
+impl SseDecode for Vec<crate::state::NetworkInterfaceSnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::state::NetworkInterfaceSnapshot>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::caldav::models::NormalizedTask> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1182,6 +1194,40 @@ impl SseDecode for crate::state::MediaSnapshot {
     }
 }
 
+impl SseDecode for crate::state::NetworkInterfaceSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_index = <u32>::sse_decode(deserializer);
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_flags = <u32>::sse_decode(deserializer);
+        let mut var_adminUp = <bool>::sse_decode(deserializer);
+        let mut var_operationalState = <Option<String>>::sse_decode(deserializer);
+        let mut var_linkKind = <Option<String>>::sse_decode(deserializer);
+        let mut var_hardwareBacked = <bool>::sse_decode(deserializer);
+        let mut var_addresses = <Vec<String>>::sse_decode(deserializer);
+        let mut var_preferredAddress = <Option<String>>::sse_decode(deserializer);
+        let mut var_rxBytes = <Option<u64>>::sse_decode(deserializer);
+        let mut var_txBytes = <Option<u64>>::sse_decode(deserializer);
+        let mut var_wifi = <Option<crate::state::WifiSnapshot>>::sse_decode(deserializer);
+        let mut var_classificationError = <Option<String>>::sse_decode(deserializer);
+        return crate::state::NetworkInterfaceSnapshot {
+            index: var_index,
+            name: var_name,
+            flags: var_flags,
+            admin_up: var_adminUp,
+            operational_state: var_operationalState,
+            link_kind: var_linkKind,
+            hardware_backed: var_hardwareBacked,
+            addresses: var_addresses,
+            preferred_address: var_preferredAddress,
+            rx_bytes: var_rxBytes,
+            tx_bytes: var_txBytes,
+            wifi: var_wifi,
+            classification_error: var_classificationError,
+        };
+    }
+}
+
 impl SseDecode for crate::state::NetworkKind {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1189,7 +1235,8 @@ impl SseDecode for crate::state::NetworkKind {
         return match inner {
             0 => crate::state::NetworkKind::Wifi,
             1 => crate::state::NetworkKind::Wired,
-            2 => crate::state::NetworkKind::Disconnected,
+            2 => crate::state::NetworkKind::WifiDisconnected,
+            3 => crate::state::NetworkKind::Disconnected,
             _ => unreachable!("Invalid variant for NetworkKind: {}", inner),
         };
     }
@@ -1199,10 +1246,16 @@ impl SseDecode for crate::state::NetworkSnapshot {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_kind = <crate::state::NetworkKind>::sse_decode(deserializer);
-        let mut var_label = <String>::sse_decode(deserializer);
+        let mut var_adapters =
+            <Vec<crate::state::NetworkInterfaceSnapshot>>::sse_decode(deserializer);
+        let mut var_wireguard =
+            <Vec<crate::state::NetworkInterfaceSnapshot>>::sse_decode(deserializer);
+        let mut var_error = <Option<String>>::sse_decode(deserializer);
         return crate::state::NetworkSnapshot {
             kind: var_kind,
-            label: var_label,
+            adapters: var_adapters,
+            wireguard: var_wireguard,
+            error: var_error,
         };
     }
 }
@@ -1405,11 +1458,33 @@ impl SseDecode for Option<crate::api::PanelCommand> {
     }
 }
 
+impl SseDecode for Option<u64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<u64>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::state::WeatherSnapshot> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<crate::state::WeatherSnapshot>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::state::WifiSnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::state::WifiSnapshot>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -1696,6 +1771,33 @@ impl SseDecode for crate::state::WeatherSnapshot {
     }
 }
 
+impl SseDecode for crate::state::WifiAssociation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::state::WifiAssociation::Associated,
+            1 => crate::state::WifiAssociation::NotAssociated,
+            2 => crate::state::WifiAssociation::Unavailable,
+            _ => unreachable!("Invalid variant for WifiAssociation: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::state::WifiSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_association = <crate::state::WifiAssociation>::sse_decode(deserializer);
+        let mut var_ssid = <Option<String>>::sse_decode(deserializer);
+        let mut var_unavailableReason = <Option<String>>::sse_decode(deserializer);
+        return crate::state::WifiSnapshot {
+            association: var_association,
+            ssid: var_ssid,
+            unavailable_reason: var_unavailableReason,
+        };
+    }
+}
+
 impl SseDecode for crate::state::WorkspaceSnapshot {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1763,7 +1865,6 @@ impl flutter_rust_bridge::IntoDart for crate::api::AliceUiConfig {
             self.transparent_top_bar.into_into_dart().into_dart(),
             self.use_duotone_icons.into_into_dart().into_dart(),
             self.use_accent_on_icons.into_into_dart().into_dart(),
-            self.show_network_label.into_into_dart().into_dart(),
             self.max_visible_tray_items.into_into_dart().into_dart(),
             self.local_time_zone_label.into_into_dart().into_dart(),
             self.time_zones.into_into_dart().into_dart(),
@@ -2057,12 +2158,45 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::MediaSnapshot>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::NetworkInterfaceSnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.index.into_into_dart().into_dart(),
+            self.name.into_into_dart().into_dart(),
+            self.flags.into_into_dart().into_dart(),
+            self.admin_up.into_into_dart().into_dart(),
+            self.operational_state.into_into_dart().into_dart(),
+            self.link_kind.into_into_dart().into_dart(),
+            self.hardware_backed.into_into_dart().into_dart(),
+            self.addresses.into_into_dart().into_dart(),
+            self.preferred_address.into_into_dart().into_dart(),
+            self.rx_bytes.into_into_dart().into_dart(),
+            self.tx_bytes.into_into_dart().into_dart(),
+            self.wifi.into_into_dart().into_dart(),
+            self.classification_error.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::NetworkInterfaceSnapshot
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::NetworkInterfaceSnapshot>
+    for crate::state::NetworkInterfaceSnapshot
+{
+    fn into_into_dart(self) -> crate::state::NetworkInterfaceSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::state::NetworkKind {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             Self::Wifi => 0.into_dart(),
             Self::Wired => 1.into_dart(),
-            Self::Disconnected => 2.into_dart(),
+            Self::WifiDisconnected => 2.into_dart(),
+            Self::Disconnected => 3.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -2078,7 +2212,9 @@ impl flutter_rust_bridge::IntoDart for crate::state::NetworkSnapshot {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.kind.into_into_dart().into_dart(),
-            self.label.into_into_dart().into_dart(),
+            self.adapters.into_into_dart().into_dart(),
+            self.wireguard.into_into_dart().into_dart(),
+            self.error.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -2505,6 +2641,42 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::WeatherSnapshot>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::WifiAssociation {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Associated => 0.into_dart(),
+            Self::NotAssociated => 1.into_dart(),
+            Self::Unavailable => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::state::WifiAssociation {}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::WifiAssociation>
+    for crate::state::WifiAssociation
+{
+    fn into_into_dart(self) -> crate::state::WifiAssociation {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::WifiSnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.association.into_into_dart().into_dart(),
+            self.ssid.into_into_dart().into_dart(),
+            self.unavailable_reason.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::state::WifiSnapshot {}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::WifiSnapshot> for crate::state::WifiSnapshot {
+    fn into_into_dart(self) -> crate::state::WifiSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::state::WorkspaceSnapshot {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -2576,7 +2748,6 @@ impl SseEncode for crate::api::AliceUiConfig {
         <bool>::sse_encode(self.transparent_top_bar, serializer);
         <bool>::sse_encode(self.use_duotone_icons, serializer);
         <bool>::sse_encode(self.use_accent_on_icons, serializer);
-        <bool>::sse_encode(self.show_network_label, serializer);
         <u32>::sse_encode(self.max_visible_tray_items, serializer);
         <Option<String>>::sse_encode(self.local_time_zone_label, serializer);
         <Vec<crate::config::TimeZoneConfig>>::sse_encode(self.time_zones, serializer);
@@ -2781,6 +2952,16 @@ impl SseEncode for Vec<crate::state::CalendarEvent> {
     }
 }
 
+impl SseEncode for Vec<crate::state::NetworkInterfaceSnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::state::NetworkInterfaceSnapshot>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::caldav::models::NormalizedTask> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2906,6 +3087,25 @@ impl SseEncode for crate::state::MediaSnapshot {
     }
 }
 
+impl SseEncode for crate::state::NetworkInterfaceSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u32>::sse_encode(self.index, serializer);
+        <String>::sse_encode(self.name, serializer);
+        <u32>::sse_encode(self.flags, serializer);
+        <bool>::sse_encode(self.admin_up, serializer);
+        <Option<String>>::sse_encode(self.operational_state, serializer);
+        <Option<String>>::sse_encode(self.link_kind, serializer);
+        <bool>::sse_encode(self.hardware_backed, serializer);
+        <Vec<String>>::sse_encode(self.addresses, serializer);
+        <Option<String>>::sse_encode(self.preferred_address, serializer);
+        <Option<u64>>::sse_encode(self.rx_bytes, serializer);
+        <Option<u64>>::sse_encode(self.tx_bytes, serializer);
+        <Option<crate::state::WifiSnapshot>>::sse_encode(self.wifi, serializer);
+        <Option<String>>::sse_encode(self.classification_error, serializer);
+    }
+}
+
 impl SseEncode for crate::state::NetworkKind {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2913,7 +3113,8 @@ impl SseEncode for crate::state::NetworkKind {
             match self {
                 crate::state::NetworkKind::Wifi => 0,
                 crate::state::NetworkKind::Wired => 1,
-                crate::state::NetworkKind::Disconnected => 2,
+                crate::state::NetworkKind::WifiDisconnected => 2,
+                crate::state::NetworkKind::Disconnected => 3,
                 _ => {
                     unimplemented!("");
                 }
@@ -2927,7 +3128,9 @@ impl SseEncode for crate::state::NetworkSnapshot {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::state::NetworkKind>::sse_encode(self.kind, serializer);
-        <String>::sse_encode(self.label, serializer);
+        <Vec<crate::state::NetworkInterfaceSnapshot>>::sse_encode(self.adapters, serializer);
+        <Vec<crate::state::NetworkInterfaceSnapshot>>::sse_encode(self.wireguard, serializer);
+        <Option<String>>::sse_encode(self.error, serializer);
     }
 }
 
@@ -3088,12 +3291,32 @@ impl SseEncode for Option<crate::api::PanelCommand> {
     }
 }
 
+impl SseEncode for Option<u64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <u64>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::state::WeatherSnapshot> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::state::WeatherSnapshot>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::state::WifiSnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::state::WifiSnapshot>::sse_encode(value, serializer);
         }
     }
 }
@@ -3305,6 +3528,32 @@ impl SseEncode for crate::state::WeatherSnapshot {
         <Vec<crate::state::WeatherPoint>>::sse_encode(self.hourly, serializer);
         <Vec<crate::state::WeatherDay>>::sse_encode(self.daily, serializer);
         <Vec<crate::state::WeatherAlert>>::sse_encode(self.alerts, serializer);
+    }
+}
+
+impl SseEncode for crate::state::WifiAssociation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::state::WifiAssociation::Associated => 0,
+                crate::state::WifiAssociation::NotAssociated => 1,
+                crate::state::WifiAssociation::Unavailable => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::state::WifiSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::state::WifiAssociation>::sse_encode(self.association, serializer);
+        <Option<String>>::sse_encode(self.ssid, serializer);
+        <Option<String>>::sse_encode(self.unavailable_reason, serializer);
     }
 }
 

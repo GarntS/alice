@@ -123,28 +123,50 @@ class TopBar extends StatelessWidget {
                         TopBarMemoryModule(memoryUsagePercent: value),
                       ),
                     ),
-                    ValueListenableBuilder<double>(
-                      valueListenable: snapshotState.cpuUsageCores,
-                      builder: (context, value, _) =>
-                          _probe('cpu', TopBarCpuModule(cpuUsageCores: value)),
-                    ),
-                    if (config.battery.enable)
-                      ValueListenableBuilder<BatterySnapshot?>(
-                        valueListenable: snapshotState.battery,
-                        builder: (context, battery, _) => _probe(
-                          'battery',
-                          TopBarBatteryModule(battery: battery),
+                    ValueListenableBuilder<BatterySnapshot?>(
+                      valueListenable: snapshotState.battery,
+                      child: ValueListenableBuilder<double>(
+                        valueListenable: snapshotState.cpuUsageCores,
+                        builder: (context, value, _) => _probe(
+                          'cpu',
+                          TopBarCpuModule(cpuUsageCores: value),
                         ),
                       ),
+                      builder: (context, battery, cpu) => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          cpu!,
+                          // A zero-width Wrap child still consumes spacing.
+                          if (config.battery.enable && battery != null) ...[
+                            const SizedBox(width: 8),
+                            _probe(
+                              'battery',
+                              TopBarBatteryModule(battery: battery),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                     ValueListenableBuilder<NetworkSnapshot>(
                       valueListenable: snapshotState.network,
-                      builder: (context, network, _) => _probe(
-                        'network',
-                        TopBarNetworkModule(
-                          networkKind: network.kind,
-                          label: config.showNetworkLabel ? network.label : '',
-                        ),
-                      ),
+                      builder: (context, network, _) =>
+                          ValueListenableBuilder<bool>(
+                            valueListenable: panelController.networkOpen,
+                            builder: (context, highlighted, _) => _probe(
+                              'network',
+                              TopBarNetworkModule(
+                                networkKind: network.kind,
+                                highlighted:
+                                    highlighted &&
+                                    panelController.sourceViewId ==
+                                        View.of(context).viewId,
+                                onToggle: (anchor) => panelController.toggle(
+                                  AlicePanel.network,
+                                  anchor,
+                                ),
+                              ),
+                            ),
+                          ),
                     ),
                     if (config.caldav != null)
                       _TaskModuleBindings(

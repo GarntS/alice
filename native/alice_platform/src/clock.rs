@@ -4,6 +4,7 @@ use std::fs;
 
 use crate::{PlatformError, providers::ClockProvider, state::ClockSnapshot};
 
+#[flutter_rust_bridge::frb(opaque)]
 pub struct LocalClockProvider;
 
 impl Default for LocalClockProvider {

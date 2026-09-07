@@ -5,6 +5,7 @@ import '../../panel_controller.dart';
 Size alicePanelSize(AlicePanel panel) {
   return switch (panel) {
     AlicePanel.media => const Size(360, 268),
+    AlicePanel.network => const Size(380, 600),
     AlicePanel.clock => const Size(320, 700),
     AlicePanel.tasks => const Size(380, 800),
     AlicePanel.weather => const Size(320, 600),

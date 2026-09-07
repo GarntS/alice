@@ -13,7 +13,6 @@ const _defaultMediaSentinel = Object();
 
 AliceConfig testConfig({
   int maxVisibleTrayItems = 3,
-  bool showNetworkLabel = true,
   bool transparentTopBar = false,
   bool useDuotoneIcons = true,
   bool useAccentOnIcons = true,
@@ -43,7 +42,6 @@ AliceConfig testConfig({
     transparentTopBar: transparentTopBar,
     useDuotoneIcons: useDuotoneIcons,
     useAccentOnIcons: useAccentOnIcons,
-    showNetworkLabel: showNetworkLabel,
     maxVisibleTrayItems: maxVisibleTrayItems,
     localTimeZoneLabel: 'LOCAL',
     timeZones: const [
@@ -95,7 +93,11 @@ BarSnapshot testSnapshot({
     cpuUsageCores: cpuUsageCores,
     network:
         network ??
-        const NetworkSnapshot(kind: NetworkKind.wifi, label: 'alice-net'),
+        const NetworkSnapshot(
+          kind: NetworkKind.wifi,
+          adapters: [],
+          wireguard: [],
+        ),
     clock: clock,
     weather: weather,
     battery: battery,

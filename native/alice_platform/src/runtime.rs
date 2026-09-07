@@ -181,12 +181,12 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
             sway_event_watcher(tx_sway);
         });
 
-        // --- Network change watcher (notify / inotify) ---
-        let tx_net = tx.clone();
-        std::thread::Builder::new()
-            .name("alice-net-watcher".into())
-            .spawn(move || network_watcher(tx_net))
-            .ok();
+        // Unrelated bar refreshes read the cache, never perform network I/O.
+        let network_cache = crate::network::CachedNetworkProvider::default();
+        tokio::spawn(crate::network::run_network_service(
+            network_cache.clone(),
+            tx.clone(),
+        ));
 
         // --- SNI watcher (async zbus service) ---
         let tx_sni = tx.clone();
@@ -249,6 +249,7 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
                 mpris_cache.clone(),
                 weather_cache.clone(),
                 config.battery.clone(),
+                network_cache.clone(),
             );
             if sink.add(snapshot).is_err() {
                 break;
@@ -297,11 +298,11 @@ fn build_snapshot(
     mpris_cache: Arc<crate::mpris::MprisCache>,
     weather_cache: crate::weather::WeatherCache,
     battery_config: crate::config::BatteryConfig,
+    network_cache: crate::network::CachedNetworkProvider,
 ) -> BarSnapshot {
     use crate::battery::SysfsBatteryProvider;
     use crate::clock::LocalClockProvider;
     use crate::mpris::CachedMprisMediaProvider;
-    use crate::network::SysNetworkProvider;
     use crate::stats::ProcStatsProvider;
     use crate::sway::SwayWorkspaceProvider;
     use crate::tray::StatusNotifierTrayProvider;
@@ -310,7 +311,7 @@ fn build_snapshot(
         &SwayWorkspaceProvider::new(),
         &CachedMprisMediaProvider::new(mpris_cache),
         &ProcStatsProvider::new(),
-        &SysNetworkProvider::new(),
+        &network_cache,
         &LocalClockProvider::new(),
         &SysfsBatteryProvider::new(battery_config),
         &crate::weather::CachedWeatherProvider::new(weather_cache),
@@ -354,7 +355,7 @@ where
     WP: crate::providers::WeatherProvider,
     T: crate::providers::TrayProvider,
 {
-    use crate::state::{ClockSnapshot, NetworkKind, NetworkSnapshot};
+    use crate::state::{ClockSnapshot, NetworkSnapshot};
 
     let workspaces = workspace_provider.read_workspaces().unwrap_or_default();
     let media = media_provider.read_media().unwrap_or(None);
@@ -364,10 +365,12 @@ where
             memory_usage_percent: 0.0,
             cpu_usage_cores: 0.0,
         });
-    let network = network_provider.read_network().unwrap_or(NetworkSnapshot {
-        kind: NetworkKind::Disconnected,
-        label: "Disconnected".into(),
-    });
+    let network = network_provider
+        .read_network()
+        .unwrap_or_else(|error| NetworkSnapshot {
+            error: Some(error.message().into()),
+            ..NetworkSnapshot::default()
+        });
     let clock = clock_provider.read_clock().unwrap_or(ClockSnapshot {
         time_zone_code: "UTC".into(),
         date_label: "-- ---".into(),
@@ -554,7 +557,7 @@ mod tests {
             })),
             &FakeNetworkProvider(Ok(NetworkSnapshot {
                 kind: NetworkKind::Wifi,
-                label: "testnet".into(),
+                ..NetworkSnapshot::default()
             })),
             &FakeClockProvider(Ok(ClockSnapshot {
                 time_zone_code: "UTC".into(),
@@ -601,7 +604,7 @@ mod tests {
         assert_eq!(snapshot.media, Some(media()));
         assert_eq!(snapshot.memory_usage_percent, 64.0);
         assert_eq!(snapshot.cpu_usage_cores, 1.25);
-        assert_eq!(snapshot.network.label, "testnet");
+        assert_eq!(snapshot.network.kind, NetworkKind::Wifi);
         assert_eq!(snapshot.clock.time_label, "12:34");
         assert_eq!(snapshot.weather, Some(weather()));
         assert_eq!(snapshot.tray_items.len(), 1);
@@ -637,7 +640,7 @@ mod tests {
         assert_eq!(snapshot.memory_usage_percent, 0.0);
         assert_eq!(snapshot.cpu_usage_cores, 0.0);
         assert_eq!(snapshot.network.kind, NetworkKind::Disconnected);
-        assert_eq!(snapshot.network.label, "Disconnected");
+        assert!(snapshot.network.error.is_some());
         assert_eq!(snapshot.clock.time_zone_code, "UTC");
         assert_eq!(snapshot.clock.date_label, "-- ---");
         assert_eq!(snapshot.clock.time_label, "--:--");
@@ -645,33 +648,5 @@ mod tests {
         assert_eq!(snapshot.weather, None);
         assert!(snapshot.tray_items.is_empty());
         assert!(snapshot.notifications.is_empty());
-    }
-}
-
-fn network_watcher(tx: mpsc::Sender<Trigger>) {
-    use notify::{RecursiveMode, Watcher};
-    use std::path::Path;
-    use std::sync::mpsc as std_mpsc;
-
-    let (watch_tx, watch_rx) = std_mpsc::channel();
-    let mut watcher = match notify::recommended_watcher(move |res: notify::Result<_>| {
-        let _ = watch_tx.send(res);
-    }) {
-        Ok(w) => w,
-        Err(error) => {
-            eprintln!("alice: network watcher creation failed: {error}");
-            return;
-        }
-    };
-
-    if let Err(error) = watcher.watch(Path::new("/sys/class/net"), RecursiveMode::NonRecursive) {
-        eprintln!("alice: failed to watch /sys/class/net: {error}");
-        return;
-    }
-
-    for _event in watch_rx.iter() {
-        if tx.blocking_send(Trigger::Event).is_err() {
-            break;
-        }
     }
 }

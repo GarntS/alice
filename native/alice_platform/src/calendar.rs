@@ -358,6 +358,7 @@ impl yup_oauth2::authenticator_delegate::InstalledFlowDelegate for CodeCapture {
 // trying to bind port 8085 and hanging indefinitely.
 // ---------------------------------------------------------------------------
 
+#[flutter_rust_bridge::frb(opaque)]
 struct NoAuthDelegate;
 
 impl yup_oauth2::authenticator_delegate::InstalledFlowDelegate for NoAuthDelegate {

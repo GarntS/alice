@@ -406,6 +406,7 @@ pub async fn run_status_notifier_watcher(
 // Tray item ref & cache
 // ---------------------------------------------------------------------------
 
+#[flutter_rust_bridge::frb(opaque)]
 pub struct StatusNotifierTrayProvider;
 
 impl Default for StatusNotifierTrayProvider {

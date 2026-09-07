@@ -6,6 +6,7 @@ void main() {
   test('panel ids are canonical and round-trip', () {
     const expectedIds = <AlicePanel, String>{
       AlicePanel.media: 'media',
+      AlicePanel.network: 'network',
       AlicePanel.clock: 'clock',
       AlicePanel.tasks: 'tasks',
       AlicePanel.weather: 'weather',
@@ -27,6 +28,7 @@ void main() {
     final controller = PanelController();
     final namedListenables = <AlicePanel, ValueListenable<bool>>{
       AlicePanel.media: controller.mediaOpen,
+      AlicePanel.network: controller.networkOpen,
       AlicePanel.clock: controller.clockOpen,
       AlicePanel.tasks: controller.tasksOpen,
       AlicePanel.weather: controller.weatherOpen,

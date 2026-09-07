@@ -1,9 +1,13 @@
-# Network Status Specification
+## RENAMED Requirements
 
-## Purpose
-Define implemented network interface detection, labeling, refresh, and bar display behavior.
+- FROM: `### Requirement: Interface scanning`
+- TO: `### Requirement: Interface and address scanning`
+- FROM: `### Requirement: Wi-Fi preference and labeling`
+- TO: `### Requirement: Wi-Fi association and network name`
+- FROM: `### Requirement: Wired and disconnected states`
+- TO: `### Requirement: Bar icon precedence`
 
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Interface and address scanning
 Alice SHALL determine network status from Linux route-link and route-address state, ignoring the loopback interface. Alice SHALL retain interface presence, administrative state, operational state, assigned addresses, and generic traffic activity as distinct observations.
@@ -69,3 +73,10 @@ Alice SHALL refresh network state when route-link or route-address changes occur
 #### Scenario: Traffic counters change
 - **WHEN** the periodic network counter refresh observes changed generic traffic counters
 - **THEN** Alice SHALL update the network snapshot
+
+## REMOVED Requirements
+
+### Requirement: Configurable label visibility
+**Reason**: The network control is always icon-only and no longer supports a label.
+
+**Migration**: Remove `network.show_label` from Alice configuration; it has no replacement.

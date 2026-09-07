@@ -2,6 +2,7 @@ use swayipc::{Connection, Fallible};
 
 use crate::{PlatformError, providers::WorkspaceProvider, state::WorkspaceSnapshot};
 
+#[flutter_rust_bridge::frb(opaque)]
 pub struct SwayWorkspaceProvider;
 
 impl Default for SwayWorkspaceProvider {

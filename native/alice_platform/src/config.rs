@@ -18,7 +18,6 @@ pub struct AliceConfig {
     pub transparent_top_bar: bool,
     pub use_duotone_icons: bool,
     pub use_accent_on_icons: bool,
-    pub show_network_label: bool,
     pub max_visible_tray_items: u32,
     pub local_time_zone_label: Option<String>,
     pub time_zones: Vec<TimeZoneConfig>,
@@ -286,7 +285,6 @@ impl AliceConfig {
             transparent_top_bar: false,
             use_duotone_icons: true,
             use_accent_on_icons: true,
-            show_network_label: true,
             max_visible_tray_items: 5,
             local_time_zone_label: None,
             time_zones: vec![
@@ -434,8 +432,6 @@ impl From<io::Error> for ConfigError {
 struct RawConfig {
     #[serde(default)]
     theme: RawThemeConfig,
-    #[serde(default)]
-    network: RawNetworkConfig,
     #[serde(default)]
     tray: RawTrayConfig,
     #[serde(default)]
@@ -596,10 +592,6 @@ impl RawConfig {
                 .theme
                 .use_accent_on_icons
                 .unwrap_or(defaults.use_accent_on_icons),
-            show_network_label: self
-                .network
-                .show_label
-                .unwrap_or(defaults.show_network_label),
             max_visible_tray_items,
             local_time_zone_label,
             time_zones,
@@ -702,11 +694,6 @@ struct RawThemeConfig {
     use_duotone_icons: Option<bool>,
     use_accent_on_icons: Option<bool>,
     panel_top_gap_px: Option<u32>,
-}
-
-#[derive(Debug, Default, Deserialize)]
-struct RawNetworkConfig {
-    show_label: Option<bool>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -879,7 +866,6 @@ mod tests {
     #[test]
     fn default_template_mentions_core_sections() {
         assert!(DEFAULT_CONFIG_TEMPLATE.contains("theme:"));
-        assert!(DEFAULT_CONFIG_TEMPLATE.contains("network:"));
         assert!(DEFAULT_CONFIG_TEMPLATE.contains("tray:"));
         assert!(DEFAULT_CONFIG_TEMPLATE.contains("clock:"));
         assert!(DEFAULT_CONFIG_TEMPLATE.contains("power:"));
@@ -913,7 +899,6 @@ mod tests {
         assert!(!config.transparent_top_bar);
         assert!(config.use_duotone_icons);
         assert!(config.use_accent_on_icons);
-        assert!(config.show_network_label);
         assert_eq!(config.max_visible_tray_items, 5);
         assert_eq!(config.panel_top_gap_px, 8);
         assert_eq!(config.notifications.default_timeout_ms, 5000);
@@ -1292,8 +1277,6 @@ theme:
   mode: dark
   accent: "#112233"
   transparent_top_bar: true
-network:
-  show_label: false
 tray:
   max_visible_items: 8
 clock:
@@ -1311,7 +1294,6 @@ power:
         assert_eq!(config.theme_mode, ThemeMode::Dark);
         assert_eq!(config.accent_color, "#112233");
         assert!(config.transparent_top_bar);
-        assert!(!config.show_network_label);
         assert_eq!(config.max_visible_tray_items, 8);
         assert_eq!(config.local_time_zone_label, Some("ET".to_string()));
         assert_eq!(config.time_zones.len(), 1);
@@ -1407,8 +1389,6 @@ theme:
 theme:
   mode: light
   accent: "#00ff00"
-network:
-  show_label: false
 "##,
         )
         .expect("config should be writable");
@@ -1417,7 +1397,6 @@ network:
             .expect("existing explicit config should parse");
         assert_eq!(config.theme_mode, ThemeMode::Light);
         assert_eq!(config.accent_color, "#00FF00");
-        assert!(!config.show_network_label);
 
         fs::remove_dir_all(root).expect("temp config tree should be removable");
     }
