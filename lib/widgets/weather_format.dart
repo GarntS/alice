@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:intl/intl.dart';
 
 import 'alice_icon.dart';
 
@@ -161,6 +162,18 @@ AliceIconDescriptor windDirectionIcon(double? bearing) {
     315 => AliceIcons.arrowUpLeft,
     _ => AliceIcons.compass,
   };
+}
+
+String currentWeatherMetadata({
+  required int observationSeconds,
+  required double offsetHours,
+  String? locationLabel,
+}) {
+  final location = locationLabel?.trim() ?? '';
+  final time = DateFormat(
+    'HH:mm',
+  ).format(apiZoneDateTime(observationSeconds, offsetHours));
+  return '${location.isEmpty ? '' : '$location, '}Current $time';
 }
 
 DateTime apiZoneDateTime(int seconds, double offsetHours) {

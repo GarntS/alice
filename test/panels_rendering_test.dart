@@ -225,7 +225,7 @@ void main() {
       ),
     );
     expectNoFlutterErrors();
-    expect(find.text('Farmington'), findsOneWidget);
+    expect(find.textContaining('Farmington, Current '), findsOneWidget);
   });
 
   testWidgets('calendar renders a Sunday-first six-week date grid', (

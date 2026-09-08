@@ -36,10 +36,27 @@ void main() {
       dark.accentSubtle,
       Color.alphaBlend(accent.withValues(alpha: 0.14), dark.surface),
     );
-    expect(light.raisedContainer, const Color(0xFFE3DDCE));
-    expect(dark.raisedContainer, const Color(0xFF2B3136));
+    expect(
+      light.raisedContainer,
+      Color.alphaBlend(accent.withValues(alpha: 0.10), light.surface),
+    );
+    expect(
+      dark.raisedContainer,
+      Color.alphaBlend(accent.withValues(alpha: 0.16), dark.surface),
+    );
     expect(light.error, const Color(0xFFD1495B));
     expect(dark.warning, const Color(0xFFE9B44C));
+  });
+
+  test('blue accents produce blue-tinted cards in both themes', () {
+    for (final brightness in Brightness.values) {
+      final colors = buildAliceColorTokens(
+        testConfig(accentColor: const Color(0xFF004CFF)),
+        brightness,
+      );
+      expect(colors.raisedContainer.b, greaterThan(colors.raisedContainer.r));
+      expect(colors.raisedContainer.b, greaterThan(colors.raisedContainer.g));
+    }
   });
 
   test('uses a black or white foreground for exact accent fills', () {

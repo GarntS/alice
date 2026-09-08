@@ -3,6 +3,40 @@ import 'package:alicebar/widgets/weather_format.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('temperature units and missing labels remain unchanged', () {
+    expect(degreeLabel(null), '-');
+    expect(degreeLabel(-2.4), '-2°');
+    expect(degreeUnitLabel(12.2, 'us'), '12°F');
+    for (final units in ['si', 'ca', 'uk']) {
+      expect(degreeUnitLabel(12.2, units), '12°C');
+      expect(degreeUnitLabel(null, units), '-');
+    }
+    expect(degreeUnitLabel(12.2, 'unknown'), '12°');
+  });
+
+  test('metadata uses observation minutes and API timezone, not wall time', () {
+    final observation =
+        DateTime.utc(2020, 1, 2, 23, 37, 59).millisecondsSinceEpoch ~/ 1000;
+    expect(
+      currentWeatherMetadata(
+        observationSeconds: observation,
+        offsetHours: -5,
+        locationLabel: ' Boston ',
+      ),
+      'Boston, Current 18:37',
+    );
+    for (final location in <String?>[null, '', '   ']) {
+      expect(
+        currentWeatherMetadata(
+          observationSeconds: observation,
+          offsetHours: 5.5,
+          locationLabel: location,
+        ),
+        'Current 05:07',
+      );
+    }
+  });
+
   test('maps Pirate Weather conditions to paired Phosphor descriptors', () {
     expect(weatherIcon('clear-day'), AliceIcons.sun);
     expect(weatherIcon('clear-night'), AliceIcons.moon);

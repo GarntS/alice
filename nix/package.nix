@@ -49,7 +49,7 @@ let
 in
 buildFlutterApplication {
   pname = "alicebar";
-  version = "2026.1.5";
+  version = "2026.2.0";
 
   src = lib.cleanSource ../.;
   pubspecLock = lib.importJSON ./pubspec.lock.json;

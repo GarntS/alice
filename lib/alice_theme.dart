@@ -143,7 +143,7 @@ AliceColorTokens buildAliceColorTokens(
     surface: surface,
     foreground: foreground,
     muted: muted,
-    raisedContainer: muted,
+    raisedContainer: blend(isDark ? 0.16 : 0.10),
     error: const Color(0xFFD1495B),
     warning: const Color(0xFFE9B44C),
   );
