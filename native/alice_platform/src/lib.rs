@@ -11,6 +11,7 @@
 
 pub mod api;
 pub mod battery;
+pub mod bluetooth;
 pub mod caldav;
 pub mod calendar;
 pub(crate) mod calendar_sources;

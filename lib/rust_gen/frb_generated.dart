@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'bluetooth/prompt.dart';
 import 'caldav/models.dart';
 import 'config.dart';
 import 'dart:async';
@@ -69,7 +70,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 622855883;
+  int get rustContentHash => 1910186549;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -81,6 +82,10 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<bool> crateApiConnectBluetoothDevice({required String address});
+
+  Future<bool> crateApiDisconnectBluetoothDevice({required String address});
+
   Future<void> crateApiDismissAllNotifications();
 
   Future<void> crateApiDismissNotification({required int id});
@@ -104,7 +109,14 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiMarkNotificationRead({required int id});
 
+  Future<bool> crateApiRequestBluetoothScan();
+
   Future<bool> crateApiRequestCaldavRefresh();
+
+  Future<bool> crateApiRespondToBluetoothPrompt({
+    required String token,
+    required PromptResponse response,
+  });
 
   Future<bool> crateApiSeekMedia({required PlatformInt64 positionMicros});
 
@@ -139,6 +151,68 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<bool> crateApiConnectBluetoothDevice({required String address}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(address, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiConnectBluetoothDeviceConstMeta,
+        argValues: [address],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiConnectBluetoothDeviceConstMeta =>
+      const TaskConstMeta(
+        debugName: "connect_bluetooth_device",
+        argNames: ["address"],
+      );
+
+  @override
+  Future<bool> crateApiDisconnectBluetoothDevice({required String address}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(address, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiDisconnectBluetoothDeviceConstMeta,
+        argValues: [address],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDisconnectBluetoothDeviceConstMeta =>
+      const TaskConstMeta(
+        debugName: "disconnect_bluetooth_device",
+        argNames: ["address"],
+      );
+
+  @override
   Future<void> crateApiDismissAllNotifications() {
     return handler.executeNormal(
       NormalTask(
@@ -147,7 +221,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 1,
+            funcId: 3,
             port: port_,
           );
         },
@@ -175,7 +249,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 4,
             port: port_,
           );
         },
@@ -203,7 +277,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 5,
             port: port_,
           );
         },
@@ -235,7 +309,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 6,
             port: port_,
           );
         },
@@ -266,7 +340,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 7,
             port: port_,
           );
         },
@@ -293,7 +367,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 8,
             port: port_,
           );
         },
@@ -325,7 +399,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 9,
             port: port_,
           );
         },
@@ -355,7 +429,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 10,
             port: port_,
           );
         },
@@ -383,7 +457,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 11,
             port: port_,
           );
         },
@@ -405,6 +479,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<bool> crateApiRequestBluetoothScan() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiRequestBluetoothScanConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRequestBluetoothScanConstMeta =>
+      const TaskConstMeta(debugName: "request_bluetooth_scan", argNames: []);
+
+  @override
   Future<bool> crateApiRequestCaldavRefresh() {
     return handler.executeNormal(
       NormalTask(
@@ -413,7 +514,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 13,
             port: port_,
           );
         },
@@ -432,6 +533,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "request_caldav_refresh", argNames: []);
 
   @override
+  Future<bool> crateApiRespondToBluetoothPrompt({
+    required String token,
+    required PromptResponse response,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(token, serializer);
+          sse_encode_box_autoadd_prompt_response(response, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 14,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiRespondToBluetoothPromptConstMeta,
+        argValues: [token, response],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRespondToBluetoothPromptConstMeta =>
+      const TaskConstMeta(
+        debugName: "respond_to_bluetooth_prompt",
+        argNames: ["token", "response"],
+      );
+
+  @override
   Future<bool> crateApiSeekMedia({required PlatformInt64 positionMicros}) {
     return handler.executeNormal(
       NormalTask(
@@ -441,7 +577,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 15,
             port: port_,
           );
         },
@@ -471,7 +607,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 16,
             port: port_,
           );
         },
@@ -509,7 +645,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 17,
             port: port_,
           );
         },
@@ -543,7 +679,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 18,
             port: port_,
           );
         },
@@ -576,7 +712,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 15,
+              funcId: 19,
               port: port_,
             );
           },
@@ -608,7 +744,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 16,
+              funcId: 20,
               port: port_,
             );
           },
@@ -646,7 +782,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 17,
+              funcId: 21,
               port: port_,
             );
           },
@@ -732,21 +868,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BarSnapshot dco_decode_bar_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
     return BarSnapshot(
       workspaces: dco_decode_list_workspace_snapshot(arr[0]),
       media: dco_decode_opt_box_autoadd_media_snapshot(arr[1]),
       memoryUsagePercent: dco_decode_f_64(arr[2]),
       cpuUsageCores: dco_decode_f_64(arr[3]),
-      network: dco_decode_network_snapshot(arr[4]),
-      clock: dco_decode_clock_snapshot(arr[5]),
-      weather: dco_decode_opt_box_autoadd_weather_snapshot(arr[6]),
-      battery: dco_decode_opt_box_autoadd_battery_snapshot(arr[7]),
-      trayItems: dco_decode_list_tray_item_snapshot(arr[8]),
-      notifications: dco_decode_list_notification_snapshot(arr[9]),
-      tasks: dco_decode_list_normalized_task(arr[10]),
-      caldavSyncState: dco_decode_cal_dav_sync_state(arr[11]),
+      bluetooth: dco_decode_bluetooth_snapshot(arr[4]),
+      network: dco_decode_network_snapshot(arr[5]),
+      clock: dco_decode_clock_snapshot(arr[6]),
+      weather: dco_decode_opt_box_autoadd_weather_snapshot(arr[7]),
+      battery: dco_decode_opt_box_autoadd_battery_snapshot(arr[8]),
+      trayItems: dco_decode_list_tray_item_snapshot(arr[9]),
+      notifications: dco_decode_list_notification_snapshot(arr[10]),
+      tasks: dco_decode_list_normalized_task(arr[11]),
+      caldavSyncState: dco_decode_cal_dav_sync_state(arr[12]),
     );
   }
 
@@ -784,6 +921,107 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BluetoothDeviceCategory dco_decode_bluetooth_device_category(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BluetoothDeviceCategory.values[raw as int];
+  }
+
+  @protected
+  BluetoothDevicePresentation dco_decode_bluetooth_device_presentation(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BluetoothDevicePresentation(
+      class_: dco_decode_opt_box_autoadd_u_32(arr[0]),
+      appearance: dco_decode_opt_box_autoadd_u_16(arr[1]),
+      category: dco_decode_bluetooth_device_category(arr[2]),
+    );
+  }
+
+  @protected
+  BluetoothDeviceSnapshot dco_decode_bluetooth_device_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return BluetoothDeviceSnapshot(
+      address: dco_decode_String(arr[0]),
+      alias: dco_decode_opt_String(arr[1]),
+      name: dco_decode_opt_String(arr[2]),
+      paired: dco_decode_bool(arr[3]),
+      trusted: dco_decode_bool(arr[4]),
+      connected: dco_decode_bool(arr[5]),
+      presentation: dco_decode_bluetooth_device_presentation(arr[6]),
+      operation: dco_decode_bluetooth_operation_state(arr[7]),
+      error: dco_decode_opt_box_autoadd_bluetooth_operation_error(arr[8]),
+    );
+  }
+
+  @protected
+  BluetoothOperationError dco_decode_bluetooth_operation_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BluetoothOperationError(
+      message: dco_decode_String(arr[0]),
+      retryable: dco_decode_bool(arr[1]),
+    );
+  }
+
+  @protected
+  BluetoothOperationState dco_decode_bluetooth_operation_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BluetoothOperationState.values[raw as int];
+  }
+
+  @protected
+  BluetoothPrompt dco_decode_bluetooth_prompt(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BluetoothPrompt(
+      token: dco_decode_String(arr[0]),
+      address: dco_decode_String(arr[1]),
+      deviceLabel: dco_decode_String(arr[2]),
+      kind: dco_decode_bluetooth_prompt_kind(arr[3]),
+      passkey: dco_decode_opt_box_autoadd_u_32(arr[4]),
+      service: dco_decode_opt_String(arr[5]),
+    );
+  }
+
+  @protected
+  BluetoothPromptKind dco_decode_bluetooth_prompt_kind(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BluetoothPromptKind.values[raw as int];
+  }
+
+  @protected
+  BluetoothScanState dco_decode_bluetooth_scan_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BluetoothScanState.values[raw as int];
+  }
+
+  @protected
+  BluetoothSnapshot dco_decode_bluetooth_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BluetoothSnapshot(
+      available: dco_decode_bool(arr[0]),
+      devices: dco_decode_list_bluetooth_device_snapshot(arr[1]),
+      scanState: dco_decode_bluetooth_scan_state(arr[2]),
+      scanResults: dco_decode_list_bluetooth_device_snapshot(arr[3]),
+      prompt: dco_decode_opt_box_autoadd_bluetooth_prompt(arr[4]),
+    );
+  }
+
+  @protected
   bool dco_decode_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
@@ -793,6 +1031,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BatterySnapshot dco_decode_box_autoadd_battery_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_battery_snapshot(raw);
+  }
+
+  @protected
+  BluetoothOperationError dco_decode_box_autoadd_bluetooth_operation_error(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bluetooth_operation_error(raw);
+  }
+
+  @protected
+  BluetoothPrompt dco_decode_box_autoadd_bluetooth_prompt(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bluetooth_prompt(raw);
   }
 
   @protected
@@ -838,11 +1090,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PromptResponse dco_decode_box_autoadd_prompt_response(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_prompt_response(raw);
+  }
+
+  @protected
   TaskResourceIdentity dco_decode_box_autoadd_task_resource_identity(
     dynamic raw,
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_task_resource_identity(raw);
+  }
+
+  @protected
+  int dco_decode_box_autoadd_u_16(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  int dco_decode_box_autoadd_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -992,6 +1262,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<String> dco_decode_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
+  List<BluetoothDeviceSnapshot> dco_decode_list_bluetooth_device_snapshot(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bluetooth_device_snapshot)
+        .toList();
   }
 
   @protected
@@ -1243,6 +1523,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BluetoothOperationError? dco_decode_opt_box_autoadd_bluetooth_operation_error(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bluetooth_operation_error(raw);
+  }
+
+  @protected
+  BluetoothPrompt? dco_decode_opt_box_autoadd_bluetooth_prompt(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bluetooth_prompt(raw);
+  }
+
+  @protected
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_bool(raw);
@@ -1282,6 +1578,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PanelCommand? dco_decode_opt_box_autoadd_panel_command(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_panel_command(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_16(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_16(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_32(raw);
   }
 
   @protected
@@ -1340,6 +1648,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PromptResponse dco_decode_prompt_response(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return PromptResponse_PinCode(dco_decode_String(raw[1]));
+      case 1:
+        return PromptResponse_Passkey(dco_decode_u_32(raw[1]));
+      case 2:
+        return PromptResponse_Accept();
+      case 3:
+        return PromptResponse_Deny();
+      case 4:
+        return PromptResponse_Cancel();
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
   TaskPriority dco_decode_task_priority(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return TaskPriority.values[raw as int];
@@ -1394,6 +1721,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       objectPath: dco_decode_String(arr[3]),
       iconPngBytes: dco_decode_opt_list_prim_u_8_strict(arr[4]),
     );
+  }
+
+  @protected
+  int dco_decode_u_16(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -1628,6 +1961,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_media = sse_decode_opt_box_autoadd_media_snapshot(deserializer);
     var var_memoryUsagePercent = sse_decode_f_64(deserializer);
     var var_cpuUsageCores = sse_decode_f_64(deserializer);
+    var var_bluetooth = sse_decode_bluetooth_snapshot(deserializer);
     var var_network = sse_decode_network_snapshot(deserializer);
     var var_clock = sse_decode_clock_snapshot(deserializer);
     var var_weather = sse_decode_opt_box_autoadd_weather_snapshot(deserializer);
@@ -1641,6 +1975,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       media: var_media,
       memoryUsagePercent: var_memoryUsagePercent,
       cpuUsageCores: var_cpuUsageCores,
+      bluetooth: var_bluetooth,
       network: var_network,
       clock: var_clock,
       weather: var_weather,
@@ -1676,6 +2011,141 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BluetoothDeviceCategory sse_decode_bluetooth_device_category(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BluetoothDeviceCategory.values[inner];
+  }
+
+  @protected
+  BluetoothDevicePresentation sse_decode_bluetooth_device_presentation(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_class_ = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_appearance = sse_decode_opt_box_autoadd_u_16(deserializer);
+    var var_category = sse_decode_bluetooth_device_category(deserializer);
+    return BluetoothDevicePresentation(
+      class_: var_class_,
+      appearance: var_appearance,
+      category: var_category,
+    );
+  }
+
+  @protected
+  BluetoothDeviceSnapshot sse_decode_bluetooth_device_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_address = sse_decode_String(deserializer);
+    var var_alias = sse_decode_opt_String(deserializer);
+    var var_name = sse_decode_opt_String(deserializer);
+    var var_paired = sse_decode_bool(deserializer);
+    var var_trusted = sse_decode_bool(deserializer);
+    var var_connected = sse_decode_bool(deserializer);
+    var var_presentation = sse_decode_bluetooth_device_presentation(
+      deserializer,
+    );
+    var var_operation = sse_decode_bluetooth_operation_state(deserializer);
+    var var_error = sse_decode_opt_box_autoadd_bluetooth_operation_error(
+      deserializer,
+    );
+    return BluetoothDeviceSnapshot(
+      address: var_address,
+      alias: var_alias,
+      name: var_name,
+      paired: var_paired,
+      trusted: var_trusted,
+      connected: var_connected,
+      presentation: var_presentation,
+      operation: var_operation,
+      error: var_error,
+    );
+  }
+
+  @protected
+  BluetoothOperationError sse_decode_bluetooth_operation_error(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_message = sse_decode_String(deserializer);
+    var var_retryable = sse_decode_bool(deserializer);
+    return BluetoothOperationError(
+      message: var_message,
+      retryable: var_retryable,
+    );
+  }
+
+  @protected
+  BluetoothOperationState sse_decode_bluetooth_operation_state(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BluetoothOperationState.values[inner];
+  }
+
+  @protected
+  BluetoothPrompt sse_decode_bluetooth_prompt(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_token = sse_decode_String(deserializer);
+    var var_address = sse_decode_String(deserializer);
+    var var_deviceLabel = sse_decode_String(deserializer);
+    var var_kind = sse_decode_bluetooth_prompt_kind(deserializer);
+    var var_passkey = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_service = sse_decode_opt_String(deserializer);
+    return BluetoothPrompt(
+      token: var_token,
+      address: var_address,
+      deviceLabel: var_deviceLabel,
+      kind: var_kind,
+      passkey: var_passkey,
+      service: var_service,
+    );
+  }
+
+  @protected
+  BluetoothPromptKind sse_decode_bluetooth_prompt_kind(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BluetoothPromptKind.values[inner];
+  }
+
+  @protected
+  BluetoothScanState sse_decode_bluetooth_scan_state(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BluetoothScanState.values[inner];
+  }
+
+  @protected
+  BluetoothSnapshot sse_decode_bluetooth_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_available = sse_decode_bool(deserializer);
+    var var_devices = sse_decode_list_bluetooth_device_snapshot(deserializer);
+    var var_scanState = sse_decode_bluetooth_scan_state(deserializer);
+    var var_scanResults = sse_decode_list_bluetooth_device_snapshot(
+      deserializer,
+    );
+    var var_prompt = sse_decode_opt_box_autoadd_bluetooth_prompt(deserializer);
+    return BluetoothSnapshot(
+      available: var_available,
+      devices: var_devices,
+      scanState: var_scanState,
+      scanResults: var_scanResults,
+      prompt: var_prompt,
+    );
+  }
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
@@ -1687,6 +2157,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_battery_snapshot(deserializer));
+  }
+
+  @protected
+  BluetoothOperationError sse_decode_box_autoadd_bluetooth_operation_error(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bluetooth_operation_error(deserializer));
+  }
+
+  @protected
+  BluetoothPrompt sse_decode_box_autoadd_bluetooth_prompt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bluetooth_prompt(deserializer));
   }
 
   @protected
@@ -1740,11 +2226,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PromptResponse sse_decode_box_autoadd_prompt_response(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_prompt_response(deserializer));
+  }
+
+  @protected
   TaskResourceIdentity sse_decode_box_autoadd_task_resource_identity(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_task_resource_identity(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_u_16(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_16(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_32(deserializer));
   }
 
   @protected
@@ -1915,6 +2421,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <String>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BluetoothDeviceSnapshot> sse_decode_list_bluetooth_device_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BluetoothDeviceSnapshot>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bluetooth_device_snapshot(deserializer));
     }
     return ans_;
   }
@@ -2302,6 +2822,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BluetoothOperationError? sse_decode_opt_box_autoadd_bluetooth_operation_error(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bluetooth_operation_error(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BluetoothPrompt? sse_decode_opt_box_autoadd_bluetooth_prompt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bluetooth_prompt(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2381,6 +2927,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_panel_command(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_16(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_32(deserializer));
     } else {
       return null;
     }
@@ -2473,6 +3041,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PromptResponse sse_decode_prompt_response(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_field0 = sse_decode_String(deserializer);
+        return PromptResponse_PinCode(var_field0);
+      case 1:
+        var var_field0 = sse_decode_u_32(deserializer);
+        return PromptResponse_Passkey(var_field0);
+      case 2:
+        return PromptResponse_Accept();
+      case 3:
+        return PromptResponse_Deny();
+      case 4:
+        return PromptResponse_Cancel();
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
   TaskPriority sse_decode_task_priority(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
@@ -2529,6 +3120,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       objectPath: var_objectPath,
       iconPngBytes: var_iconPngBytes,
     );
+  }
+
+  @protected
+  int sse_decode_u_16(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint16();
   }
 
   @protected
@@ -2802,6 +3399,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_media_snapshot(self.media, serializer);
     sse_encode_f_64(self.memoryUsagePercent, serializer);
     sse_encode_f_64(self.cpuUsageCores, serializer);
+    sse_encode_bluetooth_snapshot(self.bluetooth, serializer);
     sse_encode_network_snapshot(self.network, serializer);
     sse_encode_clock_snapshot(self.clock, serializer);
     sse_encode_opt_box_autoadd_weather_snapshot(self.weather, serializer);
@@ -2839,6 +3437,110 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bluetooth_device_category(
+    BluetoothDeviceCategory self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bluetooth_device_presentation(
+    BluetoothDevicePresentation self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_u_32(self.class_, serializer);
+    sse_encode_opt_box_autoadd_u_16(self.appearance, serializer);
+    sse_encode_bluetooth_device_category(self.category, serializer);
+  }
+
+  @protected
+  void sse_encode_bluetooth_device_snapshot(
+    BluetoothDeviceSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.address, serializer);
+    sse_encode_opt_String(self.alias, serializer);
+    sse_encode_opt_String(self.name, serializer);
+    sse_encode_bool(self.paired, serializer);
+    sse_encode_bool(self.trusted, serializer);
+    sse_encode_bool(self.connected, serializer);
+    sse_encode_bluetooth_device_presentation(self.presentation, serializer);
+    sse_encode_bluetooth_operation_state(self.operation, serializer);
+    sse_encode_opt_box_autoadd_bluetooth_operation_error(
+      self.error,
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_bluetooth_operation_error(
+    BluetoothOperationError self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.message, serializer);
+    sse_encode_bool(self.retryable, serializer);
+  }
+
+  @protected
+  void sse_encode_bluetooth_operation_state(
+    BluetoothOperationState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bluetooth_prompt(
+    BluetoothPrompt self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.token, serializer);
+    sse_encode_String(self.address, serializer);
+    sse_encode_String(self.deviceLabel, serializer);
+    sse_encode_bluetooth_prompt_kind(self.kind, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.passkey, serializer);
+    sse_encode_opt_String(self.service, serializer);
+  }
+
+  @protected
+  void sse_encode_bluetooth_prompt_kind(
+    BluetoothPromptKind self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bluetooth_scan_state(
+    BluetoothScanState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bluetooth_snapshot(
+    BluetoothSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.available, serializer);
+    sse_encode_list_bluetooth_device_snapshot(self.devices, serializer);
+    sse_encode_bluetooth_scan_state(self.scanState, serializer);
+    sse_encode_list_bluetooth_device_snapshot(self.scanResults, serializer);
+    sse_encode_opt_box_autoadd_bluetooth_prompt(self.prompt, serializer);
+  }
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self ? 1 : 0);
@@ -2851,6 +3553,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_battery_snapshot(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bluetooth_operation_error(
+    BluetoothOperationError self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bluetooth_operation_error(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bluetooth_prompt(
+    BluetoothPrompt self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bluetooth_prompt(self, serializer);
   }
 
   @protected
@@ -2911,12 +3631,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_prompt_response(
+    PromptResponse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_prompt_response(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_task_resource_identity(
     TaskResourceIdentity self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_task_resource_identity(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_u_16(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_16(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self, serializer);
   }
 
   @protected
@@ -3057,6 +3798,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bluetooth_device_snapshot(
+    List<BluetoothDeviceSnapshot> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bluetooth_device_snapshot(item, serializer);
     }
   }
 
@@ -3368,6 +4121,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_bluetooth_operation_error(
+    BluetoothOperationError? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bluetooth_operation_error(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bluetooth_prompt(
+    BluetoothPrompt? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bluetooth_prompt(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3453,6 +4232,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_16(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_32(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3526,6 +4325,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_prompt_response(
+    PromptResponse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case PromptResponse_PinCode(field0: final field0):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(field0, serializer);
+      case PromptResponse_Passkey(field0: final field0):
+        sse_encode_i_32(1, serializer);
+        sse_encode_u_32(field0, serializer);
+      case PromptResponse_Accept():
+        sse_encode_i_32(2, serializer);
+      case PromptResponse_Deny():
+        sse_encode_i_32(3, serializer);
+      case PromptResponse_Cancel():
+        sse_encode_i_32(4, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_task_priority(TaskPriority self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
@@ -3574,6 +4395,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.serviceName, serializer);
     sse_encode_String(self.objectPath, serializer);
     sse_encode_opt_list_prim_u_8_strict(self.iconPngBytes, serializer);
+  }
+
+  @protected
+  void sse_encode_u_16(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint16(self);
   }
 
   @protected

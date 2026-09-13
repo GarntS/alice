@@ -11,6 +11,8 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 
 [dependencies]
 flutter_rust_bridge = "=2.12.0"
+# Pin the BlueZ integration so Bluetooth API behavior is reproducible.
+bluer = { version = "=0.17.4", features = ["bluetoothd"] }
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "sync", "time", "fs", "test-util"] }
 futures-util = "0.3"
 rtnetlink = "=0.23.0"

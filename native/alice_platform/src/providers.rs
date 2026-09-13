@@ -1,8 +1,8 @@
 use crate::{
     PlatformError,
     state::{
-        BatterySnapshot, ClockSnapshot, MediaSnapshot, NetworkSnapshot, TrayItemSnapshot,
-        WeatherSnapshot, WorkspaceSnapshot,
+        BatterySnapshot, BluetoothSnapshot, ClockSnapshot, MediaSnapshot, NetworkSnapshot,
+        TrayItemSnapshot, WeatherSnapshot, WorkspaceSnapshot,
     },
 };
 
@@ -26,6 +26,10 @@ pub trait StatsProvider {
 
 pub trait NetworkProvider {
     fn read_network(&self) -> Result<NetworkSnapshot, PlatformError>;
+}
+
+pub trait BluetoothProvider {
+    fn read_bluetooth(&self) -> Result<BluetoothSnapshot, PlatformError>;
 }
 
 pub trait ClockProvider {

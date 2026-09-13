@@ -90,6 +90,8 @@ add_dependencies(${BINARY_NAME} alice_rust_native)
 target_link_libraries(${BINARY_NAME} PRIVATE flutter)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK_LAYER_SHELL)
+# bluer's libdbus transport is statically included in alice_platform.
+target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::DBUS)
 target_link_libraries(${BINARY_NAME} PRIVATE "${ALICE_PLATFORM_LIB}")
 target_link_libraries(${BINARY_NAME} PRIVATE "${ALICE_LAYER_SHELL_LIB}")
 

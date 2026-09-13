@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import 'alice_config.dart';
+import 'rust_gen/bluetooth/prompt.dart';
 import 'rust_gen/caldav/models.dart';
 import 'rust_gen/state.dart';
 import 'alice_platform.dart';
@@ -68,6 +69,7 @@ class _AliceAppState extends State<AliceApp> {
     _panelController.addListener(_syncPanelState);
     _snapshotState.media.addListener(_syncMediaPanelSize);
     _snapshotState.trayOverflowCount.addListener(_syncTrayPanelSize);
+    _snapshotState.bluetooth.addListener(_closeUnavailableBluetoothPanel);
     _loadConfig();
 
     _barViewSubscription = frb.watchBarViewLifecycle().listen((lifecycle) {
@@ -201,6 +203,32 @@ class _AliceAppState extends State<AliceApp> {
     } catch (_) {}
   }
 
+  void _closeUnavailableBluetoothPanel() {
+    if (!_snapshotState.currentBluetooth.available &&
+        _panelController.openPanel == AlicePanel.bluetooth) {
+      _panelController.close();
+    }
+  }
+
+  Future<void> _handleBluetoothScan() async {
+    await _platform.requestBluetoothScan();
+  }
+
+  Future<void> _handleBluetoothConnect(String address) async {
+    await _platform.connectBluetoothDevice(address);
+  }
+
+  Future<void> _handleBluetoothDisconnect(String address) async {
+    await _platform.disconnectBluetoothDevice(address);
+  }
+
+  Future<void> _handleBluetoothPromptResponse(
+    String token,
+    PromptResponse response,
+  ) async {
+    await _platform.respondToBluetoothPrompt(token, response);
+  }
+
   Future<void> _handleTaskRefresh() async {
     await _platform.requestCalDavRefresh();
   }
@@ -292,6 +320,7 @@ class _AliceAppState extends State<AliceApp> {
     _notificationPopupState.dispose();
     _snapshotState.media.removeListener(_syncMediaPanelSize);
     _snapshotState.trayOverflowCount.removeListener(_syncTrayPanelSize);
+    _snapshotState.bluetooth.removeListener(_closeUnavailableBluetoothPanel);
     _snapshotState.dispose();
     _panelController.removeListener(_syncPanelState);
     _panelController.dispose();
@@ -350,6 +379,10 @@ class _AliceAppState extends State<AliceApp> {
                     onDismissAllNotifications: _handleDismissAllNotifications,
                     onMarkAllNotificationsRead: _handleMarkAllNotificationsRead,
                     onInvokeNotificationAction: _handleInvokeNotificationAction,
+                    onBluetoothScan: _handleBluetoothScan,
+                    onBluetoothConnect: _handleBluetoothConnect,
+                    onBluetoothDisconnect: _handleBluetoothDisconnect,
+                    onBluetoothPromptResponse: _handleBluetoothPromptResponse,
                     onTaskRefresh: _handleTaskRefresh,
                     onTaskCompletion: _handleTaskCompletion,
                   ),

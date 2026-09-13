@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 enum AlicePanel {
   media('media'),
+  bluetooth('bluetooth'),
   network('network'),
   clock('clock'),
   tasks('tasks'),
@@ -51,6 +52,8 @@ class PanelController extends ChangeNotifier {
   int? get sourceViewId => _anchor?.sourceViewId;
 
   ValueListenable<bool> get mediaOpen => openListenable(AlicePanel.media);
+  ValueListenable<bool> get bluetoothOpen =>
+      openListenable(AlicePanel.bluetooth);
   ValueListenable<bool> get networkOpen => openListenable(AlicePanel.network);
   ValueListenable<bool> get clockOpen => openListenable(AlicePanel.clock);
   ValueListenable<bool> get tasksOpen => openListenable(AlicePanel.tasks);

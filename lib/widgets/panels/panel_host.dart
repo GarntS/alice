@@ -2,11 +2,13 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../alice_config.dart';
 import '../../alice_theme.dart';
+import '../../rust_gen/bluetooth/prompt.dart';
 import '../../rust_gen/caldav/models.dart';
 import '../../rust_gen/state.dart';
 import '../../panel_controller.dart';
 import '../../snapshot_state.dart';
 import 'panel_sizes.dart';
+import 'bluetooth_panel.dart';
 import 'media_panel.dart';
 import 'network_panel.dart';
 import 'clock_panel.dart';
@@ -30,6 +32,10 @@ class AlicePanelCard extends StatelessWidget {
     required this.onDismissAllNotifications,
     required this.onMarkAllNotificationsRead,
     required this.onInvokeNotificationAction,
+    this.onBluetoothScan,
+    this.onBluetoothConnect,
+    this.onBluetoothDisconnect,
+    this.onBluetoothPromptResponse,
     this.onTaskRefresh,
     this.onTaskCompletion,
   });
@@ -46,6 +52,11 @@ class AlicePanelCard extends StatelessWidget {
   final Future<void> Function() onMarkAllNotificationsRead;
   final Future<void> Function(int id, String actionKey)
   onInvokeNotificationAction;
+  final Future<void> Function()? onBluetoothScan;
+  final Future<void> Function(String address)? onBluetoothConnect;
+  final Future<void> Function(String address)? onBluetoothDisconnect;
+  final Future<void> Function(String token, PromptResponse response)?
+  onBluetoothPromptResponse;
   final Future<void> Function()? onTaskRefresh;
   final Future<void> Function(TaskResourceIdentity identity, bool completed)?
   onTaskCompletion;
@@ -60,6 +71,16 @@ class AlicePanelCard extends StatelessWidget {
           media: media,
           onAction: onMediaAction,
           onSeek: onSeekMedia,
+        ),
+      ),
+      AlicePanel.bluetooth => ValueListenableBuilder<BluetoothSnapshot>(
+        valueListenable: snapshotState.bluetooth,
+        builder: (context, bluetooth, _) => BluetoothPanel(
+          bluetooth: bluetooth,
+          onScan: onBluetoothScan ?? () async {},
+          onConnect: onBluetoothConnect ?? (_) async {},
+          onDisconnect: onBluetoothDisconnect ?? (_) async {},
+          onPromptResponse: onBluetoothPromptResponse ?? (_, __) async {},
         ),
       ),
       AlicePanel.network => ValueListenableBuilder<NetworkSnapshot>(

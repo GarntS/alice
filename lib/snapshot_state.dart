@@ -31,6 +31,14 @@ class AliceSnapshotState {
   final ValueNotifier<MediaSnapshot?> _media = ValueNotifier(null);
   final ValueNotifier<double> _memoryUsagePercent = ValueNotifier(0);
   final ValueNotifier<double> _cpuUsageCores = ValueNotifier(0);
+  final ValueNotifier<BluetoothSnapshot> _bluetooth = ValueNotifier(
+    const BluetoothSnapshot(
+      available: false,
+      devices: [],
+      scanState: BluetoothScanState.idle,
+      scanResults: [],
+    ),
+  );
   final ValueNotifier<NetworkSnapshot> _network = ValueNotifier(
     const NetworkSnapshot(
       kind: NetworkKind.disconnected,
@@ -76,6 +84,7 @@ class AliceSnapshotState {
   ValueListenable<MediaSnapshot?> get media => _media;
   ValueListenable<double> get memoryUsagePercent => _memoryUsagePercent;
   ValueListenable<double> get cpuUsageCores => _cpuUsageCores;
+  ValueListenable<BluetoothSnapshot> get bluetooth => _bluetooth;
   ValueListenable<NetworkSnapshot> get network => _network;
   ValueListenable<ClockSnapshot> get clock => _clock;
   ValueListenable<WeatherSnapshot?> get weather => _weather;
@@ -98,6 +107,7 @@ class AliceSnapshotState {
   MediaSnapshot? get currentMedia => _media.value;
   double get currentMemoryUsagePercent => _memoryUsagePercent.value;
   double get currentCpuUsageCores => _cpuUsageCores.value;
+  BluetoothSnapshot get currentBluetooth => _bluetooth.value;
   NetworkSnapshot get currentNetwork => _network.value;
   ClockSnapshot get currentClock => _clock.value;
   WeatherSnapshot? get currentWeather => _weather.value;
@@ -116,6 +126,7 @@ class AliceSnapshotState {
     media: currentMedia,
     memoryUsagePercent: currentMemoryUsagePercent,
     cpuUsageCores: currentCpuUsageCores,
+    bluetooth: currentBluetooth,
     network: currentNetwork,
     clock: currentClock,
     weather: currentWeather,
@@ -142,6 +153,9 @@ class AliceSnapshotState {
     }
     if (_cpuUsageCores.value != next.cpuUsageCores) {
       _cpuUsageCores.value = next.cpuUsageCores;
+    }
+    if (!bluetoothSnapshotsEqual(_bluetooth.value, next.bluetooth)) {
+      _bluetooth.value = freezeBluetoothSnapshot(next.bluetooth);
     }
     if (!networkSnapshotsEqual(_network.value, next.network)) {
       _network.value = freezeNetworkSnapshot(next.network);
@@ -293,6 +307,7 @@ class AliceSnapshotState {
     _media.dispose();
     _memoryUsagePercent.dispose();
     _cpuUsageCores.dispose();
+    _bluetooth.dispose();
     _network.dispose();
     _clock.dispose();
     _weather.dispose();
@@ -323,6 +338,36 @@ bool workspaceSnapshotsEqual(WorkspaceSnapshot a, WorkspaceSnapshot b) =>
     a == b;
 
 bool mediaSnapshotsEqual(MediaSnapshot? a, MediaSnapshot? b) => a == b;
+
+bool bluetoothSnapshotsEqual(BluetoothSnapshot a, BluetoothSnapshot b) =>
+    a.available == b.available &&
+    a.scanState == b.scanState &&
+    a.prompt == b.prompt &&
+    listEqualsBy(a.devices, b.devices, bluetoothDevicesEqual) &&
+    listEqualsBy(a.scanResults, b.scanResults, bluetoothDevicesEqual);
+
+bool bluetoothDevicesEqual(
+  BluetoothDeviceSnapshot a,
+  BluetoothDeviceSnapshot b,
+) =>
+    a.address == b.address &&
+    a.alias == b.alias &&
+    a.name == b.name &&
+    a.paired == b.paired &&
+    a.trusted == b.trusted &&
+    a.connected == b.connected &&
+    a.presentation == b.presentation &&
+    a.operation == b.operation &&
+    a.error == b.error;
+
+BluetoothSnapshot freezeBluetoothSnapshot(BluetoothSnapshot value) =>
+    BluetoothSnapshot(
+      available: value.available,
+      devices: List.unmodifiable(value.devices),
+      scanState: value.scanState,
+      scanResults: List.unmodifiable(value.scanResults),
+      prompt: value.prompt,
+    );
 
 bool networkSnapshotsEqual(NetworkSnapshot a, NetworkSnapshot b) =>
     a.kind == b.kind &&

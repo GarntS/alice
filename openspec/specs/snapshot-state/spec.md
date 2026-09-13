@@ -14,7 +14,7 @@ Alice SHALL maintain a Flutter-side `AliceSnapshotState` that represents the cur
 
 #### Scenario: Initial snapshot is ingested
 - **WHEN** the first `BarSnapshot` is ingested
-- **THEN** Alice SHALL publish initial values for workspaces, media, memory usage, CPU usage, network, clock, weather, tray items, notifications, normalized CalDAV tasks, and CalDAV synchronization state
+- **THEN** Alice SHALL publish initial values for workspaces, media, memory usage, CPU usage, Bluetooth, network, clock, weather, tray items, notifications, normalized CalDAV tasks, and CalDAV synchronization state
 
 ### Requirement: Granular raw slice notifications
 `AliceSnapshotState` SHALL expose independently listenable raw snapshot slices and notify each slice only when that slice's value changes.
@@ -182,3 +182,15 @@ Alice SHALL bind the top-bar battery module to the granular battery listenable.
 - **THEN** Alice SHALL rebuild the battery module or its local builder
 - **AND** Alice SHALL NOT rebuild unrelated top-bar modules solely because of that update
 
+### Requirement: Granular Bluetooth snapshot state
+`AliceSnapshotState` SHALL expose Bluetooth as an independently listenable, deeply immutable snapshot slice and SHALL notify it only when Bluetooth availability, device observations, scanning state, operation state, prompt state, or error state changes.
+
+#### Scenario: Bluetooth only changes
+- **WHEN** a new snapshot differs only by Bluetooth state
+- **THEN** Alice SHALL notify the Bluetooth slice
+- **AND** Alice SHALL NOT notify workspace, media, metric, network, clock, weather, tray, notification, or task slices solely because of that change
+
+#### Scenario: Equivalent Bluetooth data arrives
+- **WHEN** a new snapshot contains fresh Bluetooth collection instances with equivalent content to the current Bluetooth state
+- **THEN** Alice SHALL treat the Bluetooth slice as unchanged
+- **AND** Alice SHALL NOT notify Bluetooth listeners

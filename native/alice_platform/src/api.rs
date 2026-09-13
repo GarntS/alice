@@ -106,15 +106,18 @@ impl From<crate::config::AliceConfig> for AliceUiConfig {
         }
     }
 }
+pub use crate::bluetooth::prompt::PromptResponse;
 pub use crate::caldav::{
     CalDavFreshness, CalDavSyncState, NormalizedTask, TaskPriority, TaskResourceIdentity,
     TaskStatus,
 };
 pub use crate::state::{
-    BarSnapshot, BatterySnapshot, CalendarEvent, CalendarFetchResult, ClockSnapshot, MediaSnapshot,
-    NetworkKind, NetworkSnapshot, NotificationActionSnapshot, NotificationSnapshot,
-    NotificationUrgency, TrayItemSnapshot, WeatherAlert, WeatherDay, WeatherPoint, WeatherSnapshot,
-    WorkspaceSnapshot,
+    BarSnapshot, BatterySnapshot, BluetoothDeviceCategory, BluetoothDevicePresentation,
+    BluetoothDeviceSnapshot, BluetoothOperationError, BluetoothOperationState, BluetoothPrompt,
+    BluetoothPromptKind, BluetoothScanState, BluetoothSnapshot, CalendarEvent, CalendarFetchResult,
+    ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot, NotificationActionSnapshot,
+    NotificationSnapshot, NotificationUrgency, TrayItemSnapshot, WeatherAlert, WeatherDay,
+    WeatherPoint, WeatherSnapshot, WorkspaceSnapshot,
 };
 
 /// Called once at process startup via FRB's `executeRustInitializers`.
@@ -186,6 +189,29 @@ pub fn load_config() -> anyhow::Result<AliceUiConfig> {
 }
 
 /// Coalesce a panel-open or manual CalDAV refresh into the runtime service.
+pub fn respond_to_bluetooth_prompt(
+    token: String,
+    response: PromptResponse,
+) -> anyhow::Result<bool> {
+    Ok(crate::bluetooth::service::respond_to_prompt(
+        token, response,
+    ))
+}
+
+pub fn request_bluetooth_scan() -> anyhow::Result<bool> {
+    Ok(crate::bluetooth::service::request_global_scan())
+}
+
+pub fn connect_bluetooth_device(address: String) -> anyhow::Result<bool> {
+    Ok(crate::bluetooth::service::request_global_connect(address))
+}
+
+pub fn disconnect_bluetooth_device(address: String) -> anyhow::Result<bool> {
+    Ok(crate::bluetooth::service::request_global_disconnect(
+        address,
+    ))
+}
+
 pub fn request_caldav_refresh() -> anyhow::Result<bool> {
     Ok(crate::caldav::service::request_global_refresh())
 }

@@ -187,6 +187,14 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
             network_cache.clone(),
             tx.clone(),
         ));
+        // BlueZ work stays in this runtime service; snapshot assembly below
+        // only reads its cache.
+        let bluetooth_cache = crate::bluetooth::service::BluetoothSnapshotCache::default();
+        crate::bluetooth::service::install_command_context(bluetooth_cache.clone(), tx.clone());
+        tokio::spawn(crate::bluetooth::service::run_bluetooth_service(
+            bluetooth_cache.clone(),
+            tx.clone(),
+        ));
 
         // --- SNI watcher (async zbus service) ---
         let tx_sni = tx.clone();
@@ -250,6 +258,7 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
                 weather_cache.clone(),
                 config.battery.clone(),
                 network_cache.clone(),
+                bluetooth_cache.clone(),
             );
             if sink.add(snapshot).is_err() {
                 break;
@@ -299,6 +308,7 @@ fn build_snapshot(
     weather_cache: crate::weather::WeatherCache,
     battery_config: crate::config::BatteryConfig,
     network_cache: crate::network::CachedNetworkProvider,
+    bluetooth_cache: crate::bluetooth::service::BluetoothSnapshotCache,
 ) -> BarSnapshot {
     use crate::battery::SysfsBatteryProvider;
     use crate::clock::LocalClockProvider;
@@ -312,6 +322,7 @@ fn build_snapshot(
         &CachedMprisMediaProvider::new(mpris_cache),
         &ProcStatsProvider::new(),
         &network_cache,
+        &crate::bluetooth::service::CachedBluetoothProvider::new(bluetooth_cache),
         &LocalClockProvider::new(),
         &SysfsBatteryProvider::new(battery_config),
         &crate::weather::CachedWeatherProvider::new(weather_cache),
@@ -333,11 +344,12 @@ fn notification_snapshots() -> Vec<crate::state::NotificationSnapshot> {
 // This deliberately accepts independent providers so tests can substitute
 // each dependency without constructing the production runtime.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn build_snapshot_from_providers<W, M, S, N, C, B, WP, T>(
+pub(crate) fn build_snapshot_from_providers<W, M, S, N, BP, C, B, WP, T>(
     workspace_provider: &W,
     media_provider: &M,
     stats_provider: &S,
     network_provider: &N,
+    bluetooth_provider: &BP,
     clock_provider: &C,
     battery_provider: &B,
     weather_provider: &WP,
@@ -350,6 +362,7 @@ where
     M: crate::providers::MediaProvider,
     S: crate::providers::StatsProvider,
     N: crate::providers::NetworkProvider,
+    BP: crate::providers::BluetoothProvider,
     C: crate::providers::ClockProvider,
     B: crate::providers::BatteryProvider,
     WP: crate::providers::WeatherProvider,
@@ -371,6 +384,7 @@ where
             error: Some(error.message().into()),
             ..NetworkSnapshot::default()
         });
+    let bluetooth = bluetooth_provider.read_bluetooth().unwrap_or_default();
     let clock = clock_provider.read_clock().unwrap_or(ClockSnapshot {
         time_zone_code: "UTC".into(),
         date_label: "-- ---".into(),
@@ -385,6 +399,7 @@ where
         media,
         memory_usage_percent: stats.memory_usage_percent,
         cpu_usage_cores: stats.cpu_usage_cores,
+        bluetooth,
         network,
         clock,
         weather,
@@ -419,19 +434,20 @@ mod tests {
     use super::*;
     use crate::PlatformError;
     use crate::providers::{
-        BatteryProvider, ClockProvider, MediaProvider, NetworkProvider, Stats, StatsProvider,
-        TrayProvider, WeatherProvider, WorkspaceProvider,
+        BatteryProvider, BluetoothProvider, ClockProvider, MediaProvider, NetworkProvider, Stats,
+        StatsProvider, TrayProvider, WeatherProvider, WorkspaceProvider,
     };
     use crate::state::{
-        BatterySnapshot, ClockSnapshot, MediaSnapshot, NetworkKind, NetworkSnapshot,
-        NotificationSnapshot, NotificationUrgency, TrayItemSnapshot, WeatherPoint, WeatherSnapshot,
-        WorkspaceSnapshot,
+        BatterySnapshot, BluetoothSnapshot, ClockSnapshot, MediaSnapshot, NetworkKind,
+        NetworkSnapshot, NotificationSnapshot, NotificationUrgency, TrayItemSnapshot, WeatherPoint,
+        WeatherSnapshot, WorkspaceSnapshot,
     };
 
     struct FakeWorkspaceProvider(Result<Vec<WorkspaceSnapshot>, PlatformError>);
     struct FakeMediaProvider(Result<Option<MediaSnapshot>, PlatformError>);
     struct FakeStatsProvider(Result<Stats, PlatformError>);
     struct FakeNetworkProvider(Result<NetworkSnapshot, PlatformError>);
+    struct FakeBluetoothProvider(Result<BluetoothSnapshot, PlatformError>);
     struct FakeClockProvider(Result<ClockSnapshot, PlatformError>);
     struct FakeBatteryProvider(Result<Option<BatterySnapshot>, PlatformError>);
     struct FakeWeatherProvider(Result<Option<WeatherSnapshot>, PlatformError>);
@@ -457,6 +473,12 @@ mod tests {
 
     impl NetworkProvider for FakeNetworkProvider {
         fn read_network(&self) -> Result<NetworkSnapshot, PlatformError> {
+            self.0.clone()
+        }
+    }
+
+    impl BluetoothProvider for FakeBluetoothProvider {
+        fn read_bluetooth(&self) -> Result<BluetoothSnapshot, PlatformError> {
             self.0.clone()
         }
     }
@@ -559,6 +581,10 @@ mod tests {
                 kind: NetworkKind::Wifi,
                 ..NetworkSnapshot::default()
             })),
+            &FakeBluetoothProvider(Ok(BluetoothSnapshot {
+                available: true,
+                ..BluetoothSnapshot::default()
+            })),
             &FakeClockProvider(Ok(ClockSnapshot {
                 time_zone_code: "UTC".into(),
                 date_label: "16 May".into(),
@@ -604,6 +630,7 @@ mod tests {
         assert_eq!(snapshot.media, Some(media()));
         assert_eq!(snapshot.memory_usage_percent, 64.0);
         assert_eq!(snapshot.cpu_usage_cores, 1.25);
+        assert!(snapshot.bluetooth.available);
         assert_eq!(snapshot.network.kind, NetworkKind::Wifi);
         assert_eq!(snapshot.clock.time_label, "12:34");
         assert_eq!(snapshot.weather, Some(weather()));
@@ -624,6 +651,7 @@ mod tests {
             &FakeMediaProvider(err()),
             &FakeStatsProvider(err()),
             &FakeNetworkProvider(err()),
+            &FakeBluetoothProvider(err()),
             &FakeClockProvider(err()),
             &FakeBatteryProvider(err()),
             &FakeWeatherProvider(err()),
@@ -639,6 +667,7 @@ mod tests {
         assert_eq!(snapshot.media, None);
         assert_eq!(snapshot.memory_usage_percent, 0.0);
         assert_eq!(snapshot.cpu_usage_cores, 0.0);
+        assert!(!snapshot.bluetooth.available);
         assert_eq!(snapshot.network.kind, NetworkKind::Disconnected);
         assert!(snapshot.network.error.is_some());
         assert_eq!(snapshot.clock.time_zone_code, "UTC");

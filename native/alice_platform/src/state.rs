@@ -4,6 +4,7 @@ pub struct BarSnapshot {
     pub media: Option<MediaSnapshot>,
     pub memory_usage_percent: f64,
     pub cpu_usage_cores: f64,
+    pub bluetooth: BluetoothSnapshot,
     pub network: NetworkSnapshot,
     pub clock: ClockSnapshot,
     pub weather: Option<WeatherSnapshot>,
@@ -32,6 +33,127 @@ pub struct MediaSnapshot {
     pub position_micros: i64,
     pub length_micros: i64,
     pub is_playing: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct BluetoothSnapshot {
+    /// True only while BlueZ is reachable and at least one adapter is powered.
+    pub available: bool,
+    /// Aggregated observations from powered adapters, keyed by address.
+    pub devices: Vec<BluetoothDeviceSnapshot>,
+    pub scan_state: BluetoothScanState,
+    /// Results retained from the current or most recently completed scan.
+    pub scan_results: Vec<BluetoothDeviceSnapshot>,
+    /// At most one user-mediated BlueZ agent request is active at a time.
+    pub prompt: Option<BluetoothPrompt>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BluetoothDeviceSnapshot {
+    pub address: String,
+    pub alias: Option<String>,
+    pub name: Option<String>,
+    pub paired: bool,
+    pub trusted: bool,
+    pub connected: bool,
+    pub presentation: BluetoothDevicePresentation,
+    pub operation: BluetoothOperationState,
+    pub error: Option<BluetoothOperationError>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct BluetoothDevicePresentation {
+    /// BlueZ's classic Bluetooth class-of-device value, when advertised.
+    pub class: Option<u32>,
+    /// BlueZ's LE appearance value, when advertised.
+    pub appearance: Option<u16>,
+    pub category: BluetoothDeviceCategory,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// Presentation group derived from Bluetooth SIG's official LE Appearance
+/// category. Subcategories deliberately inherit their category icon.
+pub enum BluetoothDeviceCategory {
+    Audio,
+    Computer,
+    Input,
+    Phone,
+    Peripheral,
+    Wearable,
+    Display,
+    Clock,
+    Tag,
+    Key,
+    Media,
+    Scanner,
+    Temperature,
+    Heart,
+    Health,
+    Fitness,
+    Cycling,
+    Controls,
+    Network,
+    Sensor,
+    Light,
+    Fan,
+    Climate,
+    Heating,
+    Access,
+    Motorized,
+    Power,
+    WindowCovering,
+    Vehicle,
+    Appliance,
+    Aircraft,
+    Gaming,
+    Measurement,
+    Tools,
+    Cookware,
+    #[default]
+    Generic,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BluetoothScanState {
+    #[default]
+    Idle,
+    Scanning,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BluetoothOperationState {
+    #[default]
+    Idle,
+    Pairing,
+    Connecting,
+    Disconnecting,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BluetoothOperationError {
+    pub message: String,
+    pub retryable: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BluetoothPrompt {
+    /// Opaque, one-use identifier used to resolve this exact agent request.
+    pub token: String,
+    pub address: String,
+    pub device_label: String,
+    pub kind: BluetoothPromptKind,
+    pub passkey: Option<u32>,
+    pub service: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BluetoothPromptKind {
+    RequestPinCode,
+    RequestPasskey,
+    DisplayPasskey,
+    RequestConfirmation,
+    AuthorizeDevice,
+    AuthorizeService,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

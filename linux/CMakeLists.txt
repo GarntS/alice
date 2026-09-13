@@ -47,6 +47,8 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
 pkg_check_modules(GTK_LAYER_SHELL REQUIRED IMPORTED_TARGET gtk-layer-shell-0)
+# `bluer` pulls libdbus in through the statically linked Rust platform crate.
+pkg_check_modules(DBUS REQUIRED IMPORTED_TARGET dbus-1)
 
 add_subdirectory("runner")
 

@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'bluetooth/prompt.dart';
 import 'caldav/models.dart';
 import 'config.dart';
 import 'dart:async';
@@ -57,10 +58,47 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BatterySnapshot dco_decode_battery_snapshot(dynamic raw);
 
   @protected
+  BluetoothDeviceCategory dco_decode_bluetooth_device_category(dynamic raw);
+
+  @protected
+  BluetoothDevicePresentation dco_decode_bluetooth_device_presentation(
+    dynamic raw,
+  );
+
+  @protected
+  BluetoothDeviceSnapshot dco_decode_bluetooth_device_snapshot(dynamic raw);
+
+  @protected
+  BluetoothOperationError dco_decode_bluetooth_operation_error(dynamic raw);
+
+  @protected
+  BluetoothOperationState dco_decode_bluetooth_operation_state(dynamic raw);
+
+  @protected
+  BluetoothPrompt dco_decode_bluetooth_prompt(dynamic raw);
+
+  @protected
+  BluetoothPromptKind dco_decode_bluetooth_prompt_kind(dynamic raw);
+
+  @protected
+  BluetoothScanState dco_decode_bluetooth_scan_state(dynamic raw);
+
+  @protected
+  BluetoothSnapshot dco_decode_bluetooth_snapshot(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
 
   @protected
   BatterySnapshot dco_decode_box_autoadd_battery_snapshot(dynamic raw);
+
+  @protected
+  BluetoothOperationError dco_decode_box_autoadd_bluetooth_operation_error(
+    dynamic raw,
+  );
+
+  @protected
+  BluetoothPrompt dco_decode_box_autoadd_bluetooth_prompt(dynamic raw);
 
   @protected
   bool dco_decode_box_autoadd_bool(dynamic raw);
@@ -84,9 +122,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PanelCommand dco_decode_box_autoadd_panel_command(dynamic raw);
 
   @protected
+  PromptResponse dco_decode_box_autoadd_prompt_response(dynamic raw);
+
+  @protected
   TaskResourceIdentity dco_decode_box_autoadd_task_resource_identity(
     dynamic raw,
   );
+
+  @protected
+  int dco_decode_box_autoadd_u_16(dynamic raw);
+
+  @protected
+  int dco_decode_box_autoadd_u_32(dynamic raw);
 
   @protected
   BigInt dco_decode_box_autoadd_u_64(dynamic raw);
@@ -132,6 +179,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<BluetoothDeviceSnapshot> dco_decode_list_bluetooth_device_snapshot(
+    dynamic raw,
+  );
 
   @protected
   List<CalendarEntryUiConfig> dco_decode_list_calendar_entry_ui_config(
@@ -217,6 +269,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BatterySnapshot? dco_decode_opt_box_autoadd_battery_snapshot(dynamic raw);
 
   @protected
+  BluetoothOperationError? dco_decode_opt_box_autoadd_bluetooth_operation_error(
+    dynamic raw,
+  );
+
+  @protected
+  BluetoothPrompt? dco_decode_opt_box_autoadd_bluetooth_prompt(dynamic raw);
+
+  @protected
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
 
   @protected
@@ -238,6 +298,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PanelCommand? dco_decode_opt_box_autoadd_panel_command(dynamic raw);
 
   @protected
+  int? dco_decode_opt_box_autoadd_u_16(dynamic raw);
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
+
+  @protected
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
 
   @protected
@@ -256,6 +322,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PowerCommandConfig dco_decode_power_command_config(dynamic raw);
 
   @protected
+  PromptResponse dco_decode_prompt_response(dynamic raw);
+
+  @protected
   TaskPriority dco_decode_task_priority(dynamic raw);
 
   @protected
@@ -272,6 +341,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TrayItemSnapshot dco_decode_tray_item_snapshot(dynamic raw);
+
+  @protected
+  int dco_decode_u_16(dynamic raw);
 
   @protected
   int dco_decode_u_32(dynamic raw);
@@ -347,10 +419,61 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BatterySnapshot sse_decode_battery_snapshot(SseDeserializer deserializer);
 
   @protected
+  BluetoothDeviceCategory sse_decode_bluetooth_device_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BluetoothDevicePresentation sse_decode_bluetooth_device_presentation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BluetoothDeviceSnapshot sse_decode_bluetooth_device_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BluetoothOperationError sse_decode_bluetooth_operation_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BluetoothOperationState sse_decode_bluetooth_operation_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BluetoothPrompt sse_decode_bluetooth_prompt(SseDeserializer deserializer);
+
+  @protected
+  BluetoothPromptKind sse_decode_bluetooth_prompt_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BluetoothScanState sse_decode_bluetooth_scan_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BluetoothSnapshot sse_decode_bluetooth_snapshot(SseDeserializer deserializer);
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
   BatterySnapshot sse_decode_box_autoadd_battery_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BluetoothOperationError sse_decode_box_autoadd_bluetooth_operation_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BluetoothPrompt sse_decode_box_autoadd_bluetooth_prompt(
     SseDeserializer deserializer,
   );
 
@@ -384,9 +507,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  PromptResponse sse_decode_box_autoadd_prompt_response(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   TaskResourceIdentity sse_decode_box_autoadd_task_resource_identity(
     SseDeserializer deserializer,
   );
+
+  @protected
+  int sse_decode_box_autoadd_u_16(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
@@ -440,6 +574,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<BluetoothDeviceSnapshot> sse_decode_list_bluetooth_device_snapshot(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<CalendarEntryUiConfig> sse_decode_list_calendar_entry_ui_config(
@@ -551,6 +690,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BluetoothOperationError? sse_decode_opt_box_autoadd_bluetooth_operation_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BluetoothPrompt? sse_decode_opt_box_autoadd_bluetooth_prompt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
@@ -580,6 +729,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer);
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
+
+  @protected
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
@@ -604,6 +759,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  PromptResponse sse_decode_prompt_response(SseDeserializer deserializer);
+
+  @protected
   TaskPriority sse_decode_task_priority(SseDeserializer deserializer);
 
   @protected
@@ -622,6 +780,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TrayItemSnapshot sse_decode_tray_item_snapshot(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_16(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_32(SseDeserializer deserializer);
@@ -708,11 +869,77 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bluetooth_device_category(
+    BluetoothDeviceCategory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bluetooth_device_presentation(
+    BluetoothDevicePresentation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bluetooth_device_snapshot(
+    BluetoothDeviceSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bluetooth_operation_error(
+    BluetoothOperationError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bluetooth_operation_state(
+    BluetoothOperationState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bluetooth_prompt(
+    BluetoothPrompt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bluetooth_prompt_kind(
+    BluetoothPromptKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bluetooth_scan_state(
+    BluetoothScanState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bluetooth_snapshot(
+    BluetoothSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_battery_snapshot(
     BatterySnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bluetooth_operation_error(
+    BluetoothOperationError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bluetooth_prompt(
+    BluetoothPrompt self,
     SseSerializer serializer,
   );
 
@@ -753,10 +980,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_prompt_response(
+    PromptResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_task_resource_identity(
     TaskResourceIdentity self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_box_autoadd_u_16(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
@@ -826,6 +1065,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_bluetooth_device_snapshot(
+    List<BluetoothDeviceSnapshot> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_calendar_entry_ui_config(
@@ -969,6 +1214,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_bluetooth_operation_error(
+    BluetoothOperationError? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bluetooth_prompt(
+    BluetoothPrompt? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
 
   @protected
@@ -1005,6 +1262,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
   @protected
@@ -1035,6 +1298,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_prompt_response(
+    PromptResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_task_priority(TaskPriority self, SseSerializer serializer);
 
   @protected
@@ -1060,6 +1329,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     TrayItemSnapshot self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_u_16(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_32(int self, SseSerializer serializer);

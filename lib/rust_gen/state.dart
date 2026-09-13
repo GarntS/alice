@@ -12,6 +12,7 @@ class BarSnapshot {
   final MediaSnapshot? media;
   final double memoryUsagePercent;
   final double cpuUsageCores;
+  final BluetoothSnapshot bluetooth;
   final NetworkSnapshot network;
   final ClockSnapshot clock;
   final WeatherSnapshot? weather;
@@ -26,6 +27,7 @@ class BarSnapshot {
     this.media,
     required this.memoryUsagePercent,
     required this.cpuUsageCores,
+    required this.bluetooth,
     required this.network,
     required this.clock,
     this.weather,
@@ -42,6 +44,7 @@ class BarSnapshot {
       media.hashCode ^
       memoryUsagePercent.hashCode ^
       cpuUsageCores.hashCode ^
+      bluetooth.hashCode ^
       network.hashCode ^
       clock.hashCode ^
       weather.hashCode ^
@@ -60,6 +63,7 @@ class BarSnapshot {
           media == other.media &&
           memoryUsagePercent == other.memoryUsagePercent &&
           cpuUsageCores == other.cpuUsageCores &&
+          bluetooth == other.bluetooth &&
           network == other.network &&
           clock == other.clock &&
           weather == other.weather &&
@@ -86,6 +90,241 @@ class BatterySnapshot {
           runtimeType == other.runtimeType &&
           capacity == other.capacity &&
           status == other.status;
+}
+
+/// Presentation group derived from Bluetooth SIG's official LE Appearance
+/// category. Subcategories deliberately inherit their category icon.
+enum BluetoothDeviceCategory {
+  audio,
+  computer,
+  input,
+  phone,
+  peripheral,
+  wearable,
+  display,
+  clock,
+  tag,
+  key,
+  media,
+  scanner,
+  temperature,
+  heart,
+  health,
+  fitness,
+  cycling,
+  controls,
+  network,
+  sensor,
+  light,
+  fan,
+  climate,
+  heating,
+  access,
+  motorized,
+  power,
+  windowCovering,
+  vehicle,
+  appliance,
+  aircraft,
+  gaming,
+  measurement,
+  tools,
+  cookware,
+  generic,
+}
+
+class BluetoothDevicePresentation {
+  /// BlueZ's classic Bluetooth class-of-device value, when advertised.
+  final int? class_;
+
+  /// BlueZ's LE appearance value, when advertised.
+  final int? appearance;
+  final BluetoothDeviceCategory category;
+
+  const BluetoothDevicePresentation({
+    this.class_,
+    this.appearance,
+    required this.category,
+  });
+
+  @override
+  int get hashCode => class_.hashCode ^ appearance.hashCode ^ category.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BluetoothDevicePresentation &&
+          runtimeType == other.runtimeType &&
+          class_ == other.class_ &&
+          appearance == other.appearance &&
+          category == other.category;
+}
+
+class BluetoothDeviceSnapshot {
+  final String address;
+  final String? alias;
+  final String? name;
+  final bool paired;
+  final bool trusted;
+  final bool connected;
+  final BluetoothDevicePresentation presentation;
+  final BluetoothOperationState operation;
+  final BluetoothOperationError? error;
+
+  const BluetoothDeviceSnapshot({
+    required this.address,
+    this.alias,
+    this.name,
+    required this.paired,
+    required this.trusted,
+    required this.connected,
+    required this.presentation,
+    required this.operation,
+    this.error,
+  });
+
+  @override
+  int get hashCode =>
+      address.hashCode ^
+      alias.hashCode ^
+      name.hashCode ^
+      paired.hashCode ^
+      trusted.hashCode ^
+      connected.hashCode ^
+      presentation.hashCode ^
+      operation.hashCode ^
+      error.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BluetoothDeviceSnapshot &&
+          runtimeType == other.runtimeType &&
+          address == other.address &&
+          alias == other.alias &&
+          name == other.name &&
+          paired == other.paired &&
+          trusted == other.trusted &&
+          connected == other.connected &&
+          presentation == other.presentation &&
+          operation == other.operation &&
+          error == other.error;
+}
+
+class BluetoothOperationError {
+  final String message;
+  final bool retryable;
+
+  const BluetoothOperationError({
+    required this.message,
+    required this.retryable,
+  });
+
+  @override
+  int get hashCode => message.hashCode ^ retryable.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BluetoothOperationError &&
+          runtimeType == other.runtimeType &&
+          message == other.message &&
+          retryable == other.retryable;
+}
+
+enum BluetoothOperationState { idle, pairing, connecting, disconnecting }
+
+class BluetoothPrompt {
+  /// Opaque, one-use identifier used to resolve this exact agent request.
+  final String token;
+  final String address;
+  final String deviceLabel;
+  final BluetoothPromptKind kind;
+  final int? passkey;
+  final String? service;
+
+  const BluetoothPrompt({
+    required this.token,
+    required this.address,
+    required this.deviceLabel,
+    required this.kind,
+    this.passkey,
+    this.service,
+  });
+
+  @override
+  int get hashCode =>
+      token.hashCode ^
+      address.hashCode ^
+      deviceLabel.hashCode ^
+      kind.hashCode ^
+      passkey.hashCode ^
+      service.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BluetoothPrompt &&
+          runtimeType == other.runtimeType &&
+          token == other.token &&
+          address == other.address &&
+          deviceLabel == other.deviceLabel &&
+          kind == other.kind &&
+          passkey == other.passkey &&
+          service == other.service;
+}
+
+enum BluetoothPromptKind {
+  requestPinCode,
+  requestPasskey,
+  displayPasskey,
+  requestConfirmation,
+  authorizeDevice,
+  authorizeService,
+}
+
+enum BluetoothScanState { idle, scanning }
+
+class BluetoothSnapshot {
+  /// True only while BlueZ is reachable and at least one adapter is powered.
+  final bool available;
+
+  /// Aggregated observations from powered adapters, keyed by address.
+  final List<BluetoothDeviceSnapshot> devices;
+  final BluetoothScanState scanState;
+
+  /// Results retained from the current or most recently completed scan.
+  final List<BluetoothDeviceSnapshot> scanResults;
+
+  /// At most one user-mediated BlueZ agent request is active at a time.
+  final BluetoothPrompt? prompt;
+
+  const BluetoothSnapshot({
+    required this.available,
+    required this.devices,
+    required this.scanState,
+    required this.scanResults,
+    this.prompt,
+  });
+
+  @override
+  int get hashCode =>
+      available.hashCode ^
+      devices.hashCode ^
+      scanState.hashCode ^
+      scanResults.hashCode ^
+      prompt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BluetoothSnapshot &&
+          runtimeType == other.runtimeType &&
+          available == other.available &&
+          devices == other.devices &&
+          scanState == other.scanState &&
+          scanResults == other.scanResults &&
+          prompt == other.prompt;
 }
 
 class CalendarEvent {

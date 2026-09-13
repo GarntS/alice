@@ -3,6 +3,7 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import 'bluetooth/prompt.dart';
 import 'caldav/models.dart';
 import 'config.dart';
 import 'frb_generated.dart';
@@ -35,6 +36,23 @@ Stream<BarViewLifecycle> watchBarViewLifecycle() =>
 Future<AliceUiConfig> loadConfig() => RustLib.instance.api.crateApiLoadConfig();
 
 /// Coalesce a panel-open or manual CalDAV refresh into the runtime service.
+Future<bool> respondToBluetoothPrompt({
+  required String token,
+  required PromptResponse response,
+}) => RustLib.instance.api.crateApiRespondToBluetoothPrompt(
+  token: token,
+  response: response,
+);
+
+Future<bool> requestBluetoothScan() =>
+    RustLib.instance.api.crateApiRequestBluetoothScan();
+
+Future<bool> connectBluetoothDevice({required String address}) =>
+    RustLib.instance.api.crateApiConnectBluetoothDevice(address: address);
+
+Future<bool> disconnectBluetoothDevice({required String address}) =>
+    RustLib.instance.api.crateApiDisconnectBluetoothDevice(address: address);
+
 Future<bool> requestCaldavRefresh() =>
     RustLib.instance.api.crateApiRequestCaldavRefresh();
 

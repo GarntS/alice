@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart' show Color, ThemeMode;
 import 'package:flutter/services.dart';
 
 import 'alice_config.dart';
+import 'rust_gen/bluetooth/prompt.dart';
 import 'rust_gen/caldav/models.dart';
 import 'rust_gen/state.dart';
 import 'panel_controller.dart';
@@ -80,6 +81,19 @@ class AlicePlatform {
   Future<void> executePowerAction(String action) {
     return frb.executePowerAction(action: action);
   }
+
+  Future<bool> requestBluetoothScan() => frb.requestBluetoothScan();
+
+  Future<bool> connectBluetoothDevice(String address) =>
+      frb.connectBluetoothDevice(address: address);
+
+  Future<bool> disconnectBluetoothDevice(String address) =>
+      frb.disconnectBluetoothDevice(address: address);
+
+  Future<bool> respondToBluetoothPrompt(
+    String token,
+    PromptResponse response,
+  ) => frb.respondToBluetoothPrompt(token: token, response: response);
 
   Future<bool> requestCalDavRefresh() => frb.requestCaldavRefresh();
 
@@ -178,6 +192,7 @@ class AlicePlatform {
       media: snapshot.media,
       memoryUsagePercent: snapshot.memoryUsagePercent,
       cpuUsageCores: snapshot.cpuUsageCores,
+      bluetooth: snapshot.bluetooth,
       network: snapshot.network,
       clock: snapshot.clock,
       weather: snapshot.weather,

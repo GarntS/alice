@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 622855883;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1910186549;
 
 // Section: executor
 
@@ -46,6 +46,76 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
+fn wire__crate__api__connect_bluetooth_device_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "connect_bluetooth_device",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_address = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::connect_bluetooth_device(api_address)?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__disconnect_bluetooth_device_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "disconnect_bluetooth_device",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_address = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::disconnect_bluetooth_device(api_address)?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__dismiss_all_notifications_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -359,6 +429,40 @@ fn wire__crate__api__mark_notification_read_impl(
         },
     )
 }
+fn wire__crate__api__request_bluetooth_scan_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "request_bluetooth_scan",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::request_bluetooth_scan()?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__request_caldav_refresh_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -386,6 +490,44 @@ fn wire__crate__api__request_caldav_refresh_impl(
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || {
                         let output_ok = crate::api::request_caldav_refresh()?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__respond_to_bluetooth_prompt_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "respond_to_bluetooth_prompt",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_token = <String>::sse_decode(&mut deserializer);
+            let api_response =
+                <crate::bluetooth::prompt::PromptResponse>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok =
+                            crate::api::respond_to_bluetooth_prompt(api_token, api_response)?;
                         Ok(output_ok)
                     })(),
                 )
@@ -756,6 +898,7 @@ impl SseDecode for crate::state::BarSnapshot {
         let mut var_media = <Option<crate::state::MediaSnapshot>>::sse_decode(deserializer);
         let mut var_memoryUsagePercent = <f64>::sse_decode(deserializer);
         let mut var_cpuUsageCores = <f64>::sse_decode(deserializer);
+        let mut var_bluetooth = <crate::state::BluetoothSnapshot>::sse_decode(deserializer);
         let mut var_network = <crate::state::NetworkSnapshot>::sse_decode(deserializer);
         let mut var_clock = <crate::state::ClockSnapshot>::sse_decode(deserializer);
         let mut var_weather = <Option<crate::state::WeatherSnapshot>>::sse_decode(deserializer);
@@ -771,6 +914,7 @@ impl SseDecode for crate::state::BarSnapshot {
             media: var_media,
             memory_usage_percent: var_memoryUsagePercent,
             cpu_usage_cores: var_cpuUsageCores,
+            bluetooth: var_bluetooth,
             network: var_network,
             clock: var_clock,
             weather: var_weather,
@@ -813,6 +957,188 @@ impl SseDecode for crate::state::BatterySnapshot {
         return crate::state::BatterySnapshot {
             capacity: var_capacity,
             status: var_status,
+        };
+    }
+}
+
+impl SseDecode for crate::state::BluetoothDeviceCategory {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::state::BluetoothDeviceCategory::Audio,
+            1 => crate::state::BluetoothDeviceCategory::Computer,
+            2 => crate::state::BluetoothDeviceCategory::Input,
+            3 => crate::state::BluetoothDeviceCategory::Phone,
+            4 => crate::state::BluetoothDeviceCategory::Peripheral,
+            5 => crate::state::BluetoothDeviceCategory::Wearable,
+            6 => crate::state::BluetoothDeviceCategory::Display,
+            7 => crate::state::BluetoothDeviceCategory::Clock,
+            8 => crate::state::BluetoothDeviceCategory::Tag,
+            9 => crate::state::BluetoothDeviceCategory::Key,
+            10 => crate::state::BluetoothDeviceCategory::Media,
+            11 => crate::state::BluetoothDeviceCategory::Scanner,
+            12 => crate::state::BluetoothDeviceCategory::Temperature,
+            13 => crate::state::BluetoothDeviceCategory::Heart,
+            14 => crate::state::BluetoothDeviceCategory::Health,
+            15 => crate::state::BluetoothDeviceCategory::Fitness,
+            16 => crate::state::BluetoothDeviceCategory::Cycling,
+            17 => crate::state::BluetoothDeviceCategory::Controls,
+            18 => crate::state::BluetoothDeviceCategory::Network,
+            19 => crate::state::BluetoothDeviceCategory::Sensor,
+            20 => crate::state::BluetoothDeviceCategory::Light,
+            21 => crate::state::BluetoothDeviceCategory::Fan,
+            22 => crate::state::BluetoothDeviceCategory::Climate,
+            23 => crate::state::BluetoothDeviceCategory::Heating,
+            24 => crate::state::BluetoothDeviceCategory::Access,
+            25 => crate::state::BluetoothDeviceCategory::Motorized,
+            26 => crate::state::BluetoothDeviceCategory::Power,
+            27 => crate::state::BluetoothDeviceCategory::WindowCovering,
+            28 => crate::state::BluetoothDeviceCategory::Vehicle,
+            29 => crate::state::BluetoothDeviceCategory::Appliance,
+            30 => crate::state::BluetoothDeviceCategory::Aircraft,
+            31 => crate::state::BluetoothDeviceCategory::Gaming,
+            32 => crate::state::BluetoothDeviceCategory::Measurement,
+            33 => crate::state::BluetoothDeviceCategory::Tools,
+            34 => crate::state::BluetoothDeviceCategory::Cookware,
+            35 => crate::state::BluetoothDeviceCategory::Generic,
+            _ => unreachable!("Invalid variant for BluetoothDeviceCategory: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::state::BluetoothDevicePresentation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_class_ = <Option<u32>>::sse_decode(deserializer);
+        let mut var_appearance = <Option<u16>>::sse_decode(deserializer);
+        let mut var_category = <crate::state::BluetoothDeviceCategory>::sse_decode(deserializer);
+        return crate::state::BluetoothDevicePresentation {
+            class: var_class_,
+            appearance: var_appearance,
+            category: var_category,
+        };
+    }
+}
+
+impl SseDecode for crate::state::BluetoothDeviceSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_address = <String>::sse_decode(deserializer);
+        let mut var_alias = <Option<String>>::sse_decode(deserializer);
+        let mut var_name = <Option<String>>::sse_decode(deserializer);
+        let mut var_paired = <bool>::sse_decode(deserializer);
+        let mut var_trusted = <bool>::sse_decode(deserializer);
+        let mut var_connected = <bool>::sse_decode(deserializer);
+        let mut var_presentation =
+            <crate::state::BluetoothDevicePresentation>::sse_decode(deserializer);
+        let mut var_operation = <crate::state::BluetoothOperationState>::sse_decode(deserializer);
+        let mut var_error =
+            <Option<crate::state::BluetoothOperationError>>::sse_decode(deserializer);
+        return crate::state::BluetoothDeviceSnapshot {
+            address: var_address,
+            alias: var_alias,
+            name: var_name,
+            paired: var_paired,
+            trusted: var_trusted,
+            connected: var_connected,
+            presentation: var_presentation,
+            operation: var_operation,
+            error: var_error,
+        };
+    }
+}
+
+impl SseDecode for crate::state::BluetoothOperationError {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_message = <String>::sse_decode(deserializer);
+        let mut var_retryable = <bool>::sse_decode(deserializer);
+        return crate::state::BluetoothOperationError {
+            message: var_message,
+            retryable: var_retryable,
+        };
+    }
+}
+
+impl SseDecode for crate::state::BluetoothOperationState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::state::BluetoothOperationState::Idle,
+            1 => crate::state::BluetoothOperationState::Pairing,
+            2 => crate::state::BluetoothOperationState::Connecting,
+            3 => crate::state::BluetoothOperationState::Disconnecting,
+            _ => unreachable!("Invalid variant for BluetoothOperationState: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::state::BluetoothPrompt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_token = <String>::sse_decode(deserializer);
+        let mut var_address = <String>::sse_decode(deserializer);
+        let mut var_deviceLabel = <String>::sse_decode(deserializer);
+        let mut var_kind = <crate::state::BluetoothPromptKind>::sse_decode(deserializer);
+        let mut var_passkey = <Option<u32>>::sse_decode(deserializer);
+        let mut var_service = <Option<String>>::sse_decode(deserializer);
+        return crate::state::BluetoothPrompt {
+            token: var_token,
+            address: var_address,
+            device_label: var_deviceLabel,
+            kind: var_kind,
+            passkey: var_passkey,
+            service: var_service,
+        };
+    }
+}
+
+impl SseDecode for crate::state::BluetoothPromptKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::state::BluetoothPromptKind::RequestPinCode,
+            1 => crate::state::BluetoothPromptKind::RequestPasskey,
+            2 => crate::state::BluetoothPromptKind::DisplayPasskey,
+            3 => crate::state::BluetoothPromptKind::RequestConfirmation,
+            4 => crate::state::BluetoothPromptKind::AuthorizeDevice,
+            5 => crate::state::BluetoothPromptKind::AuthorizeService,
+            _ => unreachable!("Invalid variant for BluetoothPromptKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::state::BluetoothScanState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::state::BluetoothScanState::Idle,
+            1 => crate::state::BluetoothScanState::Scanning,
+            _ => unreachable!("Invalid variant for BluetoothScanState: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::state::BluetoothSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_available = <bool>::sse_decode(deserializer);
+        let mut var_devices =
+            <Vec<crate::state::BluetoothDeviceSnapshot>>::sse_decode(deserializer);
+        let mut var_scanState = <crate::state::BluetoothScanState>::sse_decode(deserializer);
+        let mut var_scanResults =
+            <Vec<crate::state::BluetoothDeviceSnapshot>>::sse_decode(deserializer);
+        let mut var_prompt = <Option<crate::state::BluetoothPrompt>>::sse_decode(deserializer);
+        return crate::state::BluetoothSnapshot {
+            available: var_available,
+            devices: var_devices,
+            scan_state: var_scanState,
+            scan_results: var_scanResults,
+            prompt: var_prompt,
         };
     }
 }
@@ -985,6 +1311,20 @@ impl SseDecode for Vec<String> {
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
             ans_.push(<String>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::state::BluetoothDeviceSnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::state::BluetoothDeviceSnapshot>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
@@ -1381,6 +1721,30 @@ impl SseDecode for Option<crate::state::BatterySnapshot> {
     }
 }
 
+impl SseDecode for Option<crate::state::BluetoothOperationError> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::state::BluetoothOperationError>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::state::BluetoothPrompt> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::state::BluetoothPrompt>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<bool> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1452,6 +1816,28 @@ impl SseDecode for Option<crate::api::PanelCommand> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<crate::api::PanelCommand>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<u16> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<u16>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<u32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<u32>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -1540,6 +1926,35 @@ impl SseDecode for crate::config::PowerCommandConfig {
     }
 }
 
+impl SseDecode for crate::bluetooth::prompt::PromptResponse {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_field0 = <String>::sse_decode(deserializer);
+                return crate::bluetooth::prompt::PromptResponse::PinCode(var_field0);
+            }
+            1 => {
+                let mut var_field0 = <u32>::sse_decode(deserializer);
+                return crate::bluetooth::prompt::PromptResponse::Passkey(var_field0);
+            }
+            2 => {
+                return crate::bluetooth::prompt::PromptResponse::Accept;
+            }
+            3 => {
+                return crate::bluetooth::prompt::PromptResponse::Deny;
+            }
+            4 => {
+                return crate::bluetooth::prompt::PromptResponse::Cancel;
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseDecode for crate::caldav::models::TaskPriority {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1620,6 +2035,13 @@ impl SseDecode for crate::state::TrayItemSnapshot {
             object_path: var_objectPath,
             icon_png_bytes: var_iconPngBytes,
         };
+    }
+}
+
+impl SseDecode for u16 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u16::<NativeEndian>().unwrap()
     }
 }
 
@@ -1821,23 +2243,27 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__dismiss_all_notifications_impl(port, ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__dismiss_notification_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__execute_power_action_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__fetch_calendar_events_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__focus_workspace_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__invoke_notification_action_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__load_config_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__mark_notification_read_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__request_caldav_refresh_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__seek_media_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__send_media_action_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__send_tray_action_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__set_caldav_task_completed_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__watch_bar_snapshots_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__watch_bar_view_lifecycle_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__watch_panel_commands_impl(port, ptr, rust_vec_len, data_len),
+        1 => wire__crate__api__connect_bluetooth_device_impl(port, ptr, rust_vec_len, data_len),
+        2 => wire__crate__api__disconnect_bluetooth_device_impl(port, ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__dismiss_all_notifications_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__dismiss_notification_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__execute_power_action_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__fetch_calendar_events_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__focus_workspace_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__invoke_notification_action_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__load_config_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__mark_notification_read_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__request_bluetooth_scan_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__request_caldav_refresh_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__respond_to_bluetooth_prompt_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__seek_media_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__send_media_action_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__send_tray_action_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__set_caldav_task_completed_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__watch_bar_snapshots_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__watch_bar_view_lifecycle_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__watch_panel_commands_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1893,6 +2319,7 @@ impl flutter_rust_bridge::IntoDart for crate::state::BarSnapshot {
             self.media.into_into_dart().into_dart(),
             self.memory_usage_percent.into_into_dart().into_dart(),
             self.cpu_usage_cores.into_into_dart().into_dart(),
+            self.bluetooth.into_into_dart().into_dart(),
             self.network.into_into_dart().into_dart(),
             self.clock.into_into_dart().into_dart(),
             self.weather.into_into_dart().into_dart(),
@@ -1958,6 +2385,247 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::BatterySnapshot>
     for crate::state::BatterySnapshot
 {
     fn into_into_dart(self) -> crate::state::BatterySnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::BluetoothDeviceCategory {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Audio => 0.into_dart(),
+            Self::Computer => 1.into_dart(),
+            Self::Input => 2.into_dart(),
+            Self::Phone => 3.into_dart(),
+            Self::Peripheral => 4.into_dart(),
+            Self::Wearable => 5.into_dart(),
+            Self::Display => 6.into_dart(),
+            Self::Clock => 7.into_dart(),
+            Self::Tag => 8.into_dart(),
+            Self::Key => 9.into_dart(),
+            Self::Media => 10.into_dart(),
+            Self::Scanner => 11.into_dart(),
+            Self::Temperature => 12.into_dart(),
+            Self::Heart => 13.into_dart(),
+            Self::Health => 14.into_dart(),
+            Self::Fitness => 15.into_dart(),
+            Self::Cycling => 16.into_dart(),
+            Self::Controls => 17.into_dart(),
+            Self::Network => 18.into_dart(),
+            Self::Sensor => 19.into_dart(),
+            Self::Light => 20.into_dart(),
+            Self::Fan => 21.into_dart(),
+            Self::Climate => 22.into_dart(),
+            Self::Heating => 23.into_dart(),
+            Self::Access => 24.into_dart(),
+            Self::Motorized => 25.into_dart(),
+            Self::Power => 26.into_dart(),
+            Self::WindowCovering => 27.into_dart(),
+            Self::Vehicle => 28.into_dart(),
+            Self::Appliance => 29.into_dart(),
+            Self::Aircraft => 30.into_dart(),
+            Self::Gaming => 31.into_dart(),
+            Self::Measurement => 32.into_dart(),
+            Self::Tools => 33.into_dart(),
+            Self::Cookware => 34.into_dart(),
+            Self::Generic => 35.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::BluetoothDeviceCategory
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::BluetoothDeviceCategory>
+    for crate::state::BluetoothDeviceCategory
+{
+    fn into_into_dart(self) -> crate::state::BluetoothDeviceCategory {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::BluetoothDevicePresentation {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.class.into_into_dart().into_dart(),
+            self.appearance.into_into_dart().into_dart(),
+            self.category.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::BluetoothDevicePresentation
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::BluetoothDevicePresentation>
+    for crate::state::BluetoothDevicePresentation
+{
+    fn into_into_dart(self) -> crate::state::BluetoothDevicePresentation {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::BluetoothDeviceSnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.address.into_into_dart().into_dart(),
+            self.alias.into_into_dart().into_dart(),
+            self.name.into_into_dart().into_dart(),
+            self.paired.into_into_dart().into_dart(),
+            self.trusted.into_into_dart().into_dart(),
+            self.connected.into_into_dart().into_dart(),
+            self.presentation.into_into_dart().into_dart(),
+            self.operation.into_into_dart().into_dart(),
+            self.error.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::BluetoothDeviceSnapshot
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::BluetoothDeviceSnapshot>
+    for crate::state::BluetoothDeviceSnapshot
+{
+    fn into_into_dart(self) -> crate::state::BluetoothDeviceSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::BluetoothOperationError {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.message.into_into_dart().into_dart(),
+            self.retryable.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::BluetoothOperationError
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::BluetoothOperationError>
+    for crate::state::BluetoothOperationError
+{
+    fn into_into_dart(self) -> crate::state::BluetoothOperationError {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::BluetoothOperationState {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Idle => 0.into_dart(),
+            Self::Pairing => 1.into_dart(),
+            Self::Connecting => 2.into_dart(),
+            Self::Disconnecting => 3.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::BluetoothOperationState
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::BluetoothOperationState>
+    for crate::state::BluetoothOperationState
+{
+    fn into_into_dart(self) -> crate::state::BluetoothOperationState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::BluetoothPrompt {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.token.into_into_dart().into_dart(),
+            self.address.into_into_dart().into_dart(),
+            self.device_label.into_into_dart().into_dart(),
+            self.kind.into_into_dart().into_dart(),
+            self.passkey.into_into_dart().into_dart(),
+            self.service.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::state::BluetoothPrompt {}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::BluetoothPrompt>
+    for crate::state::BluetoothPrompt
+{
+    fn into_into_dart(self) -> crate::state::BluetoothPrompt {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::BluetoothPromptKind {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::RequestPinCode => 0.into_dart(),
+            Self::RequestPasskey => 1.into_dart(),
+            Self::DisplayPasskey => 2.into_dart(),
+            Self::RequestConfirmation => 3.into_dart(),
+            Self::AuthorizeDevice => 4.into_dart(),
+            Self::AuthorizeService => 5.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::BluetoothPromptKind
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::BluetoothPromptKind>
+    for crate::state::BluetoothPromptKind
+{
+    fn into_into_dart(self) -> crate::state::BluetoothPromptKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::BluetoothScanState {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Idle => 0.into_dart(),
+            Self::Scanning => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::BluetoothScanState
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::BluetoothScanState>
+    for crate::state::BluetoothScanState
+{
+    fn into_into_dart(self) -> crate::state::BluetoothScanState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::BluetoothSnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.available.into_into_dart().into_dart(),
+            self.devices.into_into_dart().into_dart(),
+            self.scan_state.into_into_dart().into_dart(),
+            self.scan_results.into_into_dart().into_dart(),
+            self.prompt.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::state::BluetoothSnapshot
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::BluetoothSnapshot>
+    for crate::state::BluetoothSnapshot
+{
+    fn into_into_dart(self) -> crate::state::BluetoothSnapshot {
         self
     }
 }
@@ -2400,6 +3068,36 @@ impl flutter_rust_bridge::IntoIntoDart<crate::config::PowerCommandConfig>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::bluetooth::prompt::PromptResponse {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::bluetooth::prompt::PromptResponse::PinCode(field0) => {
+                [0.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            crate::bluetooth::prompt::PromptResponse::Passkey(field0) => {
+                [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            crate::bluetooth::prompt::PromptResponse::Accept => [2.into_dart()].into_dart(),
+            crate::bluetooth::prompt::PromptResponse::Deny => [3.into_dart()].into_dart(),
+            crate::bluetooth::prompt::PromptResponse::Cancel => [4.into_dart()].into_dart(),
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::bluetooth::prompt::PromptResponse
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::bluetooth::prompt::PromptResponse>
+    for crate::bluetooth::prompt::PromptResponse
+{
+    fn into_into_dart(self) -> crate::bluetooth::prompt::PromptResponse {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::caldav::models::TaskPriority {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -2768,6 +3466,7 @@ impl SseEncode for crate::state::BarSnapshot {
         <Option<crate::state::MediaSnapshot>>::sse_encode(self.media, serializer);
         <f64>::sse_encode(self.memory_usage_percent, serializer);
         <f64>::sse_encode(self.cpu_usage_cores, serializer);
+        <crate::state::BluetoothSnapshot>::sse_encode(self.bluetooth, serializer);
         <crate::state::NetworkSnapshot>::sse_encode(self.network, serializer);
         <crate::state::ClockSnapshot>::sse_encode(self.clock, serializer);
         <Option<crate::state::WeatherSnapshot>>::sse_encode(self.weather, serializer);
@@ -2799,6 +3498,165 @@ impl SseEncode for crate::state::BatterySnapshot {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <u8>::sse_encode(self.capacity, serializer);
         <String>::sse_encode(self.status, serializer);
+    }
+}
+
+impl SseEncode for crate::state::BluetoothDeviceCategory {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::state::BluetoothDeviceCategory::Audio => 0,
+                crate::state::BluetoothDeviceCategory::Computer => 1,
+                crate::state::BluetoothDeviceCategory::Input => 2,
+                crate::state::BluetoothDeviceCategory::Phone => 3,
+                crate::state::BluetoothDeviceCategory::Peripheral => 4,
+                crate::state::BluetoothDeviceCategory::Wearable => 5,
+                crate::state::BluetoothDeviceCategory::Display => 6,
+                crate::state::BluetoothDeviceCategory::Clock => 7,
+                crate::state::BluetoothDeviceCategory::Tag => 8,
+                crate::state::BluetoothDeviceCategory::Key => 9,
+                crate::state::BluetoothDeviceCategory::Media => 10,
+                crate::state::BluetoothDeviceCategory::Scanner => 11,
+                crate::state::BluetoothDeviceCategory::Temperature => 12,
+                crate::state::BluetoothDeviceCategory::Heart => 13,
+                crate::state::BluetoothDeviceCategory::Health => 14,
+                crate::state::BluetoothDeviceCategory::Fitness => 15,
+                crate::state::BluetoothDeviceCategory::Cycling => 16,
+                crate::state::BluetoothDeviceCategory::Controls => 17,
+                crate::state::BluetoothDeviceCategory::Network => 18,
+                crate::state::BluetoothDeviceCategory::Sensor => 19,
+                crate::state::BluetoothDeviceCategory::Light => 20,
+                crate::state::BluetoothDeviceCategory::Fan => 21,
+                crate::state::BluetoothDeviceCategory::Climate => 22,
+                crate::state::BluetoothDeviceCategory::Heating => 23,
+                crate::state::BluetoothDeviceCategory::Access => 24,
+                crate::state::BluetoothDeviceCategory::Motorized => 25,
+                crate::state::BluetoothDeviceCategory::Power => 26,
+                crate::state::BluetoothDeviceCategory::WindowCovering => 27,
+                crate::state::BluetoothDeviceCategory::Vehicle => 28,
+                crate::state::BluetoothDeviceCategory::Appliance => 29,
+                crate::state::BluetoothDeviceCategory::Aircraft => 30,
+                crate::state::BluetoothDeviceCategory::Gaming => 31,
+                crate::state::BluetoothDeviceCategory::Measurement => 32,
+                crate::state::BluetoothDeviceCategory::Tools => 33,
+                crate::state::BluetoothDeviceCategory::Cookware => 34,
+                crate::state::BluetoothDeviceCategory::Generic => 35,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::state::BluetoothDevicePresentation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<u32>>::sse_encode(self.class, serializer);
+        <Option<u16>>::sse_encode(self.appearance, serializer);
+        <crate::state::BluetoothDeviceCategory>::sse_encode(self.category, serializer);
+    }
+}
+
+impl SseEncode for crate::state::BluetoothDeviceSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.address, serializer);
+        <Option<String>>::sse_encode(self.alias, serializer);
+        <Option<String>>::sse_encode(self.name, serializer);
+        <bool>::sse_encode(self.paired, serializer);
+        <bool>::sse_encode(self.trusted, serializer);
+        <bool>::sse_encode(self.connected, serializer);
+        <crate::state::BluetoothDevicePresentation>::sse_encode(self.presentation, serializer);
+        <crate::state::BluetoothOperationState>::sse_encode(self.operation, serializer);
+        <Option<crate::state::BluetoothOperationError>>::sse_encode(self.error, serializer);
+    }
+}
+
+impl SseEncode for crate::state::BluetoothOperationError {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.message, serializer);
+        <bool>::sse_encode(self.retryable, serializer);
+    }
+}
+
+impl SseEncode for crate::state::BluetoothOperationState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::state::BluetoothOperationState::Idle => 0,
+                crate::state::BluetoothOperationState::Pairing => 1,
+                crate::state::BluetoothOperationState::Connecting => 2,
+                crate::state::BluetoothOperationState::Disconnecting => 3,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::state::BluetoothPrompt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.token, serializer);
+        <String>::sse_encode(self.address, serializer);
+        <String>::sse_encode(self.device_label, serializer);
+        <crate::state::BluetoothPromptKind>::sse_encode(self.kind, serializer);
+        <Option<u32>>::sse_encode(self.passkey, serializer);
+        <Option<String>>::sse_encode(self.service, serializer);
+    }
+}
+
+impl SseEncode for crate::state::BluetoothPromptKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::state::BluetoothPromptKind::RequestPinCode => 0,
+                crate::state::BluetoothPromptKind::RequestPasskey => 1,
+                crate::state::BluetoothPromptKind::DisplayPasskey => 2,
+                crate::state::BluetoothPromptKind::RequestConfirmation => 3,
+                crate::state::BluetoothPromptKind::AuthorizeDevice => 4,
+                crate::state::BluetoothPromptKind::AuthorizeService => 5,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::state::BluetoothScanState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::state::BluetoothScanState::Idle => 0,
+                crate::state::BluetoothScanState::Scanning => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::state::BluetoothSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.available, serializer);
+        <Vec<crate::state::BluetoothDeviceSnapshot>>::sse_encode(self.devices, serializer);
+        <crate::state::BluetoothScanState>::sse_encode(self.scan_state, serializer);
+        <Vec<crate::state::BluetoothDeviceSnapshot>>::sse_encode(self.scan_results, serializer);
+        <Option<crate::state::BluetoothPrompt>>::sse_encode(self.prompt, serializer);
     }
 }
 
@@ -2928,6 +3786,16 @@ impl SseEncode for Vec<String> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <String>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::state::BluetoothDeviceSnapshot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::state::BluetoothDeviceSnapshot>::sse_encode(item, serializer);
         }
     }
 }
@@ -3221,6 +4089,26 @@ impl SseEncode for Option<crate::state::BatterySnapshot> {
     }
 }
 
+impl SseEncode for Option<crate::state::BluetoothOperationError> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::state::BluetoothOperationError>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::state::BluetoothPrompt> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::state::BluetoothPrompt>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<bool> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3291,6 +4179,26 @@ impl SseEncode for Option<crate::api::PanelCommand> {
     }
 }
 
+impl SseEncode for Option<u16> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <u16>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<u32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <u32>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<u64> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3351,6 +4259,34 @@ impl SseEncode for crate::config::PowerCommandConfig {
         <String>::sse_encode(self.lock_and_suspend, serializer);
         <String>::sse_encode(self.restart, serializer);
         <String>::sse_encode(self.poweroff, serializer);
+    }
+}
+
+impl SseEncode for crate::bluetooth::prompt::PromptResponse {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::bluetooth::prompt::PromptResponse::PinCode(field0) => {
+                <i32>::sse_encode(0, serializer);
+                <String>::sse_encode(field0, serializer);
+            }
+            crate::bluetooth::prompt::PromptResponse::Passkey(field0) => {
+                <i32>::sse_encode(1, serializer);
+                <u32>::sse_encode(field0, serializer);
+            }
+            crate::bluetooth::prompt::PromptResponse::Accept => {
+                <i32>::sse_encode(2, serializer);
+            }
+            crate::bluetooth::prompt::PromptResponse::Deny => {
+                <i32>::sse_encode(3, serializer);
+            }
+            crate::bluetooth::prompt::PromptResponse::Cancel => {
+                <i32>::sse_encode(4, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -3431,6 +4367,13 @@ impl SseEncode for crate::state::TrayItemSnapshot {
         <String>::sse_encode(self.service_name, serializer);
         <String>::sse_encode(self.object_path, serializer);
         <Option<Vec<u8>>>::sse_encode(self.icon_png_bytes, serializer);
+    }
+}
+
+impl SseEncode for u16 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u16::<NativeEndian>(self).unwrap();
     }
 }
 

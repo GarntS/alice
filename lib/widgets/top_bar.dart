@@ -8,6 +8,7 @@ import '../rust_gen/state.dart';
 import '../panel_controller.dart';
 import '../snapshot_state.dart';
 import 'bar_widgets/battery_module.dart';
+import 'bar_widgets/bluetooth_module.dart';
 import 'bar_widgets/clock_module.dart';
 import 'bar_widgets/cpu_module.dart';
 import 'bar_widgets/media_module.dart';
@@ -147,25 +148,60 @@ class TopBar extends StatelessWidget {
                         ],
                       ),
                     ),
+                    ValueListenableBuilder<BluetoothSnapshot>(
+                      valueListenable: snapshotState.bluetooth,
+                      builder: (context, bluetooth, _) {
+                        if (!bluetooth.available)
+                          return const SizedBox.shrink();
+                        return ValueListenableBuilder<bool>(
+                          valueListenable: panelController.bluetoothOpen,
+                          builder: (context, highlighted, _) => _probe(
+                            'bluetooth',
+                            TopBarBluetoothModule(
+                              highlighted:
+                                  highlighted &&
+                                  panelController.sourceViewId ==
+                                      View.of(context).viewId,
+                              onToggle: (anchor) => panelController.toggle(
+                                AlicePanel.bluetooth,
+                                anchor,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     ValueListenableBuilder<NetworkSnapshot>(
                       valueListenable: snapshotState.network,
                       builder: (context, network, _) =>
-                          ValueListenableBuilder<bool>(
-                            valueListenable: panelController.networkOpen,
-                            builder: (context, highlighted, _) => _probe(
-                              'network',
-                              TopBarNetworkModule(
-                                networkKind: network.kind,
-                                highlighted:
-                                    highlighted &&
-                                    panelController.sourceViewId ==
-                                        View.of(context).viewId,
-                                onToggle: (anchor) => panelController.toggle(
-                                  AlicePanel.network,
-                                  anchor,
+                          ValueListenableBuilder<BluetoothSnapshot>(
+                            valueListenable: snapshotState.bluetooth,
+                            builder: (context, bluetooth, _) =>
+                                ValueListenableBuilder<bool>(
+                                  valueListenable: panelController.networkOpen,
+                                  builder: (context, highlighted, _) =>
+                                      Transform.translate(
+                                        offset: Offset(
+                                          bluetooth.available ? 0 : -8,
+                                          0,
+                                        ),
+                                        child: _probe(
+                                          'network',
+                                          TopBarNetworkModule(
+                                            networkKind: network.kind,
+                                            highlighted:
+                                                highlighted &&
+                                                panelController.sourceViewId ==
+                                                    View.of(context).viewId,
+                                            onToggle: (anchor) =>
+                                                panelController.toggle(
+                                                  AlicePanel.network,
+                                                  anchor,
+                                                ),
+                                          ),
+                                        ),
+                                      ),
                                 ),
-                              ),
-                            ),
                           ),
                     ),
                     if (config.caldav != null)

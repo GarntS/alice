@@ -67,6 +67,12 @@ BarSnapshot testSnapshot({
   Object? media = _defaultMediaSentinel,
   List<TrayItemSnapshot>? trayItems,
   List<NotificationSnapshot>? notifications,
+  BluetoothSnapshot bluetooth = const BluetoothSnapshot(
+    available: false,
+    devices: [],
+    scanState: BluetoothScanState.idle,
+    scanResults: [],
+  ),
   NetworkSnapshot? network,
   ClockSnapshot clock = const ClockSnapshot(
     timeZoneCode: 'UTC',
@@ -91,6 +97,7 @@ BarSnapshot testSnapshot({
     media: resolvedMedia,
     memoryUsagePercent: memoryUsagePercent,
     cpuUsageCores: cpuUsageCores,
+    bluetooth: bluetooth,
     network:
         network ??
         const NetworkSnapshot(
@@ -114,6 +121,7 @@ BarSnapshot copyTestSnapshot(
   Object? media = _defaultMediaSentinel,
   double? memoryUsagePercent,
   double? cpuUsageCores,
+  BluetoothSnapshot? bluetooth,
   NetworkSnapshot? network,
   ClockSnapshot? clock,
   WeatherSnapshot? weather,
@@ -130,6 +138,7 @@ BarSnapshot copyTestSnapshot(
         : media as MediaSnapshot?,
     memoryUsagePercent: memoryUsagePercent ?? snapshot.memoryUsagePercent,
     cpuUsageCores: cpuUsageCores ?? snapshot.cpuUsageCores,
+    bluetooth: bluetooth ?? snapshot.bluetooth,
     network: network ?? snapshot.network,
     clock: clock ?? snapshot.clock,
     weather: weather ?? snapshot.weather,

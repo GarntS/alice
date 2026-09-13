@@ -174,6 +174,66 @@ void main() {
     expect(counts.length, 8);
   });
 
+  test('Bluetooth is deeply frozen and notifies independently', () {
+    const bluetooth = BluetoothSnapshot(
+      available: true,
+      devices: [
+        BluetoothDeviceSnapshot(
+          address: 'AA:BB:CC:DD:EE:FF',
+          alias: 'Headphones',
+          paired: true,
+          trusted: true,
+          connected: false,
+          presentation: BluetoothDevicePresentation(
+            category: BluetoothDeviceCategory.audio,
+          ),
+          operation: BluetoothOperationState.idle,
+        ),
+      ],
+      scanState: BluetoothScanState.idle,
+      scanResults: [],
+    );
+    final state = AliceSnapshotState(config: testConfig());
+    addTearDown(state.dispose);
+    state.ingest(testSnapshot(bluetooth: bluetooth));
+
+    var bluetoothNotifications = 0;
+    var networkNotifications = 0;
+    state.bluetooth.addListener(() => bluetoothNotifications++);
+    state.network.addListener(() => networkNotifications++);
+
+    state.ingest(
+      copySnapshot(
+        state.currentSnapshot,
+        bluetooth: BluetoothSnapshot(
+          available: true,
+          devices: List.of(bluetooth.devices),
+          scanState: BluetoothScanState.idle,
+          scanResults: const [],
+        ),
+      ),
+    );
+    expect(bluetoothNotifications, 0);
+
+    state.ingest(
+      copySnapshot(
+        state.currentSnapshot,
+        bluetooth: const BluetoothSnapshot(
+          available: true,
+          devices: [],
+          scanState: BluetoothScanState.scanning,
+          scanResults: [],
+        ),
+      ),
+    );
+    expect(bluetoothNotifications, 1);
+    expect(networkNotifications, 0);
+    expect(
+      () => state.currentBluetooth.devices.add(bluetooth.devices.first),
+      throwsUnsupportedError,
+    );
+  });
+
   test('derived notification and tray projections notify narrowly', () {
     final state = AliceSnapshotState(
       config: testConfig(maxVisibleTrayItems: 3),
@@ -317,6 +377,7 @@ BarSnapshot copySnapshot(
   Object? media = _sentinel,
   double? memoryUsagePercent,
   double? cpuUsageCores,
+  BluetoothSnapshot? bluetooth,
   NetworkSnapshot? network,
   ClockSnapshot? clock,
   WeatherSnapshot? weather,
@@ -330,6 +391,7 @@ BarSnapshot copySnapshot(
         : media as MediaSnapshot?,
     memoryUsagePercent: memoryUsagePercent ?? snapshot.memoryUsagePercent,
     cpuUsageCores: cpuUsageCores ?? snapshot.cpuUsageCores,
+    bluetooth: bluetooth ?? snapshot.bluetooth,
     network: network ?? snapshot.network,
     clock: clock ?? snapshot.clock,
     weather: weather ?? snapshot.weather,
