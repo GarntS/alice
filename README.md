@@ -312,7 +312,7 @@ t
 | Dependency | Notes |
 |---|---|
 | Flutter SDK ≥ 3.x | Includes Dart SDK |
-| Rust toolchain | `cargo`, `rustc` |
+| Rust toolchain | `cargo`, `rustc` (Rust 1.88+ for ICU timezone mappings) |
 | `flutter_rust_bridge_codegen` 2.11.1 | `cargo install flutter_rust_bridge_codegen@2.11.1` |
 | Clang / clang++ | C++ compiler for the GTK runner |
 | CMake ≥ 3.13 | |

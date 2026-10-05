@@ -371,7 +371,12 @@ fn map_occurrence(
             )
         }
     };
-    let ends_at = event.end.as_ref().and_then(IcsTime::instant);
+    // DTEND belongs to the master (or detached exception), not to every
+    // generated date. Preserve its elapsed duration after resolving this start.
+    let ends_at = event.end.as_ref().and_then(|end| {
+        let duration = end.instant()? - event.start.instant()?;
+        starts_at?.checked_add_signed(duration)
+    });
     let end_label = ends_at
         .map(|instant| instant.with_timezone(&Local).format("%H:%M").to_string())
         .unwrap_or_default();
@@ -718,6 +723,12 @@ fn parse_duration(value: &str) -> Option<i64> {
             digits.push(character);
             continue;
         }
+        if character == 'T' {
+            if !digits.is_empty() {
+                return None;
+            }
+            continue;
+        }
         let value = digits.parse::<i64>().ok()?;
         digits.clear();
         seconds += match character {
@@ -725,9 +736,11 @@ fn parse_duration(value: &str) -> Option<i64> {
             'H' => value * 3_600,
             'M' => value * 60,
             'S' => value,
-            'T' => continue,
             _ => return None,
         };
+    }
+    if !digits.is_empty() {
+        return None;
     }
     Some(if negative { -seconds } else { seconds })
 }
@@ -757,6 +770,26 @@ fn property<'a>(properties: &'a [Property], name: &str) -> Option<&'a Property> 
     properties.iter().find(|property| property.name == name)
 }
 
+/// Resolve CLDR's worldwide-default Windows mapping without consulting the host zone.
+fn resolve_windows_zone(id: &str) -> Option<Tz> {
+    use icu_time::zone::{WindowsParser, iana::IanaParserExtended};
+    static INDEX: OnceLock<BTreeMap<icu_time::zone::TimeZone, Tz>> = OnceLock::new();
+    let index = INDEX.get_or_init(|| {
+        IanaParserExtended::new()
+            .iter()
+            .filter_map(|entry| {
+                entry
+                    .canonical
+                    .parse::<Tz>()
+                    .ok()
+                    .map(|zone| (entry.time_zone, zone))
+            })
+            .collect()
+    });
+    let identity = WindowsParser::new().parse(id, None)?;
+    index.get(&identity).copied()
+}
+
 fn parse_ics_time(
     property: &Property,
     zones: &BTreeMap<String, chrono::FixedOffset>,
@@ -781,8 +814,10 @@ fn parse_ics_time(
         Zone::Utc
     } else if let Some(id) = property.params.get("TZID") {
         id.parse::<Tz>()
+            .ok()
+            .or_else(|| resolve_windows_zone(id))
             .map(Zone::Named)
-            .or_else(|_| zones.get(id).copied().map(Zone::Fixed).ok_or(()))
+            .or_else(|| zones.get(id).copied().map(Zone::Fixed))
             .unwrap_or(Zone::Local)
     } else {
         Zone::Local
@@ -917,6 +952,223 @@ mod tests {
                 url: None,
                 notify_for_events: true,
             },
+        }
+    }
+
+    fn utc(value: &str) -> DateTime<Utc> {
+        DateTime::parse_from_rfc3339(value)
+            .unwrap()
+            .with_timezone(&Utc)
+    }
+
+    fn occurrences(source: &str) -> Vec<CalendarOccurrence> {
+        parse_ics_occurrences(
+            &entry(),
+            source,
+            NaiveDate::from_ymd_opt(2026, 10, 1).unwrap(),
+            NaiveDate::from_ymd_opt(2026, 12, 31).unwrap(),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn parses_relative_alarm_durations_with_time_separator() {
+        assert_eq!(parse_duration("-PT15M"), Some(-900));
+        assert_eq!(parse_duration("PT1H30M"), Some(5400));
+        assert_eq!(parse_duration("-P1DT2H3M4S"), Some(-93784));
+        assert_eq!(parse_duration("P2D"), Some(172800));
+        assert_eq!(parse_duration("PT15"), None);
+        assert_eq!(parse_duration("P1T2H"), None);
+    }
+
+    #[test]
+    fn windows_alarms_follow_normalized_start() {
+        let events = occurrences(
+            "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:alarms\nDTSTART;TZID=Eastern Standard Time:20261005T123000\nBEGIN:VALARM\nTRIGGER:-PT15M\nEND:VALARM\nBEGIN:VALARM\nTRIGGER;VALUE=DATE-TIME;TZID=Eastern Standard Time:20261005T120000\nEND:VALARM\nEND:VEVENT\nEND:VCALENDAR\n",
+        );
+        assert_eq!(events.len(), 1);
+        let event = &events[0];
+        let candidates = reminder_candidates(event, event.starts_at.unwrap());
+        assert_eq!(event.alarms.len(), 2);
+        assert!(event.alarms.iter().any(|alarm| matches!(
+            alarm,
+            Alarm::Relative {
+                seconds_before_start: 900,
+                ..
+            }
+        )));
+        assert!(event.alarms.iter().any(|alarm| matches!(alarm, Alarm::Absolute { at, .. } if *at == utc("2026-10-05T16:00:00Z"))));
+        let mut alarm_due = candidates
+            .iter()
+            .filter(|(kind, _, _)| kind.starts_with("alarm-"))
+            .map(|(_, due, _)| *due)
+            .collect::<Vec<_>>();
+        alarm_due.sort();
+        assert_eq!(
+            alarm_due,
+            vec![utc("2026-10-05T16:00:00Z"), utc("2026-10-05T16:15:00Z")]
+        );
+    }
+
+    #[test]
+    fn existing_time_representations_and_fallbacks_are_preserved() {
+        let zones = BTreeMap::from([
+            ("Synthetic Zone".into(), parse_offset("-0500").unwrap()),
+            ("America/New_York".into(), parse_offset("-0500").unwrap()),
+        ]);
+        for (line, expected) in [
+            ("DTSTART:20261005T123000Z", "2026-10-05T12:30:00Z"),
+            (
+                "DTSTART;TZID=America/New_York:20261005T123000",
+                "2026-10-05T16:30:00Z",
+            ),
+            (
+                "DTSTART;TZID=Synthetic Zone:20261005T123000",
+                "2026-10-05T17:30:00Z",
+            ),
+        ] {
+            assert_eq!(
+                parse_ics_time(&parse_property(line).unwrap(), &zones)
+                    .unwrap()
+                    .instant(),
+                Some(utc(expected))
+            );
+        }
+        let local = NaiveDateTime::parse_from_str("20261005T123000", "%Y%m%dT%H%M%S").unwrap();
+        for line in [
+            "DTSTART:20261005T123000",
+            "DTSTART;TZID=Unknown Zone:20261005T123000",
+        ] {
+            let time = parse_ics_time(&parse_property(line).unwrap(), &zones).unwrap();
+            assert!(matches!(
+                time,
+                IcsTime::DateTime {
+                    zone: Zone::Local,
+                    ..
+                }
+            ));
+            assert_eq!(
+                time.instant(),
+                Local
+                    .from_local_datetime(&local)
+                    .earliest()
+                    .map(|v| v.with_timezone(&Utc))
+            );
+        }
+        let date = parse_ics_time(
+            &parse_property("DTSTART;VALUE=DATE:20261005").unwrap(),
+            &zones,
+        )
+        .unwrap();
+        assert!(matches!(date, IcsTime::Date(_)));
+        assert_eq!(date.instant(), None);
+        // Windows and IANA named zones retain the same ambiguity/gap policy.
+        for wall in ["20261101T013000", "20260308T023000"] {
+            let parse = |id| {
+                parse_ics_time(
+                    &parse_property(&format!("DTSTART;TZID={id}:{wall}")).unwrap(),
+                    &zones,
+                )
+                .unwrap()
+                .instant()
+            };
+            assert_eq!(parse("Eastern Standard Time"), parse("America/New_York"));
+        }
+    }
+
+    #[test]
+    fn windows_recurrence_crosses_dst_and_matches_exceptions() {
+        let master = "BEGIN:VEVENT\nUID:series\nDTSTART;TZID=Eastern Standard Time:20261026T123000\nDTEND;TZID=Eastern Standard Time:20261026T133000\nRRULE:FREQ=WEEKLY;COUNT=3\nRDATE;TZID=Eastern Standard Time:20261116T123000,20261123T123000\nEXDATE;TZID=Eastern Standard Time:20261116T123000\nEND:VEVENT\n";
+        let exception = "BEGIN:VEVENT\nUID:series\nRECURRENCE-ID;TZID=Eastern Standard Time:20261109T123000\nDTSTART;TZID=Eastern Standard Time:20261109T143000\nDTEND;TZID=Eastern Standard Time:20261109T153000\nEND:VEVENT\n";
+        let events = occurrences(&format!(
+            "BEGIN:VCALENDAR\n{master}{exception}END:VCALENDAR\n"
+        ));
+        let mut starts = events
+            .iter()
+            .map(|e| e.starts_at.unwrap())
+            .collect::<Vec<_>>();
+        starts.sort();
+        assert_eq!(
+            starts,
+            vec![
+                utc("2026-10-26T16:30:00Z"),
+                utc("2026-11-02T17:30:00Z"),
+                utc("2026-11-09T19:30:00Z"),
+                utc("2026-11-23T17:30:00Z"),
+            ]
+        );
+        for event in &events {
+            assert_eq!(
+                event.ends_at.unwrap() - event.starts_at.unwrap(),
+                ChronoDuration::hours(1)
+            );
+        }
+        for start in &starts[..2] {
+            assert_eq!(
+                start
+                    .with_timezone(&chrono_tz::America::New_York)
+                    .format("%H:%M")
+                    .to_string(),
+                "12:30"
+            );
+        }
+    }
+
+    #[test]
+    fn windows_zones_use_worldwide_defaults() {
+        for (id, expected, instant) in [
+            (
+                "Eastern Standard Time",
+                chrono_tz::America::New_York,
+                "2026-10-05T16:30:00Z",
+            ),
+            (
+                "GMT Standard Time",
+                chrono_tz::Europe::London,
+                "2026-10-05T11:30:00Z",
+            ),
+            (
+                "Pacific Standard Time",
+                chrono_tz::America::Los_Angeles,
+                "2026-10-05T19:30:00Z",
+            ),
+        ] {
+            assert_eq!(resolve_windows_zone(id), Some(expected));
+            let property = parse_property(&format!("DTSTART;TZID={id}:20261005T123000")).unwrap();
+            assert_eq!(
+                parse_ics_time(&property, &BTreeMap::new())
+                    .unwrap()
+                    .instant(),
+                Some(utc(instant))
+            );
+        }
+        assert_eq!(resolve_windows_zone("Unknown synthetic zone"), None);
+    }
+
+    #[test]
+    fn outlook_eastern_events_use_date_specific_offsets() {
+        let definition = "BEGIN:VTIMEZONE\nTZID:Eastern Standard Time\nBEGIN:STANDARD\nTZOFFSETTO:-0500\nEND:STANDARD\nBEGIN:DAYLIGHT\nTZOFFSETTO:-0400\nEND:DAYLIGHT\nEND:VTIMEZONE\n";
+        for embedded in ["", definition] {
+            let source = format!(
+                "BEGIN:VCALENDAR\n{embedded}BEGIN:VEVENT\nUID:summer\nDTSTART;TZID=Eastern Standard Time:20261005T123000\nDTEND;TZID=Eastern Standard Time:20261005T133000\nEND:VEVENT\nBEGIN:VEVENT\nUID:winter\nDTSTART;TZID=Eastern Standard Time:20261207T123000\nDTEND;TZID=Eastern Standard Time:20261207T133000\nEND:VEVENT\nEND:VCALENDAR\n"
+            );
+            let events = occurrences(&source);
+            assert_eq!(events.len(), 2);
+            let summer = events.iter().find(|e| e.uid == "summer").unwrap();
+            assert_eq!(summer.starts_at, Some(utc("2026-10-05T16:30:00Z")));
+            assert_eq!(summer.ends_at, Some(utc("2026-10-05T17:30:00Z")));
+            assert_eq!(
+                summer
+                    .starts_at
+                    .unwrap()
+                    .with_timezone(&chrono_tz::America::New_York)
+                    .format("%H:%M")
+                    .to_string(),
+                "12:30"
+            );
+            let winter = events.iter().find(|e| e.uid == "winter").unwrap();
+            assert_eq!(winter.starts_at, Some(utc("2026-12-07T17:30:00Z")));
+            assert_eq!(winter.ends_at, Some(utc("2026-12-07T18:30:00Z")));
         }
     }
 

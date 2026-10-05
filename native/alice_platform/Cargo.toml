@@ -21,6 +21,7 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 anyhow = "1"
 chrono = { version = "0.4.44", features = ["clock"] }
 chrono-tz = "0.10.1"
+icu_time = { version = "2.3", default-features = false, features = ["compiled_data"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.34"
 swayipc = "4.0.0"
