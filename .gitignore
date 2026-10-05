@@ -34,6 +34,11 @@ native/target/
 
 # flutter_rust_bridge generated files
 lib/rust_gen/*
+!lib/rust_gen/tray.dart
+!lib/rust_gen/tray.freezed.dart
+!lib/rust_gen/tray_menu.dart
+!lib/rust_gen/tray_menu_service.dart
+!lib/rust_gen/tray_menu_service.freezed.dart
 !lib/rust_gen/caldav/
 lib/rust_gen/caldav/*
 !lib/rust_gen/caldav/models.dart

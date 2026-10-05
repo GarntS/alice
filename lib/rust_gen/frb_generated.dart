@@ -14,6 +14,9 @@ import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'state.dart';
+import 'tray.dart';
+import 'tray_menu.dart';
+import 'tray_menu_service.dart';
 
 /// Main entrypoint of the Rust API
 class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
@@ -70,7 +73,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 1910186549;
+  int get rustContentHash => -788397993;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -82,6 +85,10 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<BigInt> crateApiBeginTrayMenuRequest();
+
+  Future<void> crateApiCancelTrayMenu({required BigInt requestId});
+
   Future<bool> crateApiConnectBluetoothDevice({required String address});
 
   Future<bool> crateApiDisconnectBluetoothDevice({required String address});
@@ -107,7 +114,18 @@ abstract class RustLibApi extends BaseApi {
 
   Future<AliceUiConfig> crateApiLoadConfig();
 
+  Future<TrayMenuSnapshot> crateApiLoadTrayMenu({
+    required BigInt requestId,
+    required String serviceName,
+    required String objectPath,
+  });
+
   Future<void> crateApiMarkNotificationRead({required int id});
+
+  Future<TrayMenuUpdate> crateApiRefreshTrayMenu({
+    required BigInt requestId,
+    int? submenuId,
+  });
 
   Future<bool> crateApiRequestBluetoothScan();
 
@@ -120,9 +138,17 @@ abstract class RustLibApi extends BaseApi {
 
   Future<bool> crateApiSeekMedia({required PlatformInt64 positionMicros});
 
+  Future<TrayActionOutcome> crateApiSelectTrayMenu({
+    required BigInt requestId,
+    required TrayMenuSelection selection,
+    required int x,
+    required int y,
+    required int timestamp,
+  });
+
   Future<bool> crateApiSendMediaAction({required String action});
 
-  Future<bool> crateApiSendTrayAction({
+  Future<TrayActionOutcome> crateApiSendTrayAction({
     required String serviceName,
     required String objectPath,
     required String action,
@@ -151,6 +177,63 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<BigInt> crateApiBeginTrayMenuRequest() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_64,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBeginTrayMenuRequestConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBeginTrayMenuRequestConstMeta =>
+      const TaskConstMeta(debugName: "begin_tray_menu_request", argNames: []);
+
+  @override
+  Future<void> crateApiCancelTrayMenu({required BigInt requestId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(requestId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiCancelTrayMenuConstMeta,
+        argValues: [requestId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCancelTrayMenuConstMeta => const TaskConstMeta(
+    debugName: "cancel_tray_menu",
+    argNames: ["requestId"],
+  );
+
+  @override
   Future<bool> crateApiConnectBluetoothDevice({required String address}) {
     return handler.executeNormal(
       NormalTask(
@@ -160,7 +243,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 1,
+            funcId: 3,
             port: port_,
           );
         },
@@ -191,7 +274,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 4,
             port: port_,
           );
         },
@@ -221,7 +304,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 5,
             port: port_,
           );
         },
@@ -249,7 +332,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 6,
             port: port_,
           );
         },
@@ -277,7 +360,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 7,
             port: port_,
           );
         },
@@ -309,7 +392,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 8,
             port: port_,
           );
         },
@@ -340,7 +423,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 9,
             port: port_,
           );
         },
@@ -367,7 +450,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 10,
             port: port_,
           );
         },
@@ -399,7 +482,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 11,
             port: port_,
           );
         },
@@ -429,7 +512,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 12,
             port: port_,
           );
         },
@@ -448,6 +531,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "load_config", argNames: []);
 
   @override
+  Future<TrayMenuSnapshot> crateApiLoadTrayMenu({
+    required BigInt requestId,
+    required String serviceName,
+    required String objectPath,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(requestId, serializer);
+          sse_encode_String(serviceName, serializer);
+          sse_encode_String(objectPath, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 13,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_tray_menu_snapshot,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiLoadTrayMenuConstMeta,
+        argValues: [requestId, serviceName, objectPath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiLoadTrayMenuConstMeta => const TaskConstMeta(
+    debugName: "load_tray_menu",
+    argNames: ["requestId", "serviceName", "objectPath"],
+  );
+
+  @override
   Future<void> crateApiMarkNotificationRead({required int id}) {
     return handler.executeNormal(
       NormalTask(
@@ -457,7 +576,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 14,
             port: port_,
           );
         },
@@ -479,6 +598,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<TrayMenuUpdate> crateApiRefreshTrayMenu({
+    required BigInt requestId,
+    int? submenuId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(requestId, serializer);
+          sse_encode_opt_box_autoadd_i_32(submenuId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_tray_menu_update,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiRefreshTrayMenuConstMeta,
+        argValues: [requestId, submenuId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRefreshTrayMenuConstMeta => const TaskConstMeta(
+    debugName: "refresh_tray_menu",
+    argNames: ["requestId", "submenuId"],
+  );
+
+  @override
   Future<bool> crateApiRequestBluetoothScan() {
     return handler.executeNormal(
       NormalTask(
@@ -487,7 +640,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 16,
             port: port_,
           );
         },
@@ -514,7 +667,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 17,
             port: port_,
           );
         },
@@ -546,7 +699,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 18,
             port: port_,
           );
         },
@@ -577,7 +730,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 19,
             port: port_,
           );
         },
@@ -598,6 +751,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<TrayActionOutcome> crateApiSelectTrayMenu({
+    required BigInt requestId,
+    required TrayMenuSelection selection,
+    required int x,
+    required int y,
+    required int timestamp,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(requestId, serializer);
+          sse_encode_box_autoadd_tray_menu_selection(selection, serializer);
+          sse_encode_i_32(x, serializer);
+          sse_encode_i_32(y, serializer);
+          sse_encode_u_32(timestamp, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_tray_action_outcome,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiSelectTrayMenuConstMeta,
+        argValues: [requestId, selection, x, y, timestamp],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSelectTrayMenuConstMeta => const TaskConstMeta(
+    debugName: "select_tray_menu",
+    argNames: ["requestId", "selection", "x", "y", "timestamp"],
+  );
+
+  @override
   Future<bool> crateApiSendMediaAction({required String action}) {
     return handler.executeNormal(
       NormalTask(
@@ -607,7 +800,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 21,
             port: port_,
           );
         },
@@ -626,7 +819,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "send_media_action", argNames: ["action"]);
 
   @override
-  Future<bool> crateApiSendTrayAction({
+  Future<TrayActionOutcome> crateApiSendTrayAction({
     required String serviceName,
     required String objectPath,
     required String action,
@@ -645,12 +838,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 22,
             port: port_,
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+          decodeSuccessData: sse_decode_tray_action_outcome,
           decodeErrorData: sse_decode_AnyhowException,
         ),
         constMeta: kCrateApiSendTrayActionConstMeta,
@@ -679,7 +872,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 23,
             port: port_,
           );
         },
@@ -712,7 +905,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 19,
+              funcId: 24,
               port: port_,
             );
           },
@@ -744,7 +937,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 20,
+              funcId: 25,
               port: port_,
             );
           },
@@ -782,7 +975,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 21,
+              funcId: 26,
               port: port_,
             );
           },
@@ -1072,6 +1265,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_i_64(raw);
@@ -1101,6 +1300,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_task_resource_identity(raw);
+  }
+
+  @protected
+  TrayMenuSelection dco_decode_box_autoadd_tray_menu_selection(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_tray_menu_selection(raw);
+  }
+
+  @protected
+  TrayMenuSnapshot dco_decode_box_autoadd_tray_menu_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_tray_menu_snapshot(raw);
   }
 
   @protected
@@ -1351,6 +1562,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<TrayMenuNode> dco_decode_list_tray_menu_node(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_tray_menu_node).toList();
+  }
+
+  @protected
   List<WeatherAlert> dco_decode_list_weather_alert(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_weather_alert).toList();
@@ -1563,6 +1780,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_i_32(raw);
+  }
+
+  @protected
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_i_64(raw);
@@ -1620,16 +1843,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PanelCommand dco_decode_panel_command(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return PanelCommand(
-      panelId: dco_decode_String(arr[0]),
-      viewId: dco_decode_i_64(arr[1]),
-      includeIconBytes: dco_decode_bool(arr[2]),
-      anchorX: dco_decode_f_64(arr[3]),
-      anchorY: dco_decode_f_64(arr[4]),
-      width: dco_decode_f_64(arr[5]),
-      height: dco_decode_f_64(arr[6]),
+      requestId: dco_decode_u_32(arr[0]),
+      visible: dco_decode_bool(arr[1]),
+      panelId: dco_decode_String(arr[2]),
+      viewId: dco_decode_i_64(arr[3]),
+      includeIconBytes: dco_decode_bool(arr[4]),
+      anchorX: dco_decode_f_64(arr[5]),
+      anchorY: dco_decode_f_64(arr[6]),
+      width: dco_decode_f_64(arr[7]),
+      height: dco_decode_f_64(arr[8]),
     );
   }
 
@@ -1709,18 +1934,114 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TrayActionOutcome dco_decode_tray_action_outcome(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return TrayActionOutcome_Executed();
+      case 1:
+        return TrayActionOutcome_Unsupported();
+      case 2:
+        return TrayActionOutcome_Failed(reason: dco_decode_String(raw[1]));
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
+  TrayCapability dco_decode_tray_capability(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return TrayCapability.values[raw as int];
+  }
+
+  @protected
   TrayItemSnapshot dco_decode_tray_item_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return TrayItemSnapshot(
       id: dco_decode_String(arr[0]),
       label: dco_decode_String(arr[1]),
       serviceName: dco_decode_String(arr[2]),
       objectPath: dco_decode_String(arr[3]),
       iconPngBytes: dco_decode_opt_list_prim_u_8_strict(arr[4]),
+      status: dco_decode_opt_String(arr[5]),
+      itemIsMenu: dco_decode_bool(arr[6]),
+      menuPath: dco_decode_opt_String(arr[7]),
+      activate: dco_decode_tray_capability(arr[8]),
+      secondaryActivate: dco_decode_tray_capability(arr[9]),
+      contextMenu: dco_decode_tray_capability(arr[10]),
     );
+  }
+
+  @protected
+  TrayMenuNode dco_decode_tray_menu_node(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return TrayMenuNode(
+      id: dco_decode_i_32(arr[0]),
+      label: dco_decode_String(arr[1]),
+      visible: dco_decode_bool(arr[2]),
+      enabled: dco_decode_bool(arr[3]),
+      separator: dco_decode_bool(arr[4]),
+      submenu: dco_decode_bool(arr[5]),
+      toggle: dco_decode_tray_menu_toggle(arr[6]),
+      toggleState: dco_decode_i_32(arr[7]),
+      children: dco_decode_list_tray_menu_node(arr[8]),
+    );
+  }
+
+  @protected
+  TrayMenuSelection dco_decode_tray_menu_selection(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return TrayMenuSelection_Remote(id: dco_decode_i_32(raw[1]));
+      case 1:
+        return TrayMenuSelection_Secondary();
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
+  TrayMenuSnapshot dco_decode_tray_menu_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return TrayMenuSnapshot(
+      requestId: dco_decode_u_64(arr[0]),
+      revision: dco_decode_u_32(arr[1]),
+      root: dco_decode_tray_menu_node(arr[2]),
+      secondarySupported: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  TrayMenuToggle dco_decode_tray_menu_toggle(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return TrayMenuToggle.values[raw as int];
+  }
+
+  @protected
+  TrayMenuUpdate dco_decode_tray_menu_update(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return TrayMenuUpdate_Unchanged();
+      case 1:
+        return TrayMenuUpdate_Updated(
+          snapshot: dco_decode_box_autoadd_tray_menu_snapshot(raw[1]),
+        );
+      case 2:
+        return TrayMenuUpdate_Closed();
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   @protected
@@ -2204,6 +2525,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_i_32(deserializer));
+  }
+
+  @protected
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_i_64(deserializer));
@@ -2239,6 +2566,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_task_resource_identity(deserializer));
+  }
+
+  @protected
+  TrayMenuSelection sse_decode_box_autoadd_tray_menu_selection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_tray_menu_selection(deserializer));
+  }
+
+  @protected
+  TrayMenuSnapshot sse_decode_box_autoadd_tray_menu_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_tray_menu_snapshot(deserializer));
   }
 
   @protected
@@ -2561,6 +2904,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <TrayItemSnapshot>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_tray_item_snapshot(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<TrayMenuNode> sse_decode_list_tray_menu_node(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <TrayMenuNode>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_tray_menu_node(deserializer));
     }
     return ans_;
   }
@@ -2896,6 +3253,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_i_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3005,6 +3373,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   PanelCommand sse_decode_panel_command(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_requestId = sse_decode_u_32(deserializer);
+    var var_visible = sse_decode_bool(deserializer);
     var var_panelId = sse_decode_String(deserializer);
     var var_viewId = sse_decode_i_64(deserializer);
     var var_includeIconBytes = sse_decode_bool(deserializer);
@@ -3013,6 +3383,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_width = sse_decode_f_64(deserializer);
     var var_height = sse_decode_f_64(deserializer);
     return PanelCommand(
+      requestId: var_requestId,
+      visible: var_visible,
       panelId: var_panelId,
       viewId: var_viewId,
       includeIconBytes: var_includeIconBytes,
@@ -3106,6 +3478,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TrayActionOutcome sse_decode_tray_action_outcome(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        return TrayActionOutcome_Executed();
+      case 1:
+        return TrayActionOutcome_Unsupported();
+      case 2:
+        var var_reason = sse_decode_String(deserializer);
+        return TrayActionOutcome_Failed(reason: var_reason);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  TrayCapability sse_decode_tray_capability(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return TrayCapability.values[inner];
+  }
+
+  @protected
   TrayItemSnapshot sse_decode_tray_item_snapshot(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_String(deserializer);
@@ -3113,13 +3512,110 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_serviceName = sse_decode_String(deserializer);
     var var_objectPath = sse_decode_String(deserializer);
     var var_iconPngBytes = sse_decode_opt_list_prim_u_8_strict(deserializer);
+    var var_status = sse_decode_opt_String(deserializer);
+    var var_itemIsMenu = sse_decode_bool(deserializer);
+    var var_menuPath = sse_decode_opt_String(deserializer);
+    var var_activate = sse_decode_tray_capability(deserializer);
+    var var_secondaryActivate = sse_decode_tray_capability(deserializer);
+    var var_contextMenu = sse_decode_tray_capability(deserializer);
     return TrayItemSnapshot(
       id: var_id,
       label: var_label,
       serviceName: var_serviceName,
       objectPath: var_objectPath,
       iconPngBytes: var_iconPngBytes,
+      status: var_status,
+      itemIsMenu: var_itemIsMenu,
+      menuPath: var_menuPath,
+      activate: var_activate,
+      secondaryActivate: var_secondaryActivate,
+      contextMenu: var_contextMenu,
     );
+  }
+
+  @protected
+  TrayMenuNode sse_decode_tray_menu_node(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_32(deserializer);
+    var var_label = sse_decode_String(deserializer);
+    var var_visible = sse_decode_bool(deserializer);
+    var var_enabled = sse_decode_bool(deserializer);
+    var var_separator = sse_decode_bool(deserializer);
+    var var_submenu = sse_decode_bool(deserializer);
+    var var_toggle = sse_decode_tray_menu_toggle(deserializer);
+    var var_toggleState = sse_decode_i_32(deserializer);
+    var var_children = sse_decode_list_tray_menu_node(deserializer);
+    return TrayMenuNode(
+      id: var_id,
+      label: var_label,
+      visible: var_visible,
+      enabled: var_enabled,
+      separator: var_separator,
+      submenu: var_submenu,
+      toggle: var_toggle,
+      toggleState: var_toggleState,
+      children: var_children,
+    );
+  }
+
+  @protected
+  TrayMenuSelection sse_decode_tray_menu_selection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_id = sse_decode_i_32(deserializer);
+        return TrayMenuSelection_Remote(id: var_id);
+      case 1:
+        return TrayMenuSelection_Secondary();
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  TrayMenuSnapshot sse_decode_tray_menu_snapshot(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_requestId = sse_decode_u_64(deserializer);
+    var var_revision = sse_decode_u_32(deserializer);
+    var var_root = sse_decode_tray_menu_node(deserializer);
+    var var_secondarySupported = sse_decode_bool(deserializer);
+    return TrayMenuSnapshot(
+      requestId: var_requestId,
+      revision: var_revision,
+      root: var_root,
+      secondarySupported: var_secondarySupported,
+    );
+  }
+
+  @protected
+  TrayMenuToggle sse_decode_tray_menu_toggle(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return TrayMenuToggle.values[inner];
+  }
+
+  @protected
+  TrayMenuUpdate sse_decode_tray_menu_update(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        return TrayMenuUpdate_Unchanged();
+      case 1:
+        var var_snapshot = sse_decode_box_autoadd_tray_menu_snapshot(
+          deserializer,
+        );
+        return TrayMenuUpdate_Updated(snapshot: var_snapshot);
+      case 2:
+        return TrayMenuUpdate_Closed();
+      default:
+        throw UnimplementedError('');
+    }
   }
 
   @protected
@@ -3604,6 +4100,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_i_64(
     PlatformInt64 self,
     SseSerializer serializer,
@@ -3646,6 +4148,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_task_resource_identity(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_tray_menu_selection(
+    TrayMenuSelection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_tray_menu_selection(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_tray_menu_snapshot(
+    TrayMenuSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_tray_menu_snapshot(self, serializer);
   }
 
   @protected
@@ -3930,6 +4450,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_tray_menu_node(
+    List<TrayMenuNode> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_tray_menu_node(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_weather_alert(
     List<WeatherAlert> self,
     SseSerializer serializer,
@@ -4193,6 +4725,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_i_32(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_i_64(
     PlatformInt64? self,
     SseSerializer serializer,
@@ -4303,6 +4845,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_panel_command(PanelCommand self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self.requestId, serializer);
+    sse_encode_bool(self.visible, serializer);
     sse_encode_String(self.panelId, serializer);
     sse_encode_i_64(self.viewId, serializer);
     sse_encode_bool(self.includeIconBytes, serializer);
@@ -4385,6 +4929,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_tray_action_outcome(
+    TrayActionOutcome self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case TrayActionOutcome_Executed():
+        sse_encode_i_32(0, serializer);
+      case TrayActionOutcome_Unsupported():
+        sse_encode_i_32(1, serializer);
+      case TrayActionOutcome_Failed(reason: final reason):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(reason, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_tray_capability(
+    TrayCapability self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_tray_item_snapshot(
     TrayItemSnapshot self,
     SseSerializer serializer,
@@ -4395,6 +4965,79 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.serviceName, serializer);
     sse_encode_String(self.objectPath, serializer);
     sse_encode_opt_list_prim_u_8_strict(self.iconPngBytes, serializer);
+    sse_encode_opt_String(self.status, serializer);
+    sse_encode_bool(self.itemIsMenu, serializer);
+    sse_encode_opt_String(self.menuPath, serializer);
+    sse_encode_tray_capability(self.activate, serializer);
+    sse_encode_tray_capability(self.secondaryActivate, serializer);
+    sse_encode_tray_capability(self.contextMenu, serializer);
+  }
+
+  @protected
+  void sse_encode_tray_menu_node(TrayMenuNode self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.id, serializer);
+    sse_encode_String(self.label, serializer);
+    sse_encode_bool(self.visible, serializer);
+    sse_encode_bool(self.enabled, serializer);
+    sse_encode_bool(self.separator, serializer);
+    sse_encode_bool(self.submenu, serializer);
+    sse_encode_tray_menu_toggle(self.toggle, serializer);
+    sse_encode_i_32(self.toggleState, serializer);
+    sse_encode_list_tray_menu_node(self.children, serializer);
+  }
+
+  @protected
+  void sse_encode_tray_menu_selection(
+    TrayMenuSelection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case TrayMenuSelection_Remote(id: final id):
+        sse_encode_i_32(0, serializer);
+        sse_encode_i_32(id, serializer);
+      case TrayMenuSelection_Secondary():
+        sse_encode_i_32(1, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_tray_menu_snapshot(
+    TrayMenuSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.requestId, serializer);
+    sse_encode_u_32(self.revision, serializer);
+    sse_encode_tray_menu_node(self.root, serializer);
+    sse_encode_bool(self.secondarySupported, serializer);
+  }
+
+  @protected
+  void sse_encode_tray_menu_toggle(
+    TrayMenuToggle self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_tray_menu_update(
+    TrayMenuUpdate self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case TrayMenuUpdate_Unchanged():
+        sse_encode_i_32(0, serializer);
+      case TrayMenuUpdate_Updated(snapshot: final snapshot):
+        sse_encode_i_32(1, serializer);
+        sse_encode_box_autoadd_tray_menu_snapshot(snapshot, serializer);
+      case TrayMenuUpdate_Closed():
+        sse_encode_i_32(2, serializer);
+    }
   }
 
   @protected

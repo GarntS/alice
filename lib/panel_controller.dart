@@ -9,6 +9,7 @@ enum AlicePanel {
   tasks('tasks'),
   weather('weather'),
   trayOverflow('trayOverflow'),
+  trayMenu('trayMenu'),
   power('power'),
   notifications('notifications');
 
@@ -42,6 +43,10 @@ class PanelAnchor {
 class PanelController extends ChangeNotifier {
   AlicePanel? _openPanel;
   PanelAnchor? _anchor;
+  int _requestId = 0;
+  int _lastClosedRequestId = 0;
+  int get requestId => _requestId;
+  int get lastClosedRequestId => _lastClosedRequestId;
 
   final Map<AlicePanel, ValueNotifier<bool>> _openNotifiers = {
     for (final panel in AlicePanel.values) panel: ValueNotifier(false),
@@ -60,6 +65,7 @@ class PanelController extends ChangeNotifier {
   ValueListenable<bool> get weatherOpen => openListenable(AlicePanel.weather);
   ValueListenable<bool> get trayOverflowOpen =>
       openListenable(AlicePanel.trayOverflow);
+  ValueListenable<bool> get trayMenuOpen => openListenable(AlicePanel.trayMenu);
   ValueListenable<bool> get notificationsOpen =>
       openListenable(AlicePanel.notifications);
   ValueListenable<bool> get powerOpen => openListenable(AlicePanel.power);
@@ -74,6 +80,8 @@ class PanelController extends ChangeNotifier {
 
   void toggle(AlicePanel panel, PanelAnchor anchor) {
     final previous = _openPanel;
+    _lastClosedRequestId = _requestId;
+    _requestId++;
     if (_openPanel == panel && _anchor?.sourceViewId == anchor.sourceViewId) {
       _openPanel = null;
       _anchor = null;
@@ -99,6 +107,8 @@ class PanelController extends ChangeNotifier {
     }
 
     final previous = _openPanel;
+    _lastClosedRequestId = _requestId;
+    _requestId++;
     _openPanel = null;
     _anchor = null;
     _notifyGranular(previous, null);

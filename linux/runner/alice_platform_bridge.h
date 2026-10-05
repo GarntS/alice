@@ -16,7 +16,8 @@ extern "C" {
  * panel GTK window. Pushes a PanelCommand (including view_id) into the Dart
  * StreamSink registered by watch_panel_commands().
  */
-void alice_notify_panel_show(const char* panel_id,
+void alice_notify_panel_show(uint32_t request_id,
+                              const char* panel_id,
                               int64_t view_id,
                               bool include_icon_bytes,
                               double anchor_x,
@@ -27,10 +28,9 @@ void alice_notify_panel_show(const char* panel_id,
 /**
  * alice_notify_panel_hide:
  *
- * Pushes a null/None panel command into the Dart StreamSink, signalling
- * the panel Flutter app to hide its content.
+ * Pushes a request-scoped hide command; an old popup cannot dismiss a newer one.
  */
-void alice_notify_panel_hide(void);
+void alice_notify_panel_hide(uint32_t request_id, const char* panel_id, int64_t view_id);
 
 /** Replace the retained snapshot of native bar Flutter view IDs. */
 void alice_set_bar_view_ids(const int64_t* view_ids, size_t count);

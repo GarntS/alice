@@ -9,6 +9,9 @@ import 'config.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'state.dart';
+import 'tray.dart';
+import 'tray_menu.dart';
+import 'tray_menu_service.dart';
 
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`
 
@@ -78,7 +81,7 @@ Future<bool> focusWorkspace({required String label}) =>
     RustLib.instance.api.crateApiFocusWorkspace(label: label);
 
 /// Send a StatusNotifier tray action (`"activate"`, `"secondaryActivate"`, `"contextMenu"`).
-Future<bool> sendTrayAction({
+Future<TrayActionOutcome> sendTrayAction({
   required String serviceName,
   required String objectPath,
   required String action,
@@ -91,6 +94,44 @@ Future<bool> sendTrayAction({
   x: x,
   y: y,
 );
+
+Future<BigInt> beginTrayMenuRequest() =>
+    RustLib.instance.api.crateApiBeginTrayMenuRequest();
+
+Future<TrayMenuSnapshot> loadTrayMenu({
+  required BigInt requestId,
+  required String serviceName,
+  required String objectPath,
+}) => RustLib.instance.api.crateApiLoadTrayMenu(
+  requestId: requestId,
+  serviceName: serviceName,
+  objectPath: objectPath,
+);
+
+Future<TrayMenuUpdate> refreshTrayMenu({
+  required BigInt requestId,
+  int? submenuId,
+}) => RustLib.instance.api.crateApiRefreshTrayMenu(
+  requestId: requestId,
+  submenuId: submenuId,
+);
+
+Future<TrayActionOutcome> selectTrayMenu({
+  required BigInt requestId,
+  required TrayMenuSelection selection,
+  required int x,
+  required int y,
+  required int timestamp,
+}) => RustLib.instance.api.crateApiSelectTrayMenu(
+  requestId: requestId,
+  selection: selection,
+  x: x,
+  y: y,
+  timestamp: timestamp,
+);
+
+Future<void> cancelTrayMenu({required BigInt requestId}) =>
+    RustLib.instance.api.crateApiCancelTrayMenu(requestId: requestId);
 
 /// Execute a power management action: `"lock"`, `"lockAndSuspend"`, `"restart"`, `"poweroff"`.
 ///
@@ -323,6 +364,8 @@ class CalendarUiConfig {
 }
 
 class PanelCommand {
+  final int requestId;
+  final bool visible;
   final String panelId;
   final PlatformInt64 viewId;
   final bool includeIconBytes;
@@ -332,6 +375,8 @@ class PanelCommand {
   final double height;
 
   const PanelCommand({
+    required this.requestId,
+    required this.visible,
     required this.panelId,
     required this.viewId,
     required this.includeIconBytes,
@@ -343,6 +388,8 @@ class PanelCommand {
 
   @override
   int get hashCode =>
+      requestId.hashCode ^
+      visible.hashCode ^
       panelId.hashCode ^
       viewId.hashCode ^
       includeIconBytes.hashCode ^
@@ -356,6 +403,8 @@ class PanelCommand {
       identical(this, other) ||
       other is PanelCommand &&
           runtimeType == other.runtimeType &&
+          requestId == other.requestId &&
+          visible == other.visible &&
           panelId == other.panelId &&
           viewId == other.viewId &&
           includeIconBytes == other.includeIconBytes &&

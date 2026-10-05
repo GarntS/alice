@@ -448,6 +448,12 @@ bool trayItemSnapshotsEqual(TrayItemSnapshot a, TrayItemSnapshot b) =>
     a.label == b.label &&
     a.serviceName == b.serviceName &&
     a.objectPath == b.objectPath &&
+    a.status == b.status &&
+    a.itemIsMenu == b.itemIsMenu &&
+    a.menuPath == b.menuPath &&
+    a.activate == b.activate &&
+    a.secondaryActivate == b.secondaryActivate &&
+    a.contextMenu == b.contextMenu &&
     bytesEqual(a.iconPngBytes, b.iconPngBytes);
 
 bool normalizedTasksEqual(NormalizedTask a, NormalizedTask b) =>

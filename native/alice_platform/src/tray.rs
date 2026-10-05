@@ -26,6 +26,10 @@ const AYATANA_SNI_PATH_PREFIX: &str = "/org/ayatana/NotificationItem/";
 
 const TRAY_ICON_SIZE_PX: u32 = 16;
 
+#[path = "tray_runtime.rs"]
+mod item_runtime;
+pub use item_runtime::run as run_tray_runtime;
+
 // ---------------------------------------------------------------------------
 // Public tray action type
 // ---------------------------------------------------------------------------
@@ -397,8 +401,64 @@ pub async fn run_status_notifier_watcher(
         emit_host_registered_signals(&conn).await;
     }
 
-    // Keep the watcher alive; resolved items accumulate until the runtime stops.
-    std::future::pending::<()>().await;
+    // Registrations must not survive the loss of their service owner.
+    use futures_util::StreamExt;
+    let rule = zbus::MatchRule::builder()
+        .msg_type(zbus::message::Type::Signal)
+        .sender(DBUS_SERVICE)?
+        .interface(DBUS_INTERFACE)?
+        .member("NameOwnerChanged")?
+        .build();
+    let mut owners = zbus::MessageStream::for_match_rule(rule, &conn, Some(64)).await?;
+    while let Some(Ok(message)) = owners.next().await {
+        let Ok((name, _old, new)) = message.body().deserialize::<(String, String, String)>() else {
+            continue;
+        };
+        if !new.is_empty() {
+            continue;
+        }
+        let removed = state
+            .lock()
+            .map(|mut state| {
+                let removed: Vec<_> = state
+                    .registered_items
+                    .iter()
+                    .filter(|id| {
+                        StatusNotifierItemRef::parse(id, None)
+                            .is_some_and(|item| item.service_name == name)
+                    })
+                    .cloned()
+                    .collect();
+                for id in &removed {
+                    state.registered_items.remove(id);
+                }
+                removed
+            })
+            .unwrap_or_default();
+        for id in removed {
+            if let Ok(iface) = conn
+                .object_server()
+                .interface::<_, KdeSniWatcher>(WATCHER_PATH)
+                .await
+            {
+                let _ =
+                    KdeSniWatcher::status_notifier_item_unregistered(iface.signal_emitter(), &id)
+                        .await;
+            }
+            if let Ok(iface) = conn
+                .object_server()
+                .interface::<_, FreedesktopSniWatcher>(WATCHER_PATH)
+                .await
+            {
+                let _ = FreedesktopSniWatcher::status_notifier_item_unregistered(
+                    iface.signal_emitter(),
+                    &id,
+                )
+                .await;
+            }
+            let _ = trigger.try_send(crate::runtime::Trigger::Event);
+        }
+    }
     Ok(())
 }
 
@@ -451,6 +511,9 @@ impl StatusNotifierTrayProvider {
 
 impl TrayProvider for StatusNotifierTrayProvider {
     fn read_tray_items(&self) -> Result<Vec<TrayItemSnapshot>, PlatformError> {
+        if let Some(items) = item_runtime::cached_snapshots() {
+            return Ok(items);
+        }
         let connection = Connection::session().map_err(|error| {
             PlatformError::new(format!("failed to connect to session bus: {error}"))
         })?;
@@ -458,13 +521,43 @@ impl TrayProvider for StatusNotifierTrayProvider {
     }
 }
 
-pub fn send_tray_action(
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TrayActionOutcome {
+    Executed,
+    Unsupported,
+    Failed { reason: String },
+}
+
+pub(crate) fn unsupported_action_error(error: &zbus::Error) -> bool {
+    matches!(error, zbus::Error::MethodError(name, _, _)
+        if matches!(name.as_str(), "org.freedesktop.DBus.Error.UnknownMethod"
+            | "org.freedesktop.DBus.Error.UnknownInterface"))
+}
+
+/// Run bounded reply-bearing bus operations away from the UI and async executor.
+pub async fn send_tray_action(
     service_name: &str,
     object_path: &str,
     action: TrayItemAction,
     x: i32,
     y: i32,
-) -> Result<(), PlatformError> {
+) -> Result<TrayActionOutcome, PlatformError> {
+    let service_name = service_name.to_owned();
+    let object_path = object_path.to_owned();
+    tokio::task::spawn_blocking(move || {
+        send_tray_action_blocking(&service_name, &object_path, action, x, y)
+    })
+    .await
+    .map_err(|error| PlatformError::new(format!("tray action worker failed: {error}")))?
+}
+
+fn send_tray_action_blocking(
+    service_name: &str,
+    object_path: &str,
+    action: TrayItemAction,
+    x: i32,
+    y: i32,
+) -> Result<TrayActionOutcome, PlatformError> {
     let service_name = service_name.trim();
     let object_path = object_path.trim();
     if service_name.is_empty() {
@@ -474,30 +567,150 @@ pub fn send_tray_action(
         return Err(PlatformError::new("tray object path is empty"));
     }
 
-    let connection = Connection::session().map_err(|error| {
-        PlatformError::new(format!("failed to connect to session bus: {error}"))
-    })?;
+    let connection = zbus::blocking::connection::Builder::session()
+        .and_then(|builder| {
+            builder
+                .method_timeout(std::time::Duration::from_secs(5))
+                .build()
+        })
+        .map_err(|error| {
+            PlatformError::new(format!("failed to connect to session bus: {error}"))
+        })?;
+    send_tray_action_on_connection(&connection, service_name, object_path, action, x, y)
+}
+
+pub(crate) fn send_tray_action_on_connection(
+    connection: &Connection,
+    service_name: &str,
+    object_path: &str,
+    action: TrayItemAction,
+    x: i32,
+    y: i32,
+) -> Result<TrayActionOutcome, PlatformError> {
     let method_name = match action {
         TrayItemAction::Activate => "Activate",
         TrayItemAction::SecondaryActivate => "SecondaryActivate",
         TrayItemAction::ContextMenu => "ContextMenu",
     };
 
-    let interfaces = [ITEM_INTERFACE_KDE, ITEM_INTERFACE_FREEDESKTOP];
-    for interface in interfaces {
-        let proxy = match Proxy::new(&connection, service_name, object_path, interface) {
-            Ok(proxy) => proxy,
-            Err(_) => continue,
-        };
-
-        if proxy.call_noreply(method_name, &(x, y)).is_ok() {
-            return Ok(());
+    let item_ref = StatusNotifierItemRef {
+        service_name: service_name.to_string(),
+        object_path: object_path.to_string(),
+    };
+    let Some(metadata) = discover_item(connection, &item_ref) else {
+        return Ok(TrayActionOutcome::Failed {
+            reason: format!(
+                "tray action failed destination={service_name} path={object_path} interface=unverified method={method_name}: no verified item interface"
+            ),
+        });
+    };
+    for metadata in metadata {
+        if metadata.unsupported_methods.contains(method_name)
+            || metadata
+                .methods
+                .as_ref()
+                .is_some_and(|methods| !methods.contains(method_name))
+        {
+            continue;
+        }
+        let proxy = Proxy::new(
+            connection,
+            metadata.owner.as_str(),
+            object_path,
+            metadata.interface,
+        )
+        .map_err(|error| PlatformError::new(error.to_string()))?;
+        match proxy.call::<_, _, ()>(method_name, &(x, y)) {
+            Ok(()) => return Ok(TrayActionOutcome::Executed),
+            Err(error) if unsupported_action_error(&error) => {
+                if let Ok(mut cache) = item_metadata_cache().lock()
+                    && let Some(entries) = cache.get_mut(&item_metadata_key(connection, &item_ref))
+                {
+                    for entry in entries {
+                        if entry.owner == metadata.owner && entry.interface == metadata.interface {
+                            entry.unsupported_methods.insert(method_name.to_string());
+                        }
+                    }
+                }
+                // Only explicit unsupported replies permit trying another verified interface.
+            }
+            Err(error) => {
+                // A timeout or arbitrary remote error may follow an executed action. Never retry.
+                // Flutter records this diagnostic once; do not also log the payload here.
+                return Ok(TrayActionOutcome::Failed {
+                    reason: format!(
+                        "tray action failed destination={service_name} path={object_path} interface={} method={method_name}: {error}",
+                        metadata.interface
+                    ),
+                });
+            }
         }
     }
+    Ok(TrayActionOutcome::Unsupported)
+}
 
-    Err(PlatformError::new(format!(
-        "failed to send tray action '{method_name}'"
-    )))
+#[derive(Clone, Debug)]
+pub(crate) struct MenuSource {
+    pub owner: String,
+    pub menu_path: String,
+    pub secondary_supported: bool,
+}
+
+pub(crate) async fn menu_source(
+    service_name: String,
+    object_path: String,
+) -> Result<MenuSource, PlatformError> {
+    tokio::task::spawn_blocking(move || {
+        let connection = zbus::blocking::connection::Builder::session()
+            .and_then(|builder| {
+                builder
+                    .method_timeout(std::time::Duration::from_secs(5))
+                    .build()
+            })
+            .map_err(|error| PlatformError::new(error.to_string()))?;
+        menu_source_on_connection(&connection, &service_name, &object_path)
+    })
+    .await
+    .map_err(|error| PlatformError::new(error.to_string()))?
+}
+
+pub(crate) fn menu_source_on_connection(
+    connection: &Connection,
+    service_name: &str,
+    object_path: &str,
+) -> Result<MenuSource, PlatformError> {
+    let item = StatusNotifierItemRef {
+        service_name: service_name.into(),
+        object_path: object_path.into(),
+    };
+    let metadata = discover_item(connection, &item)
+        .ok_or_else(|| PlatformError::new("no verified tray interface"))?;
+    let first = &metadata[0];
+    let proxy = Proxy::new(
+        connection,
+        first.owner.as_str(),
+        object_path,
+        first.interface,
+    )
+    .map_err(|error| PlatformError::new(error.to_string()))?;
+    let menu: zbus::zvariant::OwnedObjectPath = proxy
+        .get_property("Menu")
+        .map_err(|error| PlatformError::new(format!("unavailable tray Menu: {error}")))?;
+    if menu.as_str() == "/" {
+        return Err(PlatformError::new("tray item has no published menu"));
+    }
+    let secondary_supported = metadata.iter().any(|metadata| {
+        !metadata.unsupported_methods.contains("SecondaryActivate")
+            && metadata
+                .methods
+                .as_ref()
+                .is_some_and(|methods| methods.contains("SecondaryActivate"))
+    });
+    Ok(MenuSource {
+        owner: first.owner.clone(),
+        menu_path: menu.to_string(),
+        secondary_supported,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -626,12 +839,49 @@ fn read_item_snapshot(
             },
         );
 
+    let metadata = discover_item(connection, item_ref).unwrap_or_default();
+    let capability = |method: &str| {
+        use crate::state::TrayCapability;
+        if metadata.iter().any(|entry| {
+            !entry.unsupported_methods.contains(method)
+                && entry
+                    .methods
+                    .as_ref()
+                    .is_some_and(|methods| methods.contains(method))
+        }) {
+            TrayCapability::Supported
+        } else if !metadata.is_empty()
+            && metadata.iter().all(|entry| {
+                entry.unsupported_methods.contains(method)
+                    || entry
+                        .methods
+                        .as_ref()
+                        .is_some_and(|methods| !methods.contains(method))
+            })
+        {
+            TrayCapability::Unsupported
+        } else {
+            TrayCapability::Unknown
+        }
+    };
+    let menu_path = proxy
+        .get_property::<zbus::zvariant::OwnedObjectPath>("Menu")
+        .ok()
+        .filter(|path| path.as_str() != "/")
+        .map(|path| path.to_string());
+    let item_is_menu = proxy.get_property::<bool>("ItemIsMenu").unwrap_or(false);
     Ok(Some(TrayItemSnapshot {
         id: item_id,
         label,
         service_name: item_ref.service_name.clone(),
         object_path: item_ref.object_path.clone(),
         icon_png_bytes,
+        status,
+        item_is_menu,
+        menu_path,
+        activate: capability("Activate"),
+        secondary_activate: capability("SecondaryActivate"),
+        context_menu: capability("ContextMenu"),
     }))
 }
 
@@ -639,18 +889,139 @@ fn item_proxy<'a>(
     connection: &'a Connection,
     item_ref: &'a StatusNotifierItemRef,
 ) -> Option<Proxy<'a>> {
-    let interfaces = [ITEM_INTERFACE_KDE, ITEM_INTERFACE_FREEDESKTOP];
-    for interface in interfaces {
-        if let Ok(proxy) = Proxy::new(
-            connection,
-            item_ref.service_name.as_str(),
-            item_ref.object_path.as_str(),
-            interface,
-        ) {
-            return Some(proxy);
+    let metadata = discover_item(connection, item_ref)?.into_iter().next()?;
+    Proxy::new(
+        connection,
+        item_ref.service_name.as_str(),
+        item_ref.object_path.as_str(),
+        metadata.interface,
+    )
+    .ok()
+}
+
+/// None means introspection was unavailable, not that every method is absent.
+#[derive(Clone, Debug)]
+struct ItemMetadata {
+    owner: String,
+    interface: &'static str,
+    methods: Option<HashSet<String>>,
+    unsupported_methods: HashSet<String>,
+}
+
+fn item_metadata_key(connection: &Connection, item_ref: &StatusNotifierItemRef) -> String {
+    format!("{}:{}", connection.server_guid(), item_ref.canonical_id())
+}
+
+fn item_metadata_cache() -> &'static Mutex<HashMap<String, Vec<ItemMetadata>>> {
+    static CACHE: OnceLock<Mutex<HashMap<String, Vec<ItemMetadata>>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn introspected_methods(xml: &str) -> Option<HashMap<String, HashSet<String>>> {
+    use quick_xml::{Reader, events::Event};
+    let mut reader = Reader::from_str(xml);
+    let mut interfaces = HashMap::new();
+    let mut current = None;
+    loop {
+        match reader.read_event().ok()? {
+            Event::Start(ref tag) | Event::Empty(ref tag) => {
+                let name = tag
+                    .attributes()
+                    .flatten()
+                    .find(|attribute| attribute.key.as_ref() == b"name")
+                    .and_then(|attribute| {
+                        attribute.decode_and_unescape_value(reader.decoder()).ok()
+                    })
+                    .map(|value| value.into_owned());
+                match tag.name().as_ref() {
+                    b"interface" => {
+                        current = name;
+                        if let Some(name) = &current {
+                            interfaces.entry(name.clone()).or_insert_with(HashSet::new);
+                        }
+                    }
+                    b"method" => {
+                        if let (Some(interface), Some(name)) = (&current, name) {
+                            interfaces.get_mut(interface)?.insert(name);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Event::End(tag) if tag.name().as_ref() == b"interface" => current = None,
+            Event::Eof => return Some(interfaces),
+            _ => {}
         }
     }
-    None
+}
+
+fn discover_item(
+    connection: &Connection,
+    item_ref: &StatusNotifierItemRef,
+) -> Option<Vec<ItemMetadata>> {
+    let dbus = Proxy::new(connection, DBUS_SERVICE, DBUS_PATH, DBUS_INTERFACE).ok()?;
+    let owner: String = dbus
+        .call("GetNameOwner", &(item_ref.service_name.as_str(),))
+        .ok()?;
+    let key = item_metadata_key(connection, item_ref);
+    if let Some(metadata) = item_metadata_cache().lock().ok()?.get(&key)
+        && metadata
+            .first()
+            .is_some_and(|metadata| metadata.owner == owner)
+    {
+        return Some(metadata.clone());
+    }
+    // Query the unique owner so a replacement cannot supply metadata for the old owner.
+    let introspection = Proxy::new(
+        connection,
+        owner.as_str(),
+        item_ref.object_path.as_str(),
+        "org.freedesktop.DBus.Introspectable",
+    )
+    .ok()
+    .and_then(|proxy| proxy.call::<_, _, String>("Introspect", &()).ok())
+    .and_then(|xml| introspected_methods(&xml));
+    let mut discovered = Vec::new();
+    for interface in [ITEM_INTERFACE_KDE, ITEM_INTERFACE_FREEDESKTOP] {
+        if introspection
+            .as_ref()
+            .is_some_and(|interfaces| !interfaces.contains_key(interface))
+        {
+            continue;
+        }
+        let proxy = Proxy::new(
+            connection,
+            owner.as_str(),
+            item_ref.object_path.as_str(),
+            interface,
+        )
+        .ok()?;
+        // Proxy construction does not verify remote interface availability.
+        if proxy.get_property::<String>("Id").is_err()
+            && proxy.get_property::<String>("Status").is_err()
+        {
+            continue;
+        }
+        let metadata = ItemMetadata {
+            owner: owner.clone(),
+            interface,
+            methods: introspection
+                .as_ref()
+                .and_then(|interfaces| interfaces.get(interface).cloned()),
+            unsupported_methods: HashSet::new(),
+        };
+        discovered.push(metadata);
+    }
+    if discovered.is_empty() {
+        item_metadata_cache().lock().ok()?.remove(&key);
+        None
+    } else {
+        item_metadata_cache()
+            .lock()
+            .ok()?
+            .insert(key, discovered.clone());
+        Some(discovered)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -749,6 +1120,11 @@ fn ayatana_icon_name_from_path(object_path: &str) -> Option<&str> {
 // ---------------------------------------------------------------------------
 
 fn resolve_icon_name_to_png(icon_name: &str, icon_theme_path: Option<&str>) -> Option<Vec<u8>> {
+    let path = std::path::Path::new(icon_name);
+    if path.is_absolute() {
+        // A complete path is not a theme name: never append an extension.
+        return load_and_scale_png(path);
+    }
     // 1. IconThemePath set by the item itself (e.g. Steam bundles its own icons).
     //    Items may store icons flat in this directory without hicolor subdirectories.
     if let Some(theme_path) = icon_theme_path {
@@ -973,6 +1349,14 @@ fn read_process_name(pid: u32) -> Option<String> {
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
+#[path = "tray_lifecycle_tests.rs"]
+mod lifecycle_tests;
+
+#[cfg(test)]
+#[path = "tray_bus_tests.rs"]
+mod bus_tests;
+
+#[cfg(test)]
 mod tests {
     use std::sync::{Arc, Mutex};
 
@@ -981,6 +1365,16 @@ mod tests {
         filter_status_notifier_names, humanize_status_notifier_identifier, register_sni_host,
         register_sni_item, select_icon_name, simplify_status_notifier_label,
     };
+
+    #[test]
+    fn discovers_only_advertised_methods() {
+        let xml = r#"<node><interface name="org.freedesktop.StatusNotifierItem"><method name="Activate"/><method name="SecondaryActivate"/></interface><interface name="org.kde.StatusNotifierItem"><property name="Status" type="s" access="read"/></interface></node>"#;
+        let interfaces = super::introspected_methods(xml).unwrap();
+        assert!(interfaces[super::ITEM_INTERFACE_FREEDESKTOP].contains("Activate"));
+        assert!(!interfaces[super::ITEM_INTERFACE_FREEDESKTOP].contains("ContextMenu"));
+        assert!(interfaces[super::ITEM_INTERFACE_KDE].is_empty());
+        assert!(super::introspected_methods("<node><interface").is_none());
+    }
 
     #[test]
     fn filters_status_notifier_services() {
@@ -1140,6 +1534,40 @@ mod tests {
             Some("Discord")
         );
         assert_eq!(humanize_status_notifier_identifier(":1.22"), None);
+    }
+
+    #[test]
+    fn absolute_png_paths_load_exactly_and_scale() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("artwork.png");
+        image::RgbaImage::from_pixel(64, 64, image::Rgba([20, 40, 60, 255]))
+            .save(&path)
+            .unwrap();
+        let bytes = super::resolve_icon_name_to_png(path.to_str().unwrap(), None).unwrap();
+        let image = image::load_from_memory(&bytes).unwrap();
+        assert_eq!((image.width(), image.height()), (16, 16));
+        assert!(
+            super::resolve_icon_name_to_png(
+                directory.path().join("missing.png").to_str().unwrap(),
+                None
+            )
+            .is_none()
+        );
+        std::fs::write(&path, b"not a PNG").unwrap();
+        assert!(super::resolve_icon_name_to_png(path.to_str().unwrap(), None).is_none());
+    }
+
+    #[test]
+    fn theme_names_and_ayatana_fallback_are_preserved() {
+        let directory = tempfile::tempdir().unwrap();
+        image::RgbaImage::from_pixel(16, 16, image::Rgba([20, 40, 60, 255]))
+            .save(directory.path().join("test-icon.png"))
+            .unwrap();
+        assert!(super::resolve_icon_name_to_png("test-icon", directory.path().to_str()).is_some());
+        assert_eq!(
+            super::ayatana_icon_name_from_path("/org/ayatana/NotificationItem/steam"),
+            Some("steam")
+        );
     }
 
     #[test]

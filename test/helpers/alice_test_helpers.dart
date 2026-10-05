@@ -255,6 +255,12 @@ List<TrayItemSnapshot> testTrayItems(int count, {Uint8List? iconBytes}) {
       serviceName: 'org.kde.StatusNotifierItem.test$i',
       objectPath: '/StatusNotifierItem',
       iconPngBytes: iconBytes,
+      status: 'Active',
+      itemIsMenu: false,
+      menuPath: null,
+      activate: TrayCapability.supported,
+      secondaryActivate: TrayCapability.unsupported,
+      contextMenu: TrayCapability.unsupported,
     ),
   );
 }

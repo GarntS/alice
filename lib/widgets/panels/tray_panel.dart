@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import '../../alice_theme.dart';
 import '../../rust_gen/state.dart';
 import '../alice_icon.dart';
+import '../tray_item_tap_target.dart';
+import '../../tray_input_router.dart';
 import 'panel_shell.dart';
 
 class TrayPanel extends StatelessWidget {
@@ -13,11 +15,13 @@ class TrayPanel extends StatelessWidget {
     required this.trayItems,
     required this.maxVisibleTrayItems,
     required this.onTrayAction,
+    this.onTrayInput,
   });
 
   final List<TrayItemSnapshot> trayItems;
   final int maxVisibleTrayItems;
   final Future<void> Function(TrayItemSnapshot) onTrayAction;
+  final TrayInputCallback? onTrayInput;
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +38,10 @@ class TrayPanel extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: items
                     .map(
-                      (item) => InkWell(
-                        onTap: () => onTrayAction(item),
-                        borderRadius: BorderRadius.circular(12),
+                      (item) => TrayItemTapTarget(
+                        item: item,
+                        onActivate: () => onTrayAction(item),
+                        onInput: onTrayInput,
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.symmetric(

@@ -11,6 +11,7 @@ Size alicePanelSize(AlicePanel panel) {
     AlicePanel.tasks => const Size(380, 800),
     AlicePanel.weather => const Size(320, 600),
     AlicePanel.trayOverflow => const Size(320, 320),
+    AlicePanel.trayMenu => const Size(640, 480),
     AlicePanel.power => const Size(280, 300),
     AlicePanel.notifications => const Size(380, 880),
   };

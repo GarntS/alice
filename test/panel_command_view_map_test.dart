@@ -12,6 +12,41 @@ import 'package:flutter_test/flutter_test.dart';
 import 'helpers/alice_test_helpers.dart';
 
 void main() {
+  test('a stale native hide cannot clear a newer popup request', () {
+    final map = <int, String>{7: 'trayMenu'};
+    const hide = frb.PanelCommand(
+      requestId: 1,
+      visible: false,
+      panelId: 'trayOverflow',
+      viewId: 7,
+      includeIconBytes: false,
+      anchorX: 0,
+      anchorY: 0,
+      width: 0,
+      height: 0,
+    );
+    expect(
+      applyPanelCommandToViewMap(map, hide, expectedRequestId: 2),
+      isFalse,
+    );
+    expect(map, {7: 'trayMenu'});
+    const current = frb.PanelCommand(
+      requestId: 2,
+      visible: false,
+      panelId: 'trayMenu',
+      viewId: 7,
+      includeIconBytes: false,
+      anchorX: 0,
+      anchorY: 0,
+      width: 0,
+      height: 0,
+    );
+    expect(
+      applyPanelCommandToViewMap(map, current, expectedRequestId: 2),
+      isTrue,
+    );
+    expect(map, isEmpty);
+  });
   testWidgets('null panel command unmounts previously rendered panel widgets', (
     tester,
   ) async {
@@ -33,6 +68,8 @@ void main() {
     commands.add(
       const frb.PanelCommand(
         panelId: 'media',
+        requestId: 1,
+        visible: true,
         viewId: 7,
         includeIconBytes: false,
         anchorX: 0,

@@ -27,7 +27,7 @@
 // Section: imports
 
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
+use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1910186549;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -788397993;
 
 // Section: executor
 
@@ -46,6 +46,73 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
+fn wire__crate__api__begin_tray_menu_request_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "begin_tray_menu_request",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok(crate::api::begin_tray_menu_request())?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__cancel_tray_menu_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "cancel_tray_menu",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_request_id = <u64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::cancel_tray_menu(api_request_id);
+                    })?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__connect_bluetooth_device_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -394,6 +461,49 @@ fn wire__crate__api__load_config_impl(
         },
     )
 }
+fn wire__crate__api__load_tray_menu_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_tray_menu",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_request_id = <u64>::sse_decode(&mut deserializer);
+            let api_service_name = <String>::sse_decode(&mut deserializer);
+            let api_object_path = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::load_tray_menu(
+                            api_request_id,
+                            api_service_name,
+                            api_object_path,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__mark_notification_read_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -424,6 +534,44 @@ fn wire__crate__api__mark_notification_read_impl(
                         let output_ok = crate::api::mark_notification_read(api_id)?;
                         Ok(output_ok)
                     })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__refresh_tray_menu_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "refresh_tray_menu",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_request_id = <u64>::sse_decode(&mut deserializer);
+            let api_submenu_id = <Option<i32>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok =
+                            crate::api::refresh_tray_menu(api_request_id, api_submenu_id).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
                 )
             }
         },
@@ -570,6 +718,54 @@ fn wire__crate__api__seek_media_impl(
         },
     )
 }
+fn wire__crate__api__select_tray_menu_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "select_tray_menu",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_request_id = <u64>::sse_decode(&mut deserializer);
+            let api_selection =
+                <crate::tray_menu_service::TrayMenuSelection>::sse_decode(&mut deserializer);
+            let api_x = <i32>::sse_decode(&mut deserializer);
+            let api_y = <i32>::sse_decode(&mut deserializer);
+            let api_timestamp = <u32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::select_tray_menu(
+                            api_request_id,
+                            api_selection,
+                            api_x,
+                            api_y,
+                            api_timestamp,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__send_media_action_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -611,7 +807,7 @@ fn wire__crate__api__send_tray_action_impl(
     rust_vec_len_: i32,
     data_len_: i32,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "send_tray_action",
             port: Some(port_),
@@ -633,18 +829,20 @@ fn wire__crate__api__send_tray_action_impl(
             let api_x = <i32>::sse_decode(&mut deserializer);
             let api_y = <i32>::sse_decode(&mut deserializer);
             deserializer.end();
-            move |context| {
+            move |context| async move {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || {
+                    (move || async move {
                         let output_ok = crate::api::send_tray_action(
                             api_service_name,
                             api_object_path,
                             api_action,
                             api_x,
                             api_y,
-                        )?;
+                        )
+                        .await?;
                         Ok(output_ok)
-                    })(),
+                    })()
+                    .await,
                 )
             }
         },
@@ -1460,6 +1658,18 @@ impl SseDecode for Vec<crate::state::TrayItemSnapshot> {
     }
 }
 
+impl SseDecode for Vec<crate::tray_menu::TrayMenuNode> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::tray_menu::TrayMenuNode>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::state::WeatherAlert> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1789,6 +1999,17 @@ impl SseDecode for Option<f64> {
     }
 }
 
+impl SseDecode for Option<i32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<i32>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<i64> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1891,6 +2112,8 @@ impl SseDecode for Option<Vec<u8>> {
 impl SseDecode for crate::api::PanelCommand {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_requestId = <u32>::sse_decode(deserializer);
+        let mut var_visible = <bool>::sse_decode(deserializer);
         let mut var_panelId = <String>::sse_decode(deserializer);
         let mut var_viewId = <i64>::sse_decode(deserializer);
         let mut var_includeIconBytes = <bool>::sse_decode(deserializer);
@@ -1899,6 +2122,8 @@ impl SseDecode for crate::api::PanelCommand {
         let mut var_width = <f64>::sse_decode(deserializer);
         let mut var_height = <f64>::sse_decode(deserializer);
         return crate::api::PanelCommand {
+            request_id: var_requestId,
+            visible: var_visible,
             panel_id: var_panelId,
             view_id: var_viewId,
             include_icon_bytes: var_includeIconBytes,
@@ -2020,6 +2245,41 @@ impl SseDecode for crate::config::TimeZoneConfig {
     }
 }
 
+impl SseDecode for crate::tray::TrayActionOutcome {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                return crate::tray::TrayActionOutcome::Executed;
+            }
+            1 => {
+                return crate::tray::TrayActionOutcome::Unsupported;
+            }
+            2 => {
+                let mut var_reason = <String>::sse_decode(deserializer);
+                return crate::tray::TrayActionOutcome::Failed { reason: var_reason };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for crate::state::TrayCapability {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::state::TrayCapability::Unknown,
+            1 => crate::state::TrayCapability::Supported,
+            2 => crate::state::TrayCapability::Unsupported,
+            _ => unreachable!("Invalid variant for TrayCapability: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::state::TrayItemSnapshot {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2028,13 +2288,124 @@ impl SseDecode for crate::state::TrayItemSnapshot {
         let mut var_serviceName = <String>::sse_decode(deserializer);
         let mut var_objectPath = <String>::sse_decode(deserializer);
         let mut var_iconPngBytes = <Option<Vec<u8>>>::sse_decode(deserializer);
+        let mut var_status = <Option<String>>::sse_decode(deserializer);
+        let mut var_itemIsMenu = <bool>::sse_decode(deserializer);
+        let mut var_menuPath = <Option<String>>::sse_decode(deserializer);
+        let mut var_activate = <crate::state::TrayCapability>::sse_decode(deserializer);
+        let mut var_secondaryActivate = <crate::state::TrayCapability>::sse_decode(deserializer);
+        let mut var_contextMenu = <crate::state::TrayCapability>::sse_decode(deserializer);
         return crate::state::TrayItemSnapshot {
             id: var_id,
             label: var_label,
             service_name: var_serviceName,
             object_path: var_objectPath,
             icon_png_bytes: var_iconPngBytes,
+            status: var_status,
+            item_is_menu: var_itemIsMenu,
+            menu_path: var_menuPath,
+            activate: var_activate,
+            secondary_activate: var_secondaryActivate,
+            context_menu: var_contextMenu,
         };
+    }
+}
+
+impl SseDecode for crate::tray_menu::TrayMenuNode {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <i32>::sse_decode(deserializer);
+        let mut var_label = <String>::sse_decode(deserializer);
+        let mut var_visible = <bool>::sse_decode(deserializer);
+        let mut var_enabled = <bool>::sse_decode(deserializer);
+        let mut var_separator = <bool>::sse_decode(deserializer);
+        let mut var_submenu = <bool>::sse_decode(deserializer);
+        let mut var_toggle = <crate::tray_menu::TrayMenuToggle>::sse_decode(deserializer);
+        let mut var_toggleState = <i32>::sse_decode(deserializer);
+        let mut var_children = <Vec<crate::tray_menu::TrayMenuNode>>::sse_decode(deserializer);
+        return crate::tray_menu::TrayMenuNode {
+            id: var_id,
+            label: var_label,
+            visible: var_visible,
+            enabled: var_enabled,
+            separator: var_separator,
+            submenu: var_submenu,
+            toggle: var_toggle,
+            toggle_state: var_toggleState,
+            children: var_children,
+        };
+    }
+}
+
+impl SseDecode for crate::tray_menu_service::TrayMenuSelection {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_id = <i32>::sse_decode(deserializer);
+                return crate::tray_menu_service::TrayMenuSelection::Remote { id: var_id };
+            }
+            1 => {
+                return crate::tray_menu_service::TrayMenuSelection::Secondary;
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for crate::tray_menu_service::TrayMenuSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_requestId = <u64>::sse_decode(deserializer);
+        let mut var_revision = <u32>::sse_decode(deserializer);
+        let mut var_root = <crate::tray_menu::TrayMenuNode>::sse_decode(deserializer);
+        let mut var_secondarySupported = <bool>::sse_decode(deserializer);
+        return crate::tray_menu_service::TrayMenuSnapshot {
+            request_id: var_requestId,
+            revision: var_revision,
+            root: var_root,
+            secondary_supported: var_secondarySupported,
+        };
+    }
+}
+
+impl SseDecode for crate::tray_menu::TrayMenuToggle {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::tray_menu::TrayMenuToggle::None,
+            1 => crate::tray_menu::TrayMenuToggle::Check,
+            2 => crate::tray_menu::TrayMenuToggle::Radio,
+            _ => unreachable!("Invalid variant for TrayMenuToggle: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::tray_menu_service::TrayMenuUpdate {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                return crate::tray_menu_service::TrayMenuUpdate::Unchanged;
+            }
+            1 => {
+                let mut var_snapshot =
+                    <crate::tray_menu_service::TrayMenuSnapshot>::sse_decode(deserializer);
+                return crate::tray_menu_service::TrayMenuUpdate::Updated {
+                    snapshot: var_snapshot,
+                };
+            }
+            2 => {
+                return crate::tray_menu_service::TrayMenuUpdate::Closed;
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -2243,27 +2614,32 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__connect_bluetooth_device_impl(port, ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__disconnect_bluetooth_device_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__dismiss_all_notifications_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__dismiss_notification_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__execute_power_action_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__fetch_calendar_events_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__focus_workspace_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__invoke_notification_action_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__load_config_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__mark_notification_read_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__request_bluetooth_scan_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__request_caldav_refresh_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__respond_to_bluetooth_prompt_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__seek_media_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__send_media_action_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__send_tray_action_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__set_caldav_task_completed_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__watch_bar_snapshots_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__watch_bar_view_lifecycle_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__watch_panel_commands_impl(port, ptr, rust_vec_len, data_len),
+        1 => wire__crate__api__begin_tray_menu_request_impl(port, ptr, rust_vec_len, data_len),
+        2 => wire__crate__api__cancel_tray_menu_impl(port, ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__connect_bluetooth_device_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__disconnect_bluetooth_device_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__dismiss_all_notifications_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__dismiss_notification_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__execute_power_action_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__fetch_calendar_events_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__focus_workspace_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__invoke_notification_action_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__load_config_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__load_tray_menu_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__mark_notification_read_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__refresh_tray_menu_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__request_bluetooth_scan_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__request_caldav_refresh_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__respond_to_bluetooth_prompt_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__seek_media_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__select_tray_menu_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__send_media_action_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__send_tray_action_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__set_caldav_task_completed_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__watch_bar_snapshots_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__watch_bar_view_lifecycle_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__watch_panel_commands_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3027,6 +3403,8 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::NotificationUrgency>
 impl flutter_rust_bridge::IntoDart for crate::api::PanelCommand {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.request_id.into_into_dart().into_dart(),
+            self.visible.into_into_dart().into_dart(),
             self.panel_id.into_into_dart().into_dart(),
             self.view_id.into_into_dart().into_dart(),
             self.include_icon_bytes.into_into_dart().into_dart(),
@@ -3200,6 +3578,51 @@ impl flutter_rust_bridge::IntoIntoDart<crate::config::TimeZoneConfig>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::tray::TrayActionOutcome {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::tray::TrayActionOutcome::Executed => [0.into_dart()].into_dart(),
+            crate::tray::TrayActionOutcome::Unsupported => [1.into_dart()].into_dart(),
+            crate::tray::TrayActionOutcome::Failed { reason } => {
+                [2.into_dart(), reason.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::tray::TrayActionOutcome
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::tray::TrayActionOutcome>
+    for crate::tray::TrayActionOutcome
+{
+    fn into_into_dart(self) -> crate::tray::TrayActionOutcome {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::state::TrayCapability {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Unknown => 0.into_dart(),
+            Self::Supported => 1.into_dart(),
+            Self::Unsupported => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::state::TrayCapability {}
+impl flutter_rust_bridge::IntoIntoDart<crate::state::TrayCapability>
+    for crate::state::TrayCapability
+{
+    fn into_into_dart(self) -> crate::state::TrayCapability {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::state::TrayItemSnapshot {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -3208,6 +3631,12 @@ impl flutter_rust_bridge::IntoDart for crate::state::TrayItemSnapshot {
             self.service_name.into_into_dart().into_dart(),
             self.object_path.into_into_dart().into_dart(),
             self.icon_png_bytes.into_into_dart().into_dart(),
+            self.status.into_into_dart().into_dart(),
+            self.item_is_menu.into_into_dart().into_dart(),
+            self.menu_path.into_into_dart().into_dart(),
+            self.activate.into_into_dart().into_dart(),
+            self.secondary_activate.into_into_dart().into_dart(),
+            self.context_menu.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3220,6 +3649,130 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::TrayItemSnapshot>
     for crate::state::TrayItemSnapshot
 {
     fn into_into_dart(self) -> crate::state::TrayItemSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::tray_menu::TrayMenuNode {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.label.into_into_dart().into_dart(),
+            self.visible.into_into_dart().into_dart(),
+            self.enabled.into_into_dart().into_dart(),
+            self.separator.into_into_dart().into_dart(),
+            self.submenu.into_into_dart().into_dart(),
+            self.toggle.into_into_dart().into_dart(),
+            self.toggle_state.into_into_dart().into_dart(),
+            self.children.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::tray_menu::TrayMenuNode
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::tray_menu::TrayMenuNode>
+    for crate::tray_menu::TrayMenuNode
+{
+    fn into_into_dart(self) -> crate::tray_menu::TrayMenuNode {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::tray_menu_service::TrayMenuSelection {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::tray_menu_service::TrayMenuSelection::Remote { id } => {
+                [0.into_dart(), id.into_into_dart().into_dart()].into_dart()
+            }
+            crate::tray_menu_service::TrayMenuSelection::Secondary => [1.into_dart()].into_dart(),
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::tray_menu_service::TrayMenuSelection
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::tray_menu_service::TrayMenuSelection>
+    for crate::tray_menu_service::TrayMenuSelection
+{
+    fn into_into_dart(self) -> crate::tray_menu_service::TrayMenuSelection {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::tray_menu_service::TrayMenuSnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.request_id.into_into_dart().into_dart(),
+            self.revision.into_into_dart().into_dart(),
+            self.root.into_into_dart().into_dart(),
+            self.secondary_supported.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::tray_menu_service::TrayMenuSnapshot
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::tray_menu_service::TrayMenuSnapshot>
+    for crate::tray_menu_service::TrayMenuSnapshot
+{
+    fn into_into_dart(self) -> crate::tray_menu_service::TrayMenuSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::tray_menu::TrayMenuToggle {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::None => 0.into_dart(),
+            Self::Check => 1.into_dart(),
+            Self::Radio => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::tray_menu::TrayMenuToggle
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::tray_menu::TrayMenuToggle>
+    for crate::tray_menu::TrayMenuToggle
+{
+    fn into_into_dart(self) -> crate::tray_menu::TrayMenuToggle {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::tray_menu_service::TrayMenuUpdate {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::tray_menu_service::TrayMenuUpdate::Unchanged => [0.into_dart()].into_dart(),
+            crate::tray_menu_service::TrayMenuUpdate::Updated { snapshot } => {
+                [1.into_dart(), snapshot.into_into_dart().into_dart()].into_dart()
+            }
+            crate::tray_menu_service::TrayMenuUpdate::Closed => [2.into_dart()].into_dart(),
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::tray_menu_service::TrayMenuUpdate
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::tray_menu_service::TrayMenuUpdate>
+    for crate::tray_menu_service::TrayMenuUpdate
+{
+    fn into_into_dart(self) -> crate::tray_menu_service::TrayMenuUpdate {
         self
     }
 }
@@ -3900,6 +4453,16 @@ impl SseEncode for Vec<crate::state::TrayItemSnapshot> {
     }
 }
 
+impl SseEncode for Vec<crate::tray_menu::TrayMenuNode> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::tray_menu::TrayMenuNode>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::state::WeatherAlert> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4149,6 +4712,16 @@ impl SseEncode for Option<f64> {
     }
 }
 
+impl SseEncode for Option<i32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <i32>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<i64> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4242,6 +4815,8 @@ impl SseEncode for Option<Vec<u8>> {
 impl SseEncode for crate::api::PanelCommand {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u32>::sse_encode(self.request_id, serializer);
+        <bool>::sse_encode(self.visible, serializer);
         <String>::sse_encode(self.panel_id, serializer);
         <i64>::sse_encode(self.view_id, serializer);
         <bool>::sse_encode(self.include_icon_bytes, serializer);
@@ -4359,6 +4934,44 @@ impl SseEncode for crate::config::TimeZoneConfig {
     }
 }
 
+impl SseEncode for crate::tray::TrayActionOutcome {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::tray::TrayActionOutcome::Executed => {
+                <i32>::sse_encode(0, serializer);
+            }
+            crate::tray::TrayActionOutcome::Unsupported => {
+                <i32>::sse_encode(1, serializer);
+            }
+            crate::tray::TrayActionOutcome::Failed { reason } => {
+                <i32>::sse_encode(2, serializer);
+                <String>::sse_encode(reason, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for crate::state::TrayCapability {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::state::TrayCapability::Unknown => 0,
+                crate::state::TrayCapability::Supported => 1,
+                crate::state::TrayCapability::Unsupported => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::state::TrayItemSnapshot {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -4367,6 +4980,93 @@ impl SseEncode for crate::state::TrayItemSnapshot {
         <String>::sse_encode(self.service_name, serializer);
         <String>::sse_encode(self.object_path, serializer);
         <Option<Vec<u8>>>::sse_encode(self.icon_png_bytes, serializer);
+        <Option<String>>::sse_encode(self.status, serializer);
+        <bool>::sse_encode(self.item_is_menu, serializer);
+        <Option<String>>::sse_encode(self.menu_path, serializer);
+        <crate::state::TrayCapability>::sse_encode(self.activate, serializer);
+        <crate::state::TrayCapability>::sse_encode(self.secondary_activate, serializer);
+        <crate::state::TrayCapability>::sse_encode(self.context_menu, serializer);
+    }
+}
+
+impl SseEncode for crate::tray_menu::TrayMenuNode {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.id, serializer);
+        <String>::sse_encode(self.label, serializer);
+        <bool>::sse_encode(self.visible, serializer);
+        <bool>::sse_encode(self.enabled, serializer);
+        <bool>::sse_encode(self.separator, serializer);
+        <bool>::sse_encode(self.submenu, serializer);
+        <crate::tray_menu::TrayMenuToggle>::sse_encode(self.toggle, serializer);
+        <i32>::sse_encode(self.toggle_state, serializer);
+        <Vec<crate::tray_menu::TrayMenuNode>>::sse_encode(self.children, serializer);
+    }
+}
+
+impl SseEncode for crate::tray_menu_service::TrayMenuSelection {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::tray_menu_service::TrayMenuSelection::Remote { id } => {
+                <i32>::sse_encode(0, serializer);
+                <i32>::sse_encode(id, serializer);
+            }
+            crate::tray_menu_service::TrayMenuSelection::Secondary => {
+                <i32>::sse_encode(1, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for crate::tray_menu_service::TrayMenuSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.request_id, serializer);
+        <u32>::sse_encode(self.revision, serializer);
+        <crate::tray_menu::TrayMenuNode>::sse_encode(self.root, serializer);
+        <bool>::sse_encode(self.secondary_supported, serializer);
+    }
+}
+
+impl SseEncode for crate::tray_menu::TrayMenuToggle {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::tray_menu::TrayMenuToggle::None => 0,
+                crate::tray_menu::TrayMenuToggle::Check => 1,
+                crate::tray_menu::TrayMenuToggle::Radio => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::tray_menu_service::TrayMenuUpdate {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::tray_menu_service::TrayMenuUpdate::Unchanged => {
+                <i32>::sse_encode(0, serializer);
+            }
+            crate::tray_menu_service::TrayMenuUpdate::Updated { snapshot } => {
+                <i32>::sse_encode(1, serializer);
+                <crate::tray_menu_service::TrayMenuSnapshot>::sse_encode(snapshot, serializer);
+            }
+            crate::tray_menu_service::TrayMenuUpdate::Closed => {
+                <i32>::sse_encode(2, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -4520,7 +5220,7 @@ mod io {
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,
     };
-    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
+    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
@@ -4544,7 +5244,7 @@ mod web {
     };
     use flutter_rust_bridge::for_generated::wasm_bindgen;
     use flutter_rust_bridge::for_generated::wasm_bindgen::prelude::*;
-    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
+    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate

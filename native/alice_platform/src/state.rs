@@ -276,13 +276,27 @@ pub struct WeatherAlert {
     pub expires: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TrayCapability {
+    #[default]
+    Unknown,
+    Supported,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TrayItemSnapshot {
     pub id: String,
     pub label: String,
     pub service_name: String,
     pub object_path: String,
     pub icon_png_bytes: Option<Vec<u8>>,
+    pub status: Option<String>,
+    pub item_is_menu: bool,
+    pub menu_path: Option<String>,
+    pub activate: TrayCapability,
+    pub secondary_activate: TrayCapability,
+    pub context_menu: TrayCapability,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

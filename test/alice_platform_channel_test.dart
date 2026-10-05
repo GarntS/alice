@@ -23,6 +23,7 @@ void main() {
     await platform.showPanel(
       'trayOverflow',
       sourceViewId: 42,
+      requestId: 11,
       anchorX: 100.5,
       anchorY: 44,
       alignment: 'right',
@@ -33,13 +34,14 @@ void main() {
     );
     final popupViewIdFuture = platform.showNotificationPopups(panelTopGapPx: 8);
     await platform.hideNotificationPopups();
-    await platform.hidePanel();
+    await platform.hidePanel(requestId: 12, closedRequestId: 11);
     final popupViewId = await popupViewIdFuture;
 
     expect(calls, hasLength(4));
     expect(calls[0].method, 'showPanel');
     expect(calls[0].arguments, <String, Object?>{
       'panelId': 'trayOverflow',
+      'requestId': 11,
       'sourceViewId': 42,
       'anchorX': 100.5,
       'anchorY': 44.0,
@@ -54,5 +56,6 @@ void main() {
     expect(popupViewId, 42);
     expect(calls[2].method, 'hideNotificationPopups');
     expect(calls[3].method, 'hidePanel');
+    expect(calls[3].arguments, {'requestId': 12, 'closedRequestId': 11});
   });
 }

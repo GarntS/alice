@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:material_ui/material_ui.dart';
 
 import '../alice_icon.dart';
+import '../tray_item_tap_target.dart';
+import '../../tray_input_router.dart';
 
 import '../../rust_gen/state.dart';
 import '../../panel_controller.dart';
@@ -14,10 +16,12 @@ class TopBarTrayGroupModule extends StatelessWidget {
     super.key,
     required this.items,
     required this.onItemTap,
+    this.onInput,
   });
 
   final List<TrayItemSnapshot> items;
   final ValueChanged<TrayItemSnapshot> onItemTap;
+  final TrayInputCallback? onInput;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +35,7 @@ class TopBarTrayGroupModule extends StatelessWidget {
             _TrayIconButton(
               item: items[index],
               onTap: () => onItemTap(items[index]),
+              onInput: onInput,
             ),
             if (index != items.length - 1) const SizedBox(width: 4),
           ],
@@ -41,19 +46,25 @@ class TopBarTrayGroupModule extends StatelessWidget {
 }
 
 class _TrayIconButton extends StatelessWidget {
-  const _TrayIconButton({required this.item, required this.onTap});
+  const _TrayIconButton({
+    required this.item,
+    required this.onTap,
+    this.onInput,
+  });
 
   final TrayItemSnapshot item;
   final VoidCallback onTap;
+  final TrayInputCallback? onInput;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       label: item.label,
       button: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
+      child: TrayItemTapTarget(
+        item: item,
+        onActivate: onTap,
+        onInput: onInput,
         child: Container(
           width: 18,
           height: 18,

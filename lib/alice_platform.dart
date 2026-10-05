@@ -8,7 +8,10 @@ import 'alice_config.dart';
 import 'rust_gen/bluetooth/prompt.dart';
 import 'rust_gen/caldav/models.dart';
 import 'rust_gen/state.dart';
+import 'rust_gen/tray.dart';
+import 'rust_gen/tray_menu_service.dart';
 import 'panel_controller.dart';
+import 'tray_anchor.dart';
 
 // frb-generated bindings.
 import 'rust_gen/api.dart' as frb;
@@ -63,7 +66,7 @@ class AlicePlatform {
     return frb.focusWorkspace(label: label);
   }
 
-  Future<void> sendTrayAction(
+  Future<TrayActionOutcome> sendTrayAction(
     TrayItemSnapshot item, {
     required String action,
     int x = 0,
@@ -77,6 +80,37 @@ class AlicePlatform {
       y: y,
     );
   }
+
+  Future<BigInt> beginTrayMenuRequest() => frb.beginTrayMenuRequest();
+
+  Future<TrayMenuSnapshot> loadTrayMenu(
+    BigInt requestId,
+    TrayItemSnapshot item,
+  ) => frb.loadTrayMenu(
+    requestId: requestId,
+    serviceName: item.serviceName,
+    objectPath: item.objectPath,
+  );
+
+  Future<TrayMenuUpdate> refreshTrayMenu(BigInt requestId, {int? submenuId}) =>
+      frb.refreshTrayMenu(requestId: requestId, submenuId: submenuId);
+
+  Future<TrayActionOutcome> selectTrayMenu(
+    BigInt requestId,
+    TrayMenuSelection selection, {
+    required int x,
+    required int y,
+    required int timestamp,
+  }) => frb.selectTrayMenu(
+    requestId: requestId,
+    selection: selection,
+    x: x,
+    y: y,
+    timestamp: timestamp,
+  );
+
+  Future<void> cancelTrayMenu(BigInt requestId) =>
+      frb.cancelTrayMenu(requestId: requestId);
 
   Future<void> executePowerAction(String action) {
     return frb.executePowerAction(action: action);
@@ -123,9 +157,21 @@ class AlicePlatform {
   // Panel geometry commands — handled by C++ GTK layer-shell code
   // ---------------------------------------------------------------------------
 
+  Future<TrayResolvedAnchor> resolveTrayAnchor(PanelAnchor anchor) async {
+    final data = await _methodChannel
+        .invokeMapMethod<String, dynamic>('resolveTrayAnchor', {
+          'viewId': anchor.sourceViewId,
+          'x': anchor.globalPosition.dx,
+          'y': anchor.globalPosition.dy,
+        });
+    if (data == null) throw StateError('Source tray monitor unavailable');
+    return TrayResolvedAnchor.fromMap(data);
+  }
+
   Future<void> showPanel(
     String panelId, {
     int sourceViewId = 0,
+    int requestId = 0,
     required double anchorX,
     required double anchorY,
     required String alignment,
@@ -136,6 +182,7 @@ class AlicePlatform {
   }) {
     return _methodChannel.invokeMethod<void>('showPanel', <String, Object?>{
       'panelId': panelId,
+      'requestId': requestId,
       'sourceViewId': sourceViewId,
       'anchorX': anchorX,
       'anchorY': anchorY,
@@ -147,8 +194,11 @@ class AlicePlatform {
     });
   }
 
-  Future<void> hidePanel() {
-    return _methodChannel.invokeMethod<void>('hidePanel');
+  Future<void> hidePanel({int? requestId, int? closedRequestId}) {
+    return _methodChannel.invokeMethod<void>('hidePanel', {
+      if (requestId != null) 'requestId': requestId,
+      if (closedRequestId != null) 'closedRequestId': closedRequestId,
+    });
   }
 
   Future<int> showNotificationPopups({required int panelTopGapPx}) async {
@@ -182,6 +232,12 @@ class AlicePlatform {
         serviceName: item.serviceName,
         objectPath: item.objectPath,
         iconPngBytes: stableBytes,
+        status: item.status,
+        itemIsMenu: item.itemIsMenu,
+        menuPath: item.menuPath,
+        activate: item.activate,
+        secondaryActivate: item.secondaryActivate,
+        contextMenu: item.contextMenu,
       );
     }).toList();
     _trayIconCache.removeWhere((key, _) => !activeTrayKeys.contains(key));

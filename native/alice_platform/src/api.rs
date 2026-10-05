@@ -138,6 +138,8 @@ pub struct BarViewLifecycle {
 }
 
 pub struct PanelCommand {
+    pub request_id: u32,
+    pub visible: bool,
     pub panel_id: String,
     pub view_id: i64,
     pub include_icon_bytes: bool,
@@ -249,21 +251,62 @@ pub fn focus_workspace(label: String) -> anyhow::Result<bool> {
 }
 
 /// Send a StatusNotifier tray action (`"activate"`, `"secondaryActivate"`, `"contextMenu"`).
-pub fn send_tray_action(
+pub async fn send_tray_action(
     service_name: String,
     object_path: String,
     action: String,
     x: i32,
     y: i32,
-) -> anyhow::Result<bool> {
+) -> anyhow::Result<crate::tray::TrayActionOutcome> {
     use crate::tray::{TrayItemAction, send_tray_action as do_send};
     let parsed = match action.as_str() {
         "activate" => TrayItemAction::Activate,
         "secondaryActivate" => TrayItemAction::SecondaryActivate,
         "contextMenu" => TrayItemAction::ContextMenu,
-        _ => return Ok(false),
+        _ => anyhow::bail!("invalid tray action"),
     };
-    Ok(do_send(&service_name, &object_path, parsed, x, y).is_ok())
+    do_send(&service_name, &object_path, parsed, x, y)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.message().to_owned()))
+}
+
+pub fn begin_tray_menu_request() -> u64 {
+    crate::tray_menu_service::begin_request()
+}
+
+pub async fn load_tray_menu(
+    request_id: u64,
+    service_name: String,
+    object_path: String,
+) -> anyhow::Result<crate::tray_menu_service::TrayMenuSnapshot> {
+    crate::tray_menu_service::load(request_id, service_name, object_path)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.message().to_owned()))
+}
+
+pub async fn refresh_tray_menu(
+    request_id: u64,
+    submenu_id: Option<i32>,
+) -> anyhow::Result<crate::tray_menu_service::TrayMenuUpdate> {
+    crate::tray_menu_service::refresh(request_id, submenu_id)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.message().to_owned()))
+}
+
+pub async fn select_tray_menu(
+    request_id: u64,
+    selection: crate::tray_menu_service::TrayMenuSelection,
+    x: i32,
+    y: i32,
+    timestamp: u32,
+) -> anyhow::Result<crate::tray::TrayActionOutcome> {
+    crate::tray_menu_service::select(request_id, selection, x, y, timestamp)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.message().to_owned()))
+}
+
+pub fn cancel_tray_menu(request_id: u64) {
+    crate::tray_menu_service::cancel(request_id);
 }
 
 /// Execute a power management action: `"lock"`, `"lockAndSuspend"`, `"restart"`, `"poweroff"`.

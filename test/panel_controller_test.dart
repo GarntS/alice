@@ -12,6 +12,7 @@ void main() {
       AlicePanel.tasks: 'tasks',
       AlicePanel.weather: 'weather',
       AlicePanel.trayOverflow: 'trayOverflow',
+      AlicePanel.trayMenu: 'trayMenu',
       AlicePanel.power: 'power',
       AlicePanel.notifications: 'notifications',
     };
@@ -35,6 +36,7 @@ void main() {
       AlicePanel.tasks: controller.tasksOpen,
       AlicePanel.weather: controller.weatherOpen,
       AlicePanel.trayOverflow: controller.trayOverflowOpen,
+      AlicePanel.trayMenu: controller.trayMenuOpen,
       AlicePanel.power: controller.powerOpen,
       AlicePanel.notifications: controller.notificationsOpen,
     };

@@ -7,6 +7,7 @@ import '../../rust_gen/caldav/models.dart';
 import '../../rust_gen/state.dart';
 import '../../panel_controller.dart';
 import '../../snapshot_state.dart';
+import '../../tray_input_router.dart';
 import 'panel_sizes.dart';
 import 'bluetooth_panel.dart';
 import 'media_panel.dart';
@@ -38,6 +39,7 @@ class AlicePanelCard extends StatelessWidget {
     this.onBluetoothPromptResponse,
     this.onTaskRefresh,
     this.onTaskCompletion,
+    this.onTrayInput,
   });
 
   final AlicePanel panel;
@@ -47,6 +49,7 @@ class AlicePanelCard extends StatelessWidget {
   final Future<void> Function(String) onMediaAction;
   final Future<void> Function(int) onSeekMedia;
   final Future<void> Function(TrayItemSnapshot) onTrayAction;
+  final TrayInputCallback? onTrayInput;
   final Future<void> Function(int id) onDismissNotification;
   final Future<void> Function() onDismissAllNotifications;
   final Future<void> Function() onMarkAllNotificationsRead;
@@ -115,8 +118,11 @@ class AlicePanelCard extends StatelessWidget {
           trayItems: trayItems,
           maxVisibleTrayItems: config.maxVisibleTrayItems,
           onTrayAction: onTrayAction,
+          onTrayInput: onTrayInput,
         ),
       ),
+      // Tray menus use their own ContextMenuController view, never a dashboard card.
+      AlicePanel.trayMenu => const SizedBox.shrink(),
       AlicePanel.power => PowerPanel(onAction: onPowerAction),
       AlicePanel.notifications =>
         ValueListenableBuilder<List<NotificationSnapshot>>(

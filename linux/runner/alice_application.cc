@@ -106,11 +106,14 @@ struct _AlicePanel {
   FlView*               fl_view;
   int64_t               view_id;
   gchar*                panel_id;
+  uint32_t              request_id;
   // Geometry stored on each showPanel call
   gdouble               anchor_x;
   gdouble               anchor_y;
   gdouble               width;
   gdouble               height;
+  gint                  output_x;
+  gint                  output_y;
   gchar*                alignment;
   gboolean              include_icon_bytes;
   gint                  panel_top_gap_px;
@@ -142,6 +145,7 @@ struct _AliceApplication {
   GtkWindow* dismiss_window;
   gboolean layer_shell_supported;
   gchar* current_panel_id;     // currently shown panel_id (or nullptr)
+  uint32_t latest_panel_request_id;
 };
 
 G_DEFINE_TYPE(AliceApplication, alice_application, GTK_TYPE_APPLICATION)
@@ -357,6 +361,28 @@ static void update_panel_window_geometry(AliceApplication* self, AlicePanel* pan
   gdk_monitor_get_geometry(monitor, &geometry);
   const gint monitor_width = geometry.width;
   const gint monitor_height = geometry.height;
+  if (g_strcmp0(panel->panel_id, "trayMenu") == 0) {
+    // A dedicated usable-output surface leaves room for all Flutter submenus.
+    // Transparent areas dismiss the menu; hiding it releases all input/focus.
+    panel->output_x = 0;
+    panel->output_y = 44;
+    if (self->layer_shell_supported && gtk_layer_is_supported()) {
+      gtk_layer_set_monitor(win, monitor);
+      if (self->dismiss_window != nullptr) gtk_layer_set_monitor(self->dismiss_window, monitor);
+      gtk_layer_set_anchor(win, GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
+      gtk_layer_set_anchor(win, GTK_LAYER_SHELL_EDGE_RIGHT, FALSE);
+      gtk_layer_set_margin(win, GTK_LAYER_SHELL_EDGE_TOP, 0);
+      gtk_layer_set_margin(win, GTK_LAYER_SHELL_EDGE_LEFT, 0);
+      gtk_layer_set_margin(win, GTK_LAYER_SHELL_EDGE_RIGHT, 0);
+      gtk_layer_set_keyboard_mode(win, GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
+    } else {
+      gtk_window_move(win, geometry.x, geometry.y + 44);
+    }
+    gtk_window_set_accept_focus(win, TRUE);
+    gtk_widget_set_size_request(GTK_WIDGET(win), monitor_width, MAX(1, monitor_height - 44));
+    gtk_window_resize(win, monitor_width, MAX(1, monitor_height - 44));
+    return;
+  }
   const gint relative_anchor_x = static_cast<gint>(panel->anchor_x);
   // On wlroots/Sway, layer-shell margins are measured from the edge of the
   // usable area (after exclusive zones), not the raw monitor origin.  The bar
@@ -383,6 +409,11 @@ static void update_panel_window_geometry(AliceApplication* self, AlicePanel* pan
     margin_left =
         CLAMP(margin_left, 0, MAX(0, monitor_width - placement_width));
   }
+
+  panel->output_x = align_right
+      ? monitor_width - margin_right - static_cast<gint>(placement.width)
+      : margin_left;
+  panel->output_y = 44 + margin_top;
 
   if (self->layer_shell_supported && gtk_layer_is_supported()) {
     if (monitor != nullptr) {
@@ -465,7 +496,7 @@ static gboolean panel_window_delete_event(GtkWidget* widget,
     }
   }
   gtk_widget_hide(widget);
-  alice_notify_panel_hide();
+  alice_notify_panel_hide(panel->request_id, panel->panel_id, panel->view_id);
   return TRUE;
 }
 
@@ -482,11 +513,11 @@ static gboolean dismiss_window_button_press_event(GtkWidget* widget,
         g_hash_table_lookup(self->panels, self->current_panel_id));
     if (panel != nullptr) {
       gtk_widget_hide(GTK_WIDGET(panel->gtk_window));
+      alice_notify_panel_hide(panel->request_id, panel->panel_id, panel->view_id);
     }
     g_clear_pointer(&self->current_panel_id, g_free);
     gtk_widget_hide(GTK_WIDGET(self->dismiss_window));
   }
-  alice_notify_panel_hide();
   return TRUE;
 }
 
@@ -619,12 +650,67 @@ static void platform_method_call_cb(FlMethodChannel* channel,
   FlValue* args = fl_method_call_get_args(method_call);
 
   g_autoptr(FlMethodResponse) response = nullptr;
-  if (strcmp(method, "showPanel") == 0) {
+  if (strcmp(method, "resolveTrayAnchor") == 0) {
+    FlValue* view_value = args == nullptr ? nullptr : fl_value_lookup_string(args, "viewId");
+    if (view_value == nullptr) {
+      response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "tray_anchor_failed", "Missing source view", nullptr));
+      goto respond;
+    }
+    const int64_t view_id = static_cast<int64_t>(fl_value_get_int(view_value));
+    AliceBar* bar = find_bar_by_view_id(self, view_id);
+    gint origin_x = 0;
+    gint origin_y = 0;
+    if (bar == nullptr) {
+      GHashTableIter iter;
+      gpointer key, value;
+      g_hash_table_iter_init(&iter, self->panels);
+      while (g_hash_table_iter_next(&iter, &key, &value)) {
+        AlicePanel* panel = static_cast<AlicePanel*>(value);
+        if (panel->view_id == view_id) {
+          bar = panel->source_bar;
+          origin_x = panel->output_x;
+          origin_y = panel->output_y;
+          break;
+        }
+      }
+    }
+    if (bar == nullptr || bar->monitor == nullptr) {
+      response = FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "tray_anchor_failed", "Source monitor is unavailable", nullptr));
+      goto respond;
+    }
+    FlValue* x_value = fl_value_lookup_string(args, "x");
+    FlValue* y_value = fl_value_lookup_string(args, "y");
+    const double x = origin_x + (x_value == nullptr ? 0 : fl_value_get_float(x_value));
+    const double y = origin_y + (y_value == nullptr ? 0 : fl_value_get_float(y_value));
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(bar->monitor, &geometry);
+    // GDK geometry and Flutter logical positions share logical screen units.
+    // Do not apply a second scale factor on mixed-DPI outputs.
+    FlValue* result = fl_value_new_map();
+    fl_value_set_string_take(result, "sourceViewId", fl_value_new_int(bar->view_id));
+    fl_value_set_string_take(result, "x", fl_value_new_float(x));
+    fl_value_set_string_take(result, "y", fl_value_new_float(y));
+    fl_value_set_string_take(result, "screenX", fl_value_new_float(geometry.x + x));
+    fl_value_set_string_take(result, "screenY", fl_value_new_float(geometry.y + y));
+    fl_value_set_string_take(result, "width", fl_value_new_float(geometry.width));
+    fl_value_set_string_take(result, "height", fl_value_new_float(MAX(1, geometry.height - 44)));
+    fl_value_set_string_take(result, "barHeight", fl_value_new_float(44));
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+  } else if (strcmp(method, "showPanel") == 0) {
     gboolean ok = FALSE;
     if (args != nullptr) {
       FlValue* panel_id_val = fl_value_lookup_string(args, "panelId");
       if (panel_id_val != nullptr) {
         const gchar* panel_id_str = fl_value_get_string(panel_id_val);
+        FlValue* request_value = fl_value_lookup_string(args, "requestId");
+        const uint32_t request_id = request_value == nullptr ? 0 : static_cast<uint32_t>(fl_value_get_int(request_value));
+        if (request_id < self->latest_panel_request_id) {
+          response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_null()));
+          goto respond;
+        }
+        self->latest_panel_request_id = request_id;
         FlValue* source_view_id_value =
             fl_value_lookup_string(args, "sourceViewId");
         if (source_view_id_value == nullptr) {
@@ -677,6 +763,7 @@ static void platform_method_call_cb(FlMethodChannel* channel,
         }
 
         AlicePanel* panel = ensure_panel(self, panel_id_str);
+        panel->request_id = request_id;
 
         // Store geometry on the panel
         panel->anchor_x = anchor_x;
@@ -717,6 +804,10 @@ static void platform_method_call_cb(FlMethodChannel* channel,
           gtk_widget_show_all(GTK_WIDGET(self->dismiss_window));
         }
         gtk_widget_show_all(GTK_WIDGET(panel->gtk_window));
+        if (g_strcmp0(panel_id_str, "trayMenu") == 0) {
+          gtk_window_present(GTK_WINDOW(panel->gtk_window));
+          gtk_widget_grab_focus(GTK_WIDGET(panel->fl_view));
+        }
 
         // Refresh the view ID — in case it was not yet assigned before the
         // window was realized (fl_view_new_for_engine may defer registration).
@@ -730,7 +821,7 @@ static void platform_method_call_cb(FlMethodChannel* channel,
         }
 
         // Notify Dart — engine renders into an already-visible, correctly-sized view.
-        alice_notify_panel_show(panel_id_str, panel->view_id, include_bytes != FALSE,
+        alice_notify_panel_show(request_id, panel_id_str, panel->view_id, include_bytes != FALSE,
                                 anchor_x, anchor_y, width, height);
         ok = TRUE;
       }
@@ -762,18 +853,32 @@ static void platform_method_call_cb(FlMethodChannel* channel,
     response =
         FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_null()));
   } else if (strcmp(method, "hidePanel") == 0) {
+    FlValue* request_value = args == nullptr ? nullptr : fl_value_lookup_string(args, "requestId");
+    FlValue* closed_value = args == nullptr ? nullptr : fl_value_lookup_string(args, "closedRequestId");
+    if (request_value != nullptr) {
+      const uint32_t request_id = static_cast<uint32_t>(fl_value_get_int(request_value));
+      if (request_id < self->latest_panel_request_id) {
+        response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_null()));
+        goto respond;
+      }
+      self->latest_panel_request_id = request_id;
+    }
     if (self->current_panel_id != nullptr) {
       AlicePanel* panel = static_cast<AlicePanel*>(
           g_hash_table_lookup(self->panels, self->current_panel_id));
+      if (panel != nullptr && closed_value != nullptr && panel->request_id != static_cast<uint32_t>(fl_value_get_int(closed_value))) {
+        response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_null()));
+        goto respond;
+      }
       if (panel != nullptr) {
         gtk_widget_hide(GTK_WIDGET(panel->gtk_window));
+        alice_notify_panel_hide(panel->request_id, panel->panel_id, panel->view_id);
       }
       g_clear_pointer(&self->current_panel_id, g_free);
       if (self->dismiss_window != nullptr) {
         gtk_widget_hide(GTK_WIDGET(self->dismiss_window));
       }
     }
-    alice_notify_panel_hide();
     response =
         FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_null()));
   } else {

@@ -26,6 +26,8 @@ pub mod state;
 pub mod stats;
 pub mod sway;
 pub mod tray;
+pub mod tray_menu;
+pub mod tray_menu_service;
 pub mod weather;
 
 // frb_generated.rs is produced by `flutter_rust_bridge_codegen generate`.
@@ -83,6 +85,7 @@ pub(crate) fn load_native_config() -> AliceConfig {
 /// `panel_id` must be a valid, null-terminated C string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn alice_notify_panel_show(
+    request_id: u32,
     panel_id: *const c_char,
     view_id: i64,
     include_icon_bytes: bool,
@@ -99,6 +102,7 @@ pub unsafe extern "C" fn alice_notify_panel_show(
         Err(_) => return,
     };
     runtime::push_panel_show(
+        request_id,
         id,
         view_id,
         include_icon_bytes,
@@ -109,10 +113,22 @@ pub unsafe extern "C" fn alice_notify_panel_show(
     );
 }
 
-/// Notify the Dart panel that it should hide.
+/// Notify Dart of a request-scoped panel dismissal.
+///
+/// # Safety
+/// `panel_id` must be a valid, null-terminated C string.
 #[unsafe(no_mangle)]
-pub extern "C" fn alice_notify_panel_hide() {
-    runtime::push_panel_hide();
+pub unsafe extern "C" fn alice_notify_panel_hide(
+    request_id: u32,
+    panel_id: *const c_char,
+    view_id: i64,
+) {
+    if panel_id.is_null() {
+        return;
+    }
+    if let Ok(id) = unsafe { CStr::from_ptr(panel_id) }.to_str() {
+        runtime::push_panel_hide(request_id, id.to_owned(), view_id);
+    }
 }
 
 /// Replace the retained native bar-view snapshot. Called after startup bars

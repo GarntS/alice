@@ -678,12 +678,20 @@ class NotificationSnapshot {
 
 enum NotificationUrgency { low, normal, critical }
 
+enum TrayCapability { unknown, supported, unsupported }
+
 class TrayItemSnapshot {
   final String id;
   final String label;
   final String serviceName;
   final String objectPath;
   final Uint8List? iconPngBytes;
+  final String? status;
+  final bool itemIsMenu;
+  final String? menuPath;
+  final TrayCapability activate;
+  final TrayCapability secondaryActivate;
+  final TrayCapability contextMenu;
 
   const TrayItemSnapshot({
     required this.id,
@@ -691,6 +699,12 @@ class TrayItemSnapshot {
     required this.serviceName,
     required this.objectPath,
     this.iconPngBytes,
+    this.status,
+    required this.itemIsMenu,
+    this.menuPath,
+    required this.activate,
+    required this.secondaryActivate,
+    required this.contextMenu,
   });
 
   @override
@@ -699,7 +713,13 @@ class TrayItemSnapshot {
       label.hashCode ^
       serviceName.hashCode ^
       objectPath.hashCode ^
-      iconPngBytes.hashCode;
+      iconPngBytes.hashCode ^
+      status.hashCode ^
+      itemIsMenu.hashCode ^
+      menuPath.hashCode ^
+      activate.hashCode ^
+      secondaryActivate.hashCode ^
+      contextMenu.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -710,7 +730,13 @@ class TrayItemSnapshot {
           label == other.label &&
           serviceName == other.serviceName &&
           objectPath == other.objectPath &&
-          iconPngBytes == other.iconPngBytes;
+          iconPngBytes == other.iconPngBytes &&
+          status == other.status &&
+          itemIsMenu == other.itemIsMenu &&
+          menuPath == other.menuPath &&
+          activate == other.activate &&
+          secondaryActivate == other.secondaryActivate &&
+          contextMenu == other.contextMenu;
 }
 
 class WeatherAlert {

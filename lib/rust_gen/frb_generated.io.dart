@@ -13,6 +13,9 @@ import 'dart:ffi' as ffi;
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 import 'state.dart';
+import 'tray.dart';
+import 'tray_menu.dart';
+import 'tray_menu_service.dart';
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustLibApiImplPlatform({
@@ -113,6 +116,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double dco_decode_box_autoadd_f_64(dynamic raw);
 
   @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
   @protected
@@ -128,6 +134,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   TaskResourceIdentity dco_decode_box_autoadd_task_resource_identity(
     dynamic raw,
   );
+
+  @protected
+  TrayMenuSelection dco_decode_box_autoadd_tray_menu_selection(dynamic raw);
+
+  @protected
+  TrayMenuSnapshot dco_decode_box_autoadd_tray_menu_snapshot(dynamic raw);
 
   @protected
   int dco_decode_box_autoadd_u_16(dynamic raw);
@@ -222,6 +234,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<TrayItemSnapshot> dco_decode_list_tray_item_snapshot(dynamic raw);
 
   @protected
+  List<TrayMenuNode> dco_decode_list_tray_menu_node(dynamic raw);
+
+  @protected
   List<WeatherAlert> dco_decode_list_weather_alert(dynamic raw);
 
   @protected
@@ -289,6 +304,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
 
   @protected
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
+
+  @protected
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
 
   @protected
@@ -340,7 +358,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   TimeZoneConfig dco_decode_time_zone_config(dynamic raw);
 
   @protected
+  TrayActionOutcome dco_decode_tray_action_outcome(dynamic raw);
+
+  @protected
+  TrayCapability dco_decode_tray_capability(dynamic raw);
+
+  @protected
   TrayItemSnapshot dco_decode_tray_item_snapshot(dynamic raw);
+
+  @protected
+  TrayMenuNode dco_decode_tray_menu_node(dynamic raw);
+
+  @protected
+  TrayMenuSelection dco_decode_tray_menu_selection(dynamic raw);
+
+  @protected
+  TrayMenuSnapshot dco_decode_tray_menu_snapshot(dynamic raw);
+
+  @protected
+  TrayMenuToggle dco_decode_tray_menu_toggle(dynamic raw);
+
+  @protected
+  TrayMenuUpdate dco_decode_tray_menu_update(dynamic raw);
 
   @protected
   int dco_decode_u_16(dynamic raw);
@@ -494,6 +533,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double sse_decode_box_autoadd_f_64(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
@@ -513,6 +555,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TaskResourceIdentity sse_decode_box_autoadd_task_resource_identity(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TrayMenuSelection sse_decode_box_autoadd_tray_menu_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TrayMenuSnapshot sse_decode_box_autoadd_tray_menu_snapshot(
     SseDeserializer deserializer,
   );
 
@@ -627,6 +679,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<TrayMenuNode> sse_decode_list_tray_menu_node(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<WeatherAlert> sse_decode_list_weather_alert(
     SseDeserializer deserializer,
   );
@@ -716,6 +773,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer);
 
   @protected
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
@@ -779,7 +839,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   TimeZoneConfig sse_decode_time_zone_config(SseDeserializer deserializer);
 
   @protected
+  TrayActionOutcome sse_decode_tray_action_outcome(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TrayCapability sse_decode_tray_capability(SseDeserializer deserializer);
+
+  @protected
   TrayItemSnapshot sse_decode_tray_item_snapshot(SseDeserializer deserializer);
+
+  @protected
+  TrayMenuNode sse_decode_tray_menu_node(SseDeserializer deserializer);
+
+  @protected
+  TrayMenuSelection sse_decode_tray_menu_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TrayMenuSnapshot sse_decode_tray_menu_snapshot(SseDeserializer deserializer);
+
+  @protected
+  TrayMenuToggle sse_decode_tray_menu_toggle(SseDeserializer deserializer);
+
+  @protected
+  TrayMenuUpdate sse_decode_tray_menu_update(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_16(SseDeserializer deserializer);
@@ -962,6 +1047,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_i_64(
     PlatformInt64 self,
     SseSerializer serializer,
@@ -988,6 +1076,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_task_resource_identity(
     TaskResourceIdentity self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_tray_menu_selection(
+    TrayMenuSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_tray_menu_snapshot(
+    TrayMenuSnapshot self,
     SseSerializer serializer,
   );
 
@@ -1133,6 +1233,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_tray_menu_node(
+    List<TrayMenuNode> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_weather_alert(
     List<WeatherAlert> self,
     SseSerializer serializer,
@@ -1244,6 +1350,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_i_64(
     PlatformInt64? self,
     SseSerializer serializer,
@@ -1325,8 +1434,47 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_tray_action_outcome(
+    TrayActionOutcome self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_tray_capability(
+    TrayCapability self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_tray_item_snapshot(
     TrayItemSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_tray_menu_node(TrayMenuNode self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_tray_menu_selection(
+    TrayMenuSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_tray_menu_snapshot(
+    TrayMenuSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_tray_menu_toggle(
+    TrayMenuToggle self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_tray_menu_update(
+    TrayMenuUpdate self,
     SseSerializer serializer,
   );
 

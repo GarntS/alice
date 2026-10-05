@@ -35,6 +35,7 @@ pub fn set_panel_command_sink(sink: StreamSink<Option<PanelCommand>>) {
 }
 
 pub fn push_panel_show(
+    request_id: u32,
     panel_id: String,
     view_id: i64,
     include_icon_bytes: bool,
@@ -48,6 +49,8 @@ pub fn push_panel_show(
         && let Some(sink) = guard.as_ref()
     {
         let _ = sink.add(Some(PanelCommand {
+            request_id,
+            visible: true,
             panel_id,
             view_id,
             include_icon_bytes,
@@ -59,12 +62,22 @@ pub fn push_panel_show(
     }
 }
 
-pub fn push_panel_hide() {
+pub fn push_panel_hide(request_id: u32, panel_id: String, view_id: i64) {
     if let Some(cell) = PANEL_SINK.get()
         && let Ok(guard) = cell.lock()
         && let Some(sink) = guard.as_ref()
     {
-        let _ = sink.add(None);
+        let _ = sink.add(Some(PanelCommand {
+            request_id,
+            visible: false,
+            panel_id,
+            view_id,
+            include_icon_bytes: false,
+            anchor_x: 0.0,
+            anchor_y: 0.0,
+            width: 0.0,
+            height: 0.0,
+        }));
     }
 }
 
@@ -201,6 +214,14 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
         tokio::spawn(async move {
             if let Err(error) = crate::tray::run_status_notifier_watcher(tx_sni).await {
                 eprintln!("alice: SNI watcher error: {error}");
+            }
+        });
+
+        // Item subscriptions and property reads run independently of snapshot assembly.
+        let tx_tray = tx.clone();
+        tokio::spawn(async move {
+            if let Err(error) = crate::tray::run_tray_runtime(tx_tray).await {
+                eprintln!("alice: tray runtime error: {error}");
             }
         });
 
@@ -601,6 +622,7 @@ mod tests {
                 service_name: "org.example.Tray".into(),
                 object_path: "/StatusNotifierItem".into(),
                 icon_png_bytes: None,
+                ..TrayItemSnapshot::default()
             }])),
             notifications.clone(),
             crate::caldav::provider::CalDavSnapshot {

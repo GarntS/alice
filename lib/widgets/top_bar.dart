@@ -7,6 +7,7 @@ import '../rust_gen/caldav/models.dart';
 import '../rust_gen/state.dart';
 import '../panel_controller.dart';
 import '../snapshot_state.dart';
+import '../tray_input_router.dart';
 import 'bar_widgets/battery_module.dart';
 import 'bar_widgets/bluetooth_module.dart';
 import 'bar_widgets/clock_module.dart';
@@ -31,6 +32,7 @@ class TopBar extends StatelessWidget {
     required this.onTrayItemTap,
     required this.onBackgroundTap,
     this.onModuleBuild,
+    this.onTrayInput,
   });
 
   final AliceConfig config;
@@ -38,6 +40,7 @@ class TopBar extends StatelessWidget {
   final PanelController panelController;
   final ValueChanged<String> onWorkspaceTap;
   final ValueChanged<TrayItemSnapshot> onTrayItemTap;
+  final TrayInputCallback? onTrayInput;
   final VoidCallback onBackgroundTap;
   final ValueChanged<String>? onModuleBuild;
 
@@ -262,6 +265,7 @@ class TopBar extends StatelessWidget {
                       trayOverflowOpen: panelController.trayOverflowOpen,
                       panelController: panelController,
                       onTrayItemTap: onTrayItemTap,
+                      onTrayInput: onTrayInput,
                       onTrayOverflowToggle: (anchor) => panelController.toggle(
                         AlicePanel.trayOverflow,
                         anchor,
@@ -361,6 +365,7 @@ class _TrayCluster extends StatelessWidget {
     required this.panelController,
     required this.onTrayItemTap,
     required this.onTrayOverflowToggle,
+    this.onTrayInput,
     required this.probe,
   });
 
@@ -369,6 +374,7 @@ class _TrayCluster extends StatelessWidget {
   final ValueListenable<bool> trayOverflowOpen;
   final PanelController panelController;
   final ValueChanged<TrayItemSnapshot> onTrayItemTap;
+  final TrayInputCallback? onTrayInput;
   final ValueChanged<PanelAnchor> onTrayOverflowToggle;
   final Widget Function(String name, Widget child) probe;
 
@@ -389,7 +395,11 @@ class _TrayCluster extends StatelessWidget {
               if (items.isNotEmpty)
                 probe(
                   'tray',
-                  TopBarTrayGroupModule(items: items, onItemTap: onTrayItemTap),
+                  TopBarTrayGroupModule(
+                    items: items,
+                    onItemTap: onTrayItemTap,
+                    onInput: onTrayInput,
+                  ),
                 ),
               if (items.isNotEmpty && overflowCount > 0)
                 const SizedBox(width: 8),

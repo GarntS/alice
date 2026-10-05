@@ -6,10 +6,13 @@ import 'alice_config.dart';
 import 'rust_gen/bluetooth/prompt.dart';
 import 'rust_gen/caldav/models.dart';
 import 'rust_gen/state.dart';
+import 'rust_gen/tray.dart';
 import 'alice_platform.dart';
 import 'panel_controller.dart';
 import 'alice_theme.dart';
 import 'notification_popup_state.dart';
+import 'tray_menu_controller.dart';
+import 'widgets/tray_menu_popup.dart';
 import 'snapshot_state.dart';
 import 'widgets/alice_icon.dart';
 import 'widgets/notification_popups.dart';
@@ -21,16 +24,24 @@ import 'widgets/top_bar.dart';
 import 'rust_gen/api.dart' as frb;
 
 @visibleForTesting
-void applyPanelCommandToViewMap(
+bool applyPanelCommandToViewMap(
   Map<int, String> viewPanelMap,
-  frb.PanelCommand? command,
-) {
+  frb.PanelCommand? command, {
+  int? expectedRequestId,
+}) {
   if (command == null) {
     viewPanelMap.clear();
-    return;
+    return true;
   }
-
-  viewPanelMap[command.viewId] = command.panelId;
+  if (expectedRequestId != null && command.requestId != expectedRequestId)
+    return false;
+  if (!command.visible) {
+    viewPanelMap.remove(command.viewId);
+  } else {
+    viewPanelMap.clear();
+    viewPanelMap[command.viewId] = command.panelId;
+  }
+  return true;
 }
 
 class AliceApp extends StatefulWidget {
@@ -43,6 +54,7 @@ class AliceApp extends StatefulWidget {
 class _AliceAppState extends State<AliceApp> {
   late final AlicePlatform _platform = AlicePlatform();
   late final PanelController _panelController = PanelController();
+  late final TrayMenuController _trayMenuController;
   late final StreamSubscription<BarSnapshot> _snapshotSubscription;
   late final StreamSubscription<frb.PanelCommand?> _panelCommandSubscription;
   late final StreamSubscription<frb.BarViewLifecycle> _barViewSubscription;
@@ -66,6 +78,7 @@ class _AliceAppState extends State<AliceApp> {
     super.initState();
     _notificationPopupState = NotificationPopupState(config: _config);
     _notificationPopupState.addListener(_syncNotificationPopupState);
+    _trayMenuController = TrayMenuController(_platform, _panelController);
     _panelController.addListener(_syncPanelState);
     _snapshotState.media.addListener(_syncMediaPanelSize);
     _snapshotState.trayOverflowCount.addListener(_syncTrayPanelSize);
@@ -82,8 +95,15 @@ class _AliceAppState extends State<AliceApp> {
 
     _panelCommandSubscription = frb.watchPanelCommands().listen((cmd) {
       if (!mounted) return;
-      setState(() => applyPanelCommandToViewMap(_viewPanelMap, cmd));
-      if (cmd == null) {
+      var applied = false;
+      setState(
+        () => applied = applyPanelCommandToViewMap(
+          _viewPanelMap,
+          cmd,
+          expectedRequestId: _panelController.requestId,
+        ),
+      );
+      if (applied && (cmd == null || !cmd.visible)) {
         _panelController.close();
       }
     }, onError: (_, _) {});
@@ -119,10 +139,15 @@ class _AliceAppState extends State<AliceApp> {
   }
 
   Future<void> _syncPanelState() async {
+    final requestId = _panelController.requestId;
     try {
       final openPanel = _panelController.openPanel;
       if (openPanel == null) {
-        await _platform.hidePanel();
+        if (mounted) setState(_viewPanelMap.clear);
+        await _platform.hidePanel(
+          requestId: requestId,
+          closedRequestId: _panelController.lastClosedRequestId,
+        );
         return;
       }
 
@@ -133,12 +158,15 @@ class _AliceAppState extends State<AliceApp> {
       final anchor = _panelController.anchor;
       if (anchor == null) return;
 
-      final panelSize = alicePanelSize(openPanel);
+      final panelSize = openPanel == AlicePanel.trayMenu
+          ? _trayMenuController.origin?.usableSize ?? alicePanelSize(openPanel)
+          : alicePanelSize(openPanel);
       final panelId = openPanel.id;
       await _platform
           .showPanel(
             panelId,
             sourceViewId: anchor.sourceViewId,
+            requestId: requestId,
             anchorX: anchor.globalPosition.dx,
             anchorY: anchor.globalPosition.dy,
             alignment: switch (anchor.alignment) {
@@ -148,7 +176,9 @@ class _AliceAppState extends State<AliceApp> {
             width: panelSize.width,
             height: panelSize.height,
             includeTrayIconBytes: openPanel == AlicePanel.trayOverflow,
-            panelTopGapPx: _config.panelTopGapPx,
+            panelTopGapPx: openPanel == AlicePanel.trayMenu
+                ? 0
+                : _config.panelTopGapPx,
           )
           .timeout(
             const Duration(seconds: 2),
@@ -156,7 +186,13 @@ class _AliceAppState extends State<AliceApp> {
               throw TimeoutException('showPanel timed out for $panelId');
             },
           );
-    } catch (_) {}
+    } catch (error) {
+      if (_panelController.requestId == requestId &&
+          _panelController.openPanel == AlicePanel.trayMenu) {
+        debugPrint('Tray menu surface failed: $error');
+        _trayMenuController.close();
+      }
+    }
   }
 
   void _syncMediaPanelSize() {
@@ -199,8 +235,19 @@ class _AliceAppState extends State<AliceApp> {
 
   Future<void> _handleTrayActivate(TrayItemSnapshot item) async {
     try {
-      await _platform.sendTrayAction(item, action: 'activate');
-    } catch (_) {}
+      final outcome = await _platform.sendTrayAction(item, action: 'activate');
+      if (outcome is TrayActionOutcome_Unsupported) {
+        debugPrint(
+          'Unsupported tray action destination=${item.serviceName} '
+          'path=${item.objectPath} method=Activate',
+        );
+      } else if (outcome is TrayActionOutcome_Failed) {
+        debugPrint(outcome.reason);
+      }
+    } catch (error) {
+      // Diagnostic only: no toast or notification, and no duplicate Rust log.
+      debugPrint('Tray activation failed: $error');
+    }
   }
 
   void _closeUnavailableBluetoothPanel() {
@@ -322,6 +369,7 @@ class _AliceAppState extends State<AliceApp> {
     _snapshotState.trayOverflowCount.removeListener(_syncTrayPanelSize);
     _snapshotState.bluetooth.removeListener(_closeUnavailableBluetoothPanel);
     _snapshotState.dispose();
+    _trayMenuController.dispose();
     _panelController.removeListener(_syncPanelState);
     _panelController.dispose();
     WidgetsBinding.instance.platformDispatcher.onMetricsChanged = null;
@@ -345,6 +393,7 @@ class _AliceAppState extends State<AliceApp> {
             panelController: _panelController,
             onWorkspaceTap: _handleWorkspaceFocus,
             onTrayItemTap: _handleTrayActivate,
+            onTrayInput: _trayMenuController.handle,
             onBackgroundTap: _closePanel,
           ),
         ),
@@ -363,30 +412,37 @@ class _AliceAppState extends State<AliceApp> {
         backgroundColor: Colors.transparent,
         body: AliceIconTheme(
           config: _config,
-          child: Align(
-            alignment: Alignment.topRight,
-            child: panel == null
-                ? const SizedBox.shrink()
-                : AlicePanelCard(
-                    panel: panel,
-                    config: _config,
-                    snapshotState: _snapshotState,
-                    onPowerAction: _handlePowerAction,
-                    onMediaAction: _handleMediaAction,
-                    onSeekMedia: _handleMediaSeek,
-                    onTrayAction: _handleTrayActivate,
-                    onDismissNotification: _handleDismissNotification,
-                    onDismissAllNotifications: _handleDismissAllNotifications,
-                    onMarkAllNotificationsRead: _handleMarkAllNotificationsRead,
-                    onInvokeNotificationAction: _handleInvokeNotificationAction,
-                    onBluetoothScan: _handleBluetoothScan,
-                    onBluetoothConnect: _handleBluetoothConnect,
-                    onBluetoothDisconnect: _handleBluetoothDisconnect,
-                    onBluetoothPromptResponse: _handleBluetoothPromptResponse,
-                    onTaskRefresh: _handleTaskRefresh,
-                    onTaskCompletion: _handleTaskCompletion,
-                  ),
-          ),
+          child: panel == AlicePanel.trayMenu
+              ? TrayMenuPopup(controller: _trayMenuController)
+              : Align(
+                  alignment: Alignment.topRight,
+                  child: panel == null
+                      ? const SizedBox.shrink()
+                      : AlicePanelCard(
+                          panel: panel,
+                          config: _config,
+                          snapshotState: _snapshotState,
+                          onPowerAction: _handlePowerAction,
+                          onMediaAction: _handleMediaAction,
+                          onSeekMedia: _handleMediaSeek,
+                          onTrayAction: _handleTrayActivate,
+                          onTrayInput: _trayMenuController.handle,
+                          onDismissNotification: _handleDismissNotification,
+                          onDismissAllNotifications:
+                              _handleDismissAllNotifications,
+                          onMarkAllNotificationsRead:
+                              _handleMarkAllNotificationsRead,
+                          onInvokeNotificationAction:
+                              _handleInvokeNotificationAction,
+                          onBluetoothScan: _handleBluetoothScan,
+                          onBluetoothConnect: _handleBluetoothConnect,
+                          onBluetoothDisconnect: _handleBluetoothDisconnect,
+                          onBluetoothPromptResponse:
+                              _handleBluetoothPromptResponse,
+                          onTaskRefresh: _handleTaskRefresh,
+                          onTaskCompletion: _handleTaskCompletion,
+                        ),
+                ),
         ),
       ),
     );
