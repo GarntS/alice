@@ -131,7 +131,7 @@ dnf install -y rpm-build cpio clang cmake ninja-build pkg-config curl tar git wh
   gtk3-devel gtk-layer-shell-devel \
   atk-devel gdk-pixbuf2-devel harfbuzz-devel \
   libepoxy-devel libxkbcommon-devel pango-devel cairo-devel \
-  cargo rust dbus-devel
+  cargo rust dbus-devel alsa-lib-devel
 mkdir -p /rpms /srpms /rpmbuild
 # Build source tarball from the bind-mounted repo (avoids host bind-mount issues)
 tar -czf /rpmbuild/alicebar-${ver}.tar.gz \
@@ -153,7 +153,7 @@ arch_cmd() {
   cat <<EOF
 set -euo pipefail
 pacman -Syu --noconfirm base-devel clang cmake ninja pkg-config \\
-  wayland wayland-protocols gtk3 gtk-layer-shell rustup curl git
+  wayland wayland-protocols gtk3 gtk-layer-shell rustup curl git alsa-lib
 
 # Download Flutter SDK
 FLUTTER_VERSION=3.47.0

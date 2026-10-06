@@ -1,7 +1,7 @@
 name: alicebar
 description: "A Flutter-first Wayland bar for wlroots compositors."
 publish_to: "none"
-version: 2026.2.0
+version: 2026.2.1
 
 environment:
   sdk: ^3.10.4

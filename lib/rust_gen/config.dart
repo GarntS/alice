@@ -25,6 +25,8 @@ class BatteryConfig {
 }
 
 class NotificationConfig {
+  final NotificationSoundConfig sound;
+
   /// How long (ms) before the freedesktop server auto-dismisses. 0 = never expire.
   final int defaultTimeoutMs;
 
@@ -38,6 +40,7 @@ class NotificationConfig {
   final bool expireCriticalNotifications;
 
   const NotificationConfig({
+    required this.sound,
     required this.defaultTimeoutMs,
     required this.showNotificationPopup,
     required this.notificationDisplayTimeMs,
@@ -46,6 +49,7 @@ class NotificationConfig {
 
   @override
   int get hashCode =>
+      sound.hashCode ^
       defaultTimeoutMs.hashCode ^
       showNotificationPopup.hashCode ^
       notificationDisplayTimeMs.hashCode ^
@@ -56,10 +60,35 @@ class NotificationConfig {
       identical(this, other) ||
       other is NotificationConfig &&
           runtimeType == other.runtimeType &&
+          sound == other.sound &&
           defaultTimeoutMs == other.defaultTimeoutMs &&
           showNotificationPopup == other.showNotificationPopup &&
           notificationDisplayTimeMs == other.notificationDisplayTimeMs &&
           expireCriticalNotifications == other.expireCriticalNotifications;
+}
+
+class NotificationSoundConfig {
+  final bool enable;
+  final String? file;
+  final int volume;
+
+  const NotificationSoundConfig({
+    required this.enable,
+    this.file,
+    required this.volume,
+  });
+
+  @override
+  int get hashCode => enable.hashCode ^ file.hashCode ^ volume.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NotificationSoundConfig &&
+          runtimeType == other.runtimeType &&
+          enable == other.enable &&
+          file == other.file &&
+          volume == other.volume;
 }
 
 class PowerCommandConfig {

@@ -4,9 +4,9 @@
 %undefine _annotated_build
 
 Name:       alicebar
-Version:    %{?alicebar_version}%{!?alicebar_version:2026.2.0}
+Version:    %{?alicebar_version}%{!?alicebar_version:2026.2.1}
 Release:    1%{?dist}
-Summary:    Flutter-based Wayland top bar for wlroots compositors
+Summary:    Flutter-based Wayland bar/shell for wlroots compositors
 License:    GPL-3.0-only
 URL:        https://github.com/garnt/alice
 Source0:    %{name}-%{version}.tar.gz
@@ -19,13 +19,13 @@ BuildRequires: wayland-devel, wayland-protocols-devel
 BuildRequires: gtk3-devel, gtk-layer-shell-devel
 BuildRequires: atk-devel, gdk-pixbuf2-devel, harfbuzz-devel
 BuildRequires: libepoxy-devel, libxkbcommon-devel, pango-devel, cairo-devel
-BuildRequires: cargo, rust, dbus-devel
+BuildRequires: cargo, rust, dbus-devel, alsa-lib-devel
 
 Requires: gtk3, gtk-layer-shell, wayland-libs, atk, gdk-pixbuf2
-Requires: harfbuzz, libepoxy, libxkbcommon, pango, cairo, dbus-libs
+Requires: harfbuzz, libepoxy, libxkbcommon, pango, cairo, dbus-libs, alsa-lib
 
 %description
-Flutter-based Wayland top bar for wlroots compositors.
+Flutter-based Wayland bar/shell for wlroots compositors.
 
 %prep
 %autosetup
@@ -67,8 +67,8 @@ install -Dm755 packaging/alicebar.sh %{buildroot}/usr/bin/alicebar
 /usr/bin/alicebar
 
 %changelog
-* Tue Aug 25 2026 Maintainer <maintainer@example.com> - 2026.2.0-1
-- Release 2026.2.0
+* Tue Aug 25 2026 Maintainer <maintainer@example.com> - 2026.2.1-1
+- Release 2026.2.1
 
 * Tue Jul 21 2026 Maintainer <maintainer@example.com> - 1.4.0-1
 - Release 1.4.0

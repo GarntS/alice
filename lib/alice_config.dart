@@ -123,18 +123,32 @@ class BatteryConfig {
   final String? deviceName;
 }
 
+class NotificationSoundConfig {
+  const NotificationSoundConfig({
+    this.enable = true,
+    this.file,
+    this.volume = 50,
+  });
+
+  final bool enable;
+  final String? file;
+  final int volume;
+}
+
 class NotificationConfig {
   const NotificationConfig({
     required this.defaultTimeoutMs,
     required this.showNotificationPopup,
     required this.notificationDisplayTimeMs,
     required this.expireCriticalNotifications,
+    this.sound = const NotificationSoundConfig(),
   });
 
   final int defaultTimeoutMs;
   final bool showNotificationPopup;
   final int notificationDisplayTimeMs;
   final bool expireCriticalNotifications;
+  final NotificationSoundConfig sound;
 }
 
 class TimeZoneConfig {

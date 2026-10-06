@@ -11,6 +11,7 @@
 , wayland-scanner
 , flutter_rust_bridge_codegen
 
+, alsa-lib
 , atk
 , at-spi2-atk
 , cairo
@@ -29,6 +30,7 @@
 }:
 let
   runtimeLibraries = [
+    alsa-lib
     atk
     at-spi2-atk
     cairo
@@ -49,7 +51,7 @@ let
 in
 buildFlutterApplication {
   pname = "alicebar";
-  version = "2026.2.0";
+  version = "2026.2.1";
 
   src = lib.cleanSource ../.;
   pubspecLock = lib.importJSON ./pubspec.lock.json;
@@ -90,7 +92,7 @@ buildFlutterApplication {
   '';
 
   meta = with lib; {
-    description = "Flutter-based Wayland top bar for wlroots compositors";
+    description = "Flutter-based Wayland bar/shell for wlroots compositors";
     homepage = "https://github.com/garnts/alicebar";
     license = licenses.gpl3;
     maintainers = with maintainers; [ ];

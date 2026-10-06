@@ -1,65 +1,191 @@
 # alice
 
-`alice` is a wayland bar for `wlroots` compositors, with a collection of 
-expanding sub-panels associated with some widgets. Native Linux integration for
-data-collection and system interaction with the filesystem, devices, and D-Bus 
-is all implemented in Rust for safety and portability. `alice` is configurable 
-for theming and data sources, but its design is deliberately opinionated 
-according to my tastes and is not highly configurable in a similar manner to
-other wayland bar projects.
+<p>
+    <img alt="GitHub Release" src="https://img.shields.io/github/v/release/garnts/alice">
+    <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/garnts/alice/release.yml?logo=github&link=https%3A%2F%2Fgithub.com%2Fgarnts%2Falice%2Freleases">
+    <img alt="GitHub License" src="https://img.shields.io/github/license/garnts/alice">
+</p>
 
-### Etymology
-The project name "alice" is named after a *fantastic* cocktail bar in 
-Cheongdam-dong, Seoul, South Korea called "Alice Cheongdam". I needed a name
-for a bar, and the name "alice" is an homage. If you're ever in Seoul, you
-should visit.
+`alice` is a Wayland desktop shell for `wlroots` compositors, consisting of a bar, a collection of widgets and expanding sub-panels, and a Freedesktop notification server. Native Linux integration for data-collection and system interaction with the filesystem, devices, and D-Bus is all implemented in Rust for safety and portability. `alice` is configurable for theming and data sources, but its design is deliberately opinionated according to my tastes and is not highly configurable in a similar manner to other wayland bar projects.
 
-## Project Design
+![overview/media](assets/img/overview.png)
+<table>
+    <tr>
+        <td width=25%><img src="assets/img/calendar.png"></td>
+        <td width=25%><img src="assets/img/weather.png"></td>
+        <td width=25%><img src="assets/img/notification.png"></td>
+        <td width=25%><img src="assets/img/bt.png"></td>
+    </tr>
+</table>
 
-### Network panel
+## Features
+- Workspace tracking, with support for all `wlroots` compositors
+  - *(tested with `sway`)*
+- Freedesktop Notification server, with support for notification display, history, actions, and playing notification sounds
+- Calendar widget + notifications, supporting `.ics`/iCal and Google Calendar data providers
+  - *(tested against Google Calendar and Outlook `.ics` endpoints)*
+- Clock widget with multiple time zone support
+- System tray icon support, via the `StatusNotifierItem` API
+- Resource tracking + display for CPU, RAM, and Battery
+- Bluetooth device manager, via `BlueZ` D-Bus client implementation
+- Network widget + panel, showing status for wired, wireless, and WireGuard VPN connections
+- CalDAV task list display and management, with server sync
+  - *(tested against self-hosted [Vikunja](https://vikunja.io/))*
+- Weather widget, using [Pirate Weather](https://pirateweather.net/) as a backend
+- Media display and controls, with album art support, via MPRIS.
+- Theming support, with light/dark/system mode, configurable accent colors, bar transparency, etc
 
-The icon-only network control opens adapter and WireGuard cards. Adapter cards
-show link state, a preferred local IPv4 (otherwise IPv6) address, and Wi-Fi SSID
-availability. WireGuard cards show only generic interface state and RX/TX byte
-counts—not peer endpoints, handshakes, or reachability. Collection uses
-unprivileged Rust Netlink clients; no network commands or active Wi-Fi scans are
-run. Receive buffers are enlarged where permitted, with fresh dumps after loss.
-
-### Overall Structure
-- The bar is logically organized out of the bar itself, **Bar Widgets**, which
-are the widgets that can be rendered directly on the bar, and **Panels**, which
-are any pop-out windows that are spawned upon clicking a widget.
+### Design
+- The bar is logically organized into **Bar Widgets**, items rendered directly on the bar, and **Panels**, which are any pop-out windows that are spawned upon clicking a widget.
 - The front-end is written in Flutter. This is located in `lib/`.
-- The data back-end is written in Rust. This is located in
-`native/alice_platform`.
-- A small binary that actually runs the application is written in C++. The only
-things this binary handles are the command line parsing and startup, and the
-linkage for the creation and management of render surfaces.
-- There is an additional Rust library that handles the interactions with
-`wlr-layer-shell` for capability detection and to help manage surface geometry.
-It exposes some functions over C FFI, which the `runner` binary links against.
-It's a rather small library, but the goal was to move as much logic out of the
-C++ binary as was possible. This is located in `native/alice_layer_shell`.
-- The entire data state for the bar is stored in a snapshot object,
-`BarSnapshot`, which is updated by messages sent from the Rust-based native
-code to the Flutter code. These messages are either sent periodically, for data
-that doesn't have clear events, like memory usage or the system time, or when
-relevant messages come in for event-based data like D-Bus messages. This design 
-allows all the Flutter widgets to be a pure function of the data snapshot,
-which significantly reduces the level of complexity in the widgets themselves.
+- The data back-end is written in Rust. This is located in `native/alice_platform`.
+- A small binary that actually runs the application is written in C++. The only things this binary handles are the command line parsing and startup, and the linkage for the creation and management of render surfaces.
+- There is an additional Rust library that handles the interactions with `wlr-layer-shell` for capability detection and to help manage surface geometry. It exposes some functions over C FFI, which the `runner` binary links against. It's a rather small library, but the goal was to move as much logic out of the C++ binary as was possible. This is located in `native/alice_layer_shell`.
+- The entire data state for the bar is stored in a snapshot object, `BarSnapshot`, which is updated by messages sent from the Rust-based native code to the Flutter code. These messages are either sent periodically, for data that doesn't have clear events, like memory usage or the system time, or when relevant messages come in for event-based data like D-Bus messages. This design  allows all the Flutter widgets to be a pure function of the data snapshot, which significantly reduces the level of complexity in the widgets themselves.
 
-#### TL;DR of how windows surfaces are created:
-- Rust `alice_layer_shell` provides the placement geometry and capability
-detection.
-- C++ `runner` applies the layer-shell configuration via `gtk-layer-shell`.
-- Flutter simply renders into the resulting window.
+### A Quick Note on LLMs
+The extreme majority of this project was built with the assistance of coding agents, as a project to build something useful for myself while learning about how to use the tools effectively.
 
-### Configuration
-Many settings are configurable by a `config.yaml` file, located at
-`$XDG_CONFIG_HOME/alice/config.yaml`. On first run, if the file doesn't exist,
-a default with comments explaining all the fields will be placed there. 
-`config.yaml` allows for things like theming, time zones, and power menu 
-commands.
+I don't like LLMs. As a class, I think they represent more of a potential threat to society than they do a benefit. However, as a tool, they exist, and provide a clear advantage in the speed at which developers can build out projects, assuming the developer understands how to use them as a tool. That means I have to learn to use them to remain competitive. And, as it turns out, they're quite good at writing code, if they're given sufficient guidance. I hate it here.
+
+With that said, I think that anyone who vomits LLM-generated code on the internet has a responsibility to own that code themselves, so `alice` and its codebase has been carefully designed by me, and is frequently refactored/adjusted from the initial LLM-authored drafts to keep it in a state that I would have actually liked had I built it myself. I've read and re-read every file in this codebase.
+
+## Acquiring + Running `alice`
+Install `alice` using one of the methods below (the package will be called `alicebar`), then run the `alicebar` binary.
+
+### Pre-build Packages
+Pre-built packages are provided in [Github Releases](https://github.com/GarntS/alice/releases/latest) for:
+- Debian 13 (trixie)
+- Debian Unstable (sid)
+- Ubuntu 24.04 LTS
+- Ubuntu 26.04 LTS
+- Ubuntu 25.10
+- Fedora 43
+- Fedora 44
+- Fedora Rawhide
+- Arch Linux
+
+At present, `alice` isn't in any package managers.
+
+### Nix Flake
+If you're on NixOS, this repo is also set up as a Nix flake. It can be installed by adding this repo as an input to your system's `flake.nix`, then passing it to your configuration via `specialArgs`:
+```nix
+inputs = {
+  nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+  alice-git.url = "github:garnts/alice";
+};
+
+outputs = inputs@{ self, nixpkgs, alice-git, ... }: {
+  nixosConfigurations.your-system = nixpkgs.lib.nixosSystem {
+    system = "your-system-string";
+    specialArgs = {
+     	alice-git = alice-git;
+      };
+      modules = [
+        ./configuration.nix
+      ];
+    };
+  };
+}
+```
+
+Then, add the package to your `configuration.nix`:
+```nix
+{ config, lib, pkgs, alice-git, ... }:
+{
+  environment.systemPackages = [
+    # replace "x86_64-linux" with your system string if not on x86_64
+    alice-git.packages.x86_64-linux.default
+  ];
+}
+```
+
+## Building `alice`
+
+### Build Dependencies
+
+| Dependency | Notes |
+|---|---|
+| Flutter SDK ≥ 3.x | Includes Dart SDK |
+| Rust toolchain | `cargo`, `rustc` (Rust 1.88+ for ICU timezone mappings) |
+| `flutter_rust_bridge_codegen` 2.11.1 | `cargo install flutter_rust_bridge_codegen@2.11.1` |
+| Clang / clang++ | C++ compiler for the GTK runner |
+| CMake ≥ 3.13 | |
+| Ninja | |
+| pkg-config | |
+| wayland-scanner | |
+| GTK 3 dev headers | `libgtk-3-dev` / `gtk3-devel` |
+| gtk-layer-shell dev headers | `libgtk-layer-shell-dev` / `gtk-layer-shell-devel` |
+| ALSA dev headers and libraries | `libasound2-dev` (Debian/Ubuntu) / `alsa-lib-devel` (Fedora); `alsa-lib` on Arch/Nix. Required by rodio/CPAL for Linux audio output. |
+| Standard Wayland and X11 dev libs | libwayland, libxkbcommon, libX11, libepoxy, etc. |
+
+### Building without Nix
+
+Install the dependencies above for your distribution, then:
+
+```bash
+# Get Dart/Flutter packages
+flutter pub get
+
+# Build the release binary
+# CMake will automatically run flutter_rust_bridge_codegen and cargo
+flutter build linux --release
+```
+
+The built bundle is at `build/linux/x64/release/bundle/alice`.
+
+If CMake has cached a stale compiler path from a previous build, clear the build directory first:
+
+```bash
+flutter clean
+flutter build linux --release
+```
+
+### Building with Nix
+
+The repo provides a Nix flake with a devShell that includes the full toolchain — Flutter, Dart, Rust, Clang, CMake, Ninja, pkg-config, wayland-scanner, `flutter_rust_bridge_codegen`, and all required libraries.
+
+Enter the dev shell:
+
+```bash
+nix develop
+```
+
+Then build as normal:
+
+```bash
+flutter build linux --release
+```
+
+Other useful commands inside the shell:
+
+```bash
+flutter analyze
+flutter clean
+cargo test --manifest-path native/Cargo.toml
+```
+
+You can also run individual commands without entering the shell interactively:
+
+```bash
+nix develop --command flutter build linux --release
+```
+
+The Nix package uses `nix/pubspec.lock.json` as its dependency metadata. After changing Flutter dependencies or regenerating `pubspec.lock`, update the JSON copy too (including development dependencies):
+
+```bash
+nix run nixpkgs#yq-go -- -o=json pubspec.lock > nix/pubspec.lock.json
+```
+
+To build a Nix package directly:
+
+```bash
+nix build .#alicebar
+./result/bin/alicebar
+```
+
+## Configuration
+Many settings are configurable by a `config.yaml` file, located at `$XDG_CONFIG_HOME/alice/config.yaml`. On first run, if the file doesn't exist, a default with comments explaining all the fields will be placed there. `config.yaml` allows for things like theming, time zones, and configuring data providers.
 
 **An abbreviated version of the default `config.yaml`:**
 ```yaml
@@ -117,9 +243,30 @@ power:
   poweroff: "systemctl poweroff"
 ```
 
-### Google Calendar
+### Notification sounds
 
-The clock panel can display your Google Calendar events for any selected day. This is opt-in and requires a Google Cloud OAuth 2.0 credential.
+New external notifications and internal calendar reminders play a short embedded chime by default, independently of whether floating popups are enabled. Add this optional section to `config.yaml`:
+```yaml
+notifications:
+  sound:
+    enable: true
+    volume: 50
+    # Optional absolute local audio path; omit for the bundled chime.
+    # file: /home/alice/sounds/notification.wav
+```
+
+Volume is an integer from **0 through 100**, applied as playback gain (`volume / 100`) without changing the system mixer. Supported containers/codecs for notification sounds include: FLAC, MP3, MP4, Vorbis, and WAV. Custom notification sound `file:` paths must be nonempty, absolute paths. 
+
+A few implementation notes:
+- If any sound settings are invalid, audio output will be disabled.
+- Replacements of retained notifications are silent.
+- A boolean `suppress-sound: true` sender hint silences receipt.
+- Sender-selected sound files/names are ignored.
+- Snapshot refreshes, read changes, dismissals, opening the panel, and popup visibility changes never play sounds.
+
+### Calendar
+
+The clock panel can display your Calendar events for any selected day, from both official Google Calendar and `.ics` file sources. This is opt-in and requires a Google Cloud OAuth 2.0 credential.
 
 **1. Create a Google Cloud credential**
 
@@ -132,7 +279,6 @@ The clock panel can display your Google Calendar events for any selected day. Th
 **2. Add the credential to `config.yaml`**
 
 Add the following section to `$XDG_CONFIG_HOME/alice/config.yaml`:
-
 ```yaml
 calendar:
   calendars:
@@ -171,19 +317,11 @@ Alice requests the `calendar.readonly` scope — read-only access to your calend
 
 ### CalDAV tasks (Vikunja)
 
-Alice can optionally synchronize tasks from one CalDAV account. Vikunja projects
-are exposed as CalDAV collections and can be selected with an explicit href
-allowlist. When this section is absent or invalid, no CalDAV network service is
-started and the task module is omitted.
+Alice can optionally synchronize tasks from one CalDAV account. Vikunja projects are exposed as CalDAV collections and can be selected with an explicit href allowlist. When this section is absent or invalid, no CalDAV network service is started and the task module is omitted.
 
-1. In Vikunja, open **Settings → API Tokens** and create a dedicated token for
-   Alice. Do not reuse an administrator or general-purpose token.
-2. Use the Vikunja CalDAV principal URL for your user, normally:
-   `https://vikunja.example.com/dav/principals/USERNAME/`. Alice follows
-   `current-user-principal` and `calendar-home-set` discovery from this URL.
-3. Add only the project collection hrefs Alice may read and update. Vikunja
-   exposes its calendar home at `/dav/projects/` and each project collection at
-   `/dav/projects/PROJECT_ID`. Do not allowlist the `/dav/projects/` home itself.
+1. In Vikunja, open **Settings → API Tokens** and create a dedicated token for Alice. Do not reuse an administrator or general-purpose token.
+2. Use the Vikunja CalDAV principal URL for your user, normally: `https://vikunja.example.com/dav/principals/USERNAME/`. Alice follows `current-user-principal` and `calendar-home-set` discovery from this URL.
+3. Add only the project collection hrefs Alice may read and update. Vikunja exposes its calendar home at `/dav/projects/` and each project collection at `/dav/projects/PROJECT_ID`. Do not allowlist the `/dav/projects/` home itself.
 
 ```yaml
 caldav:
@@ -206,178 +344,13 @@ The token is stored inline, so restrict the configuration to your account:
 chmod 600 "$XDG_CONFIG_HOME/alice/config.yaml"
 ```
 
-HTTPS is required by default. Cleartext `http://` URLs are accepted only when
-`caldav.allow_http: true`; this sends the username and token without transport
-encryption and should be limited to trusted test networks. For HTTPS, TLS
-certificate and hostname verification cannot be disabled. A custom CA is
-additive to system trust roots. Authenticated redirects and collection hrefs
-that change scheme, host, or effective port are always rejected. Tokens and
-Authorization headers are redacted
-from logs and are never returned to Flutter or written to the CalDAV cache.
+HTTPS is required by default. Cleartext `http://` URLs are accepted only when `caldav.allow_http: true`; this sends the username and token without transport encryption and should be limited to trusted test networks. For HTTPS, TLS certificate and hostname verification cannot be disabled. A custom CA is additive to system trust roots. Authenticated redirects and collection hrefs that change scheme, host, or effective port are always rejected. Tokens and Authorization headers are redacted from logs and are never returned to Flutter or written to the CalDAV cache.
 
-Alice discovers projects with `PROPFIND /dav/projects` and then synchronizes
-VTODO resources from each explicitly allowlisted `/dav/projects/PROJECT_ID`
-collection. Task GET/PUT requests use the resource href returned by Vikunja.
-A trailing slash on a configured project href is accepted even when Vikunja
-advertises the same collection without one.
+Alice discovers projects with `PROPFIND /dav/projects` and then synchronizes VTODO resources from each explicitly allowlisted `/dav/projects/PROJECT_ID` collection. Task GET/PUT requests use the resource href returned by Vikunja. A trailing slash on a configured project href is accepted even when Vikunja advertises the same collection without one.
 
-Alice performs an immediate startup sync, polls every 60 seconds by default,
-and refreshes when the task panel opens or its refresh button is used. Its
-versioned cache is `$XDG_CACHE_HOME/alice/caldav-v1.json` (falling back to
-`~/.cache/alice/caldav-v1.json`) and is written atomically with mode `0600`.
-Cached tasks remain visible as stale if the server is unavailable.
+Alice performs an immediate startup sync, polls every 60 seconds by default, and refreshes when the task panel opens or its refresh button is used. Its versioned cache is `$XDG_CACHE_HOME/alice/caldav-v1.json` (falling back to `~/.cache/alice/caldav-v1.json`) and is written atomically with mode `0600`. Cached tasks remain visible as stale if the server is unavailable.
 
-This integration reads VTODO tasks and permits only completion/un-completion of
-existing tasks. It does not create, edit, or delete tasks. VEVENT resources are
-cached for an approximately three-month past/future window, including recurrence
-and timezone metadata, but events are not shown and recurring occurrences are
-not expanded in this release. The existing Google Calendar integration remains
-separate.
+This integration reads VTODO tasks and permits only completion/un-completion of existing tasks. It does not create, edit, or delete tasks. VEVENT resources are cached for an approximately three-month past/future window, including recurrence and timezone metadata, but events are not shown and recurring occurrences are not expanded in this release. The existing Google Calendar integration remains separate.
 
-### A Quick Note on LLMs
-The extreme majority of this project was built using a combination of 
-locally-hosted and frontier lab coding agents as a project to build something
-useful for myself while learning about how to use the tools effectively.
-
-I don't like LLMs. As a class, I think they represent more of a potential threat
-to society than they do a benefit. However, as a tool, they exist, and provide
-a clear advantage in the speed at which developers can build out projects,
-assuming the developer understands how to use them as a tool. That means I have
-to learn to use them to remain competitive. And, as it turns out, they're quite
-good at writing code, if they're given sufficient guidance and project design 
-instructions. I hate it here.
-
-With that said, I think that anyone who vomits LLM-generated code on the 
-internet has a responsibility to own that code themselves, so this codebase was
-carefully designed and refactored multiple times until it was in a state that
-I would have actually liked had I built it myself. I've read and re-read every
-file in this codebase.
-
-## Acquiring + Running `alice`
-Install `alice` using one of the methods below (the package will be called
-`alicebar`), then run the `alicebar` binary.
-
-### Pre-build Packages
-Pre-built packages are provided in [Github Releases](https://github.com/GarntS/alice/releases/latest) for:
-- Debian 13 (trixie)
-- Debian Unstable (sid)
-- Ubuntu 24.04 LTS
-- Ubuntu 25.10
-- Fedora 42
-- Fedora 43
-- Fedora Rawhide
-- Arch Linux
-
-At present, `alice` isn't in any package managers.
-
-### Nix Flake
-If you're on `nix`, this repo is also set up as a Nix flake. It can be installed
-by adding this repo as an input to your system's `flake.nix`, then passing it to
-your configuration via `specialArgs`:
-```nix
-inputs = {
-  nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-  alice-git.url = "github:garnts/alice";
-};
-
-outputs = inputs@{ self, nixpkgs, alice-git, ... }: {
-  nixosConfigurations.your-system = nixpkgs.lib.nixosSystem {
-    system = "your-system-string";
-    specialArgs = {
-     	alice-git = alice-git;
-      };
-      modules = [
-        ./configuration.nix
-      ];
-    };
-  };
-}
-```
-
-Then, add the package to your `configuration.nix`:
-```nix
-{ config, lib, pkgs, alice-git, ... }:
-{
-  environment.systemPackages = [
-    # replace "x86_64-linux" with your system string if not on x86_64
-    alice-git.packages.x86_64-linux.default
-  ];
-}
-```
-
-## Building `alice`
-
-### Build Dependencies
-t
-| Dependency | Notes |
-|---|---|
-| Flutter SDK ≥ 3.x | Includes Dart SDK |
-| Rust toolchain | `cargo`, `rustc` (Rust 1.88+ for ICU timezone mappings) |
-| `flutter_rust_bridge_codegen` 2.11.1 | `cargo install flutter_rust_bridge_codegen@2.11.1` |
-| Clang / clang++ | C++ compiler for the GTK runner |
-| CMake ≥ 3.13 | |
-| Ninja | |
-| pkg-config | |
-| wayland-scanner | |
-| GTK 3 dev headers | `libgtk-3-dev` / `gtk3-devel` |
-| gtk-layer-shell dev headers | `libgtk-layer-shell-dev` / `gtk-layer-shell-devel` |
-| Standard Wayland and X11 dev libs | libwayland, libxkbcommon, libX11, libepoxy, etc. |
-
-### Building without Nix
-
-Install the dependencies above for your distribution, then:
-
-```bash
-# Get Dart/Flutter packages
-flutter pub get
-
-# Build the release binary
-# CMake will automatically run flutter_rust_bridge_codegen and cargo
-flutter build linux --release
-```
-
-The built bundle is at `build/linux/x64/release/bundle/alice`.
-
-If CMake has cached a stale compiler path from a previous build, clear the build directory first:
-
-```bash
-flutter clean
-flutter build linux --release
-```
-
-### Building with Nix
-
-The repo provides a Nix flake with a devShell that includes the full toolchain — Flutter, Dart, Rust, Clang, CMake, Ninja, pkg-config, wayland-scanner, `flutter_rust_bridge_codegen`, and all required libraries.
-
-Enter the dev shell:
-
-```bash
-nix develop
-```
-
-Then build as normal:
-
-```bash
-flutter build linux --release
-```
-
-Other useful commands inside the shell:
-
-```bash
-flutter analyze
-flutter clean
-cargo test --manifest-path native/Cargo.toml
-```
-
-You can also run individual commands without entering the shell interactively:
-
-```bash
-nix develop --command flutter build linux --release
-```
-
-To build a Nix package directly:
-
-```bash
-nix build .#alicebar
-./result/bin/alicebar
-```
+## Etymology
+The project name "alice" is named after a *fantastic* cocktail bar in Cheongdam-dong, Seoul, South Korea called "Alice Cheongdam". I needed a name for a bar, and the name "alice" is an homage. If you're ever in Seoul, you should visit.

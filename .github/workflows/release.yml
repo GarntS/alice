@@ -76,7 +76,7 @@ jobs:
             gtk3-devel gtk-layer-shell-devel \
             atk-devel gdk-pixbuf2-devel harfbuzz-devel \
             libepoxy-devel libxkbcommon-devel pango-devel cairo-devel \
-            cargo rust dbus-devel
+            cargo rust dbus-devel alsa-lib-devel
 
       - name: Create source tarball
         run: |
@@ -145,7 +145,7 @@ jobs:
 
       - name: Install remaining makedepends
         run: |
-          pacman -S --noconfirm wayland wayland-protocols gtk3 gtk-layer-shell rustup
+          pacman -S --noconfirm wayland wayland-protocols gtk3 gtk-layer-shell rustup alsa-lib
 
       - name: Build package as non-root user
         run: |

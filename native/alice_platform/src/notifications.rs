@@ -21,6 +21,10 @@ use crate::{
     state::{NotificationActionSnapshot, NotificationSnapshot, NotificationUrgency},
 };
 
+#[cfg(test)]
+#[path = "notification_sound_receipt_tests.rs"]
+mod sound_receipt_tests;
+
 const MAX_NOTIFICATION_IMAGE_DIMENSION: u32 = 2048;
 const MAX_NOTIFICATION_IMAGE_BYTES: usize = 16 * 1024 * 1024;
 const NOTIFICATION_ICON_THUMBNAIL_PX: u32 = 96;
@@ -116,6 +120,7 @@ struct NotificationServer {
     next_id: Arc<AtomicU32>,
     default_timeout_ms: u32,
     connection: Arc<zbus::Connection>,
+    sound: Option<Arc<crate::notification_sound::SoundPolicy>>,
 }
 
 #[zbus::interface(name = "org.freedesktop.Notifications")]
@@ -152,30 +157,19 @@ impl NotificationServer {
             })
             .collect();
 
-        // Reuse replaces_id if the notification still exists; otherwise allocate new.
-        let id = if replaces_id > 0 {
-            let exists = self
-                .store
-                .lock()
-                .map(|s| s.notifications.iter().any(|n| n.snapshot.id == replaces_id))
-                .unwrap_or(false);
-            if exists {
-                replaces_id
-            } else {
-                self.next_id.fetch_add(1, Ordering::SeqCst)
-            }
-        } else {
-            self.next_id.fetch_add(1, Ordering::SeqCst)
-        };
+        let suppressed = hints
+            .get("suppress-sound")
+            .and_then(|value| bool::try_from(value).ok())
+            .unwrap_or(false);
 
         let received_at_unix_secs = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
 
-        let notification = StoredNotification {
+        let mut notification = StoredNotification {
             snapshot: NotificationSnapshot {
-                id,
+                id: 0,
                 app_name: app_name.to_string(),
                 app_icon: app_icon.to_string(),
                 summary: summary.to_string(),
@@ -197,10 +191,26 @@ impl NotificationServer {
             expire_timeout as u32
         };
 
-        if let Ok(mut store) = self.store.lock() {
+        let (id, admitted, is_new) = if let Ok(mut store) = self.store.lock() {
+            let replaces = replaces_id > 0
+                && store
+                    .notifications
+                    .iter()
+                    .any(|record| record.snapshot.id == replaces_id);
+            let id = if replaces {
+                replaces_id
+            } else {
+                self.next_id.fetch_add(1, Ordering::SeqCst)
+            };
+            notification.snapshot.id = id;
             store.add_or_replace(notification);
+            (id, true, !replaces)
+        } else {
+            (self.next_id.fetch_add(1, Ordering::SeqCst), false, false)
+        };
+        if admitted && let Some(sound) = &self.sound {
+            sound.admitted(is_new, suppressed);
         }
-
         let _ = self.trigger.send(Trigger::Event).await;
         id
     }
@@ -274,6 +284,7 @@ pub async fn run_notification_server(
         next_id,
         default_timeout_ms,
         connection: connection.clone(),
+        sound: crate::notification_sound::current_policy(),
     };
 
     connection
@@ -304,6 +315,22 @@ pub async fn run_notification_server(
 /// must use the same retained snapshots/popups without talking to our own
 /// notification server over the session bus.
 pub(crate) fn push_internal_notification(summary: String, body: String) -> Option<u32> {
+    push_internal_into(
+        NOTIFICATION_STORE.get()?,
+        NOTIFICATION_TRIGGER.get(),
+        crate::notification_sound::current_policy().as_deref(),
+        summary,
+        body,
+    )
+}
+
+fn push_internal_into(
+    store: &Mutex<NotificationStore>,
+    trigger: Option<&mpsc::Sender<Trigger>>,
+    sound: Option<&crate::notification_sound::SoundPolicy>,
+    summary: String,
+    body: String,
+) -> Option<u32> {
     let id = INTERNAL_NOTIFICATION_ID.fetch_add(1, Ordering::SeqCst);
     let notification = StoredNotification {
         snapshot: NotificationSnapshot {
@@ -325,9 +352,13 @@ pub(crate) fn push_internal_notification(summary: String, body: String) -> Optio
         },
         activation_identity: None,
     };
-    let store = NOTIFICATION_STORE.get()?.clone();
     store.lock().ok()?.add_or_replace(notification);
-    send_trigger();
+    if let Some(sound) = sound {
+        sound.admitted(true, false);
+    }
+    if let Some(trigger) = trigger {
+        let _ = trigger.try_send(Trigger::Event);
+    }
     Some(id)
 }
 

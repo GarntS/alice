@@ -39,6 +39,10 @@ lib/rust_gen/*
 !lib/rust_gen/tray_menu.dart
 !lib/rust_gen/tray_menu_service.dart
 !lib/rust_gen/tray_menu_service.freezed.dart
+!lib/rust_gen/bluetooth/
+lib/rust_gen/bluetooth/*
+!lib/rust_gen/bluetooth/prompt.dart
+!lib/rust_gen/bluetooth/prompt.freezed.dart
 !lib/rust_gen/caldav/
 lib/rust_gen/caldav/*
 !lib/rust_gen/caldav/models.dart

@@ -19,6 +19,7 @@ pub mod clock;
 pub mod config;
 pub mod mpris;
 pub mod network;
+pub(crate) mod notification_sound;
 pub mod notifications;
 pub mod providers;
 pub mod runtime;

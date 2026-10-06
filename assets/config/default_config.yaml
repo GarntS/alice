@@ -113,6 +113,18 @@ weather:
   refresh_interval: 3600
 
 notifications:
+  sound:
+    # Sound new notifications, even when popups are disabled. Default: true
+    # Replacements and sender suppress-sound=true hints remain silent.
+    enable: true
+    # Integer playback gain from 0 (muted) through 100. Default: 50
+    volume: 50
+    # Omit to use the embedded chime. Rodio's Symphonia support is enabled
+    # for FLAC, MP3, MP4, Vorbis, and WAV (AAC/ALAC are not enabled).
+    # Use absolute local paths (no URLs or ~ expansion). Failures are logged;
+    # delivery continues without falling back to the bundled sound.
+    # file: /home/alice/sounds/notification.wav
+
   # Duration in milliseconds before the freedesktop notification server
   # auto-dismisses a notification. Use 0 to never auto-dismiss. Default: 5000
   default_timeout_ms: 5000

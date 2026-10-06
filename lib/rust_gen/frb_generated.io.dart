@@ -275,6 +275,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   NotificationSnapshot dco_decode_notification_snapshot(dynamic raw);
 
   @protected
+  NotificationSoundConfig dco_decode_notification_sound_config(dynamic raw);
+
+  @protected
   NotificationUrgency dco_decode_notification_urgency(dynamic raw);
 
   @protected
@@ -730,6 +733,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   NotificationSnapshot sse_decode_notification_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  NotificationSoundConfig sse_decode_notification_sound_config(
     SseDeserializer deserializer,
   );
 
@@ -1301,6 +1309,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_notification_snapshot(
     NotificationSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_notification_sound_config(
+    NotificationSoundConfig self,
     SseSerializer serializer,
   );
 

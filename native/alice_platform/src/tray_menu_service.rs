@@ -201,15 +201,13 @@ pub(crate) async fn load_on_connection(
                 if matches!(
                     header.member().map(|member| member.as_str()),
                     Some("LayoutUpdated" | "ItemsPropertiesUpdated")
-                ) {
-                    if let Ok(mut state) = state().lock()
-                        && let Some(session) = state.active.as_mut()
-                        && session.id == request_id
-                    {
-                        // Selections are rejected while dirty; remote property updates
-                        // are consumed by reloading the full, bounded tree.
-                        session.dirty = true;
-                    }
+                ) && let Ok(mut state) = state().lock()
+                    && let Some(session) = state.active.as_mut()
+                    && session.id == request_id
+                {
+                    // Selections are rejected while dirty; remote property updates
+                    // are consumed by reloading the full, bounded tree.
+                    session.dirty = true;
                 }
             }
             cancel(request_id);

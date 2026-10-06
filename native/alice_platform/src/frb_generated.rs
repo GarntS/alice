@@ -27,7 +27,7 @@
 // Section: imports
 
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
@@ -1850,11 +1850,13 @@ impl SseDecode for crate::state::NotificationActionSnapshot {
 impl SseDecode for crate::config::NotificationConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_sound = <crate::config::NotificationSoundConfig>::sse_decode(deserializer);
         let mut var_defaultTimeoutMs = <u32>::sse_decode(deserializer);
         let mut var_showNotificationPopup = <bool>::sse_decode(deserializer);
         let mut var_notificationDisplayTimeMs = <u32>::sse_decode(deserializer);
         let mut var_expireCriticalNotifications = <bool>::sse_decode(deserializer);
         return crate::config::NotificationConfig {
+            sound: var_sound,
             default_timeout_ms: var_defaultTimeoutMs,
             show_notification_popup: var_showNotificationPopup,
             notification_display_time_ms: var_notificationDisplayTimeMs,
@@ -1892,6 +1894,20 @@ impl SseDecode for crate::state::NotificationSnapshot {
             received_at_unix_secs: var_receivedAtUnixSecs,
             image_data: var_imageData,
             image_path: var_imagePath,
+        };
+    }
+}
+
+impl SseDecode for crate::config::NotificationSoundConfig {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_enable = <bool>::sse_decode(deserializer);
+        let mut var_file = <Option<String>>::sse_decode(deserializer);
+        let mut var_volume = <u8>::sse_decode(deserializer);
+        return crate::config::NotificationSoundConfig {
+            enable: var_enable,
+            file: var_file,
+            volume: var_volume,
         };
     }
 }
@@ -3323,6 +3339,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::NotificationActionSnapshot>
 impl flutter_rust_bridge::IntoDart for crate::config::NotificationConfig {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.sound.into_into_dart().into_dart(),
             self.default_timeout_ms.into_into_dart().into_dart(),
             self.show_notification_popup.into_into_dart().into_dart(),
             self.notification_display_time_ms
@@ -3374,6 +3391,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::state::NotificationSnapshot>
     for crate::state::NotificationSnapshot
 {
     fn into_into_dart(self) -> crate::state::NotificationSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::config::NotificationSoundConfig {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.enable.into_into_dart().into_dart(),
+            self.file.into_into_dart().into_dart(),
+            self.volume.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::config::NotificationSoundConfig
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::config::NotificationSoundConfig>
+    for crate::config::NotificationSoundConfig
+{
+    fn into_into_dart(self) -> crate::config::NotificationSoundConfig {
         self
     }
 }
@@ -4590,6 +4629,7 @@ impl SseEncode for crate::state::NotificationActionSnapshot {
 impl SseEncode for crate::config::NotificationConfig {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::config::NotificationSoundConfig>::sse_encode(self.sound, serializer);
         <u32>::sse_encode(self.default_timeout_ms, serializer);
         <bool>::sse_encode(self.show_notification_popup, serializer);
         <u32>::sse_encode(self.notification_display_time_ms, serializer);
@@ -4612,6 +4652,15 @@ impl SseEncode for crate::state::NotificationSnapshot {
         <u64>::sse_encode(self.received_at_unix_secs, serializer);
         <Option<Vec<u8>>>::sse_encode(self.image_data, serializer);
         <Option<String>>::sse_encode(self.image_path, serializer);
+    }
+}
+
+impl SseEncode for crate::config::NotificationSoundConfig {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.enable, serializer);
+        <Option<String>>::sse_encode(self.file, serializer);
+        <u8>::sse_encode(self.volume, serializer);
     }
 }
 
@@ -5220,7 +5269,7 @@ mod io {
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,
     };
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
@@ -5244,7 +5293,7 @@ mod web {
     };
     use flutter_rust_bridge::for_generated::wasm_bindgen;
     use flutter_rust_bridge::for_generated::wasm_bindgen::prelude::*;
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate

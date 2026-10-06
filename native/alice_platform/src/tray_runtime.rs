@@ -65,7 +65,7 @@ enum Event {
         key: String,
         owner: String,
         generation: u64,
-        snapshot: Option<TrayItemSnapshot>,
+        snapshot: Option<Box<TrayItemSnapshot>>,
     },
 }
 
@@ -332,7 +332,7 @@ pub(super) async fn run_on_connection(
                         key,
                         owner,
                         generation,
-                        snapshot,
+                        snapshot: snapshot.map(Box::new),
                     })
                     .await;
             }));
@@ -382,7 +382,7 @@ pub(super) async fn run_on_connection(
                             && entry.owner == owner {
                             entry.reading = false;
                             if entry.generation == generation {
-                                entry.snapshot = snapshot;
+                                entry.snapshot = snapshot.map(|snapshot| *snapshot);
                                 entry.retry_at = Instant::now() + Duration::from_secs(5);
                                 publish(&entries, &trigger);
                             } else { entry.dirty = true; }

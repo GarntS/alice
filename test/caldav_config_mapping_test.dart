@@ -37,6 +37,7 @@ void main() {
         ],
       ),
       notifications: rust_config.NotificationConfig(
+        sound: rust_config.NotificationSoundConfig(enable: true, volume: 50),
         defaultTimeoutMs: 5000,
         showNotificationPopup: true,
         notificationDisplayTimeMs: 5000,
@@ -52,6 +53,9 @@ void main() {
     );
 
     final mapped = AlicePlatform().mapConfigForTesting(rust);
+    expect(mapped.notifications.sound.enable, isTrue);
+    expect(mapped.notifications.sound.volume, 50);
+    expect(mapped.notifications.sound.file, isNull);
     expect(mapped.calendar!.calendars, hasLength(2));
     expect(mapped.calendar!.calendars[1].notifyForEvents, isTrue);
     expect(mapped.calendar.toString(), isNot(contains('clientSecret')));
@@ -84,6 +88,11 @@ void main() {
         caCertificatePath: '/etc/alice/ca.pem',
       ),
       notifications: rust_config.NotificationConfig(
+        sound: rust_config.NotificationSoundConfig(
+          enable: false,
+          volume: 75,
+          file: '/tmp/custom.wav',
+        ),
         defaultTimeoutMs: 5000,
         showNotificationPopup: true,
         notificationDisplayTimeMs: 5000,
@@ -99,6 +108,9 @@ void main() {
     );
 
     final mapped = AlicePlatform().mapConfigForTesting(rust);
+    expect(mapped.notifications.sound.enable, isFalse);
+    expect(mapped.notifications.sound.volume, 75);
+    expect(mapped.notifications.sound.file, '/tmp/custom.wav');
 
     expect(mapped.useDuotoneIcons, isFalse);
     expect(mapped.useAccentOnIcons, isFalse);

@@ -1,6 +1,6 @@
 # Design Doc
 
-`alice` is a Wayland top bar for `wlroots` compositors. The UX layer is written in Flutter; native Linux integration is implemented in Rust; layer-shell window management is handled by a small C++/GTK runner.
+`alice` is a Wayland bar/shell for `wlroots` compositors. The UX layer is written in Flutter; native Linux integration is implemented in Rust; layer-shell window management is handled by a small C++/GTK runner.
 
 ## Configuration
 

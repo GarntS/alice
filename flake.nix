@@ -26,6 +26,7 @@
       devShells = forAllSystems (pkgs:
         let
           linuxLibraries = with pkgs; [
+            alsa-lib
             atk
             at-spi2-atk
             cairo

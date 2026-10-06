@@ -21,6 +21,18 @@ pub enum PromptResponse {
     Cancel,
 }
 
+/// Another prompt already owns the broker's response channel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PromptAlreadyActive;
+
+impl std::fmt::Display for PromptAlreadyActive {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("a Bluetooth prompt is already active")
+    }
+}
+
+impl std::error::Error for PromptAlreadyActive {}
+
 struct ActivePrompt {
     token: String,
     sender: oneshot::Sender<PromptResponse>,
@@ -53,7 +65,7 @@ impl PromptBroker {
         kind: BluetoothPromptKind,
         passkey: Option<u32>,
         service: Option<String>,
-    ) -> Result<oneshot::Receiver<PromptResponse>, ()> {
+    ) -> Result<oneshot::Receiver<PromptResponse>, PromptAlreadyActive> {
         let token = format!("bt-{}", self.next_token.fetch_add(1, Ordering::Relaxed));
         let (sender, receiver) = oneshot::channel();
         let mut active = self
@@ -61,7 +73,7 @@ impl PromptBroker {
             .lock()
             .unwrap_or_else(|error| error.into_inner());
         if active.is_some() {
-            return Err(());
+            return Err(PromptAlreadyActive);
         }
         *active = Some(ActivePrompt {
             token: token.clone(),

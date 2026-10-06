@@ -12,7 +12,7 @@ apt-get update -qq
 apt-get install -y --no-install-recommends \
   ca-certificates build-essential debhelper clang cmake ninja-build pkg-config \
   curl file git unzip xz-utils zip \
-  libwayland-bin libgtk-3-dev \
+  libwayland-bin libgtk-3-dev libasound2-dev \
   libwayland-dev wayland-protocols \
   cargo rustc \
   libdbus-1-dev libatk1.0-dev libgdk-pixbuf-2.0-dev \

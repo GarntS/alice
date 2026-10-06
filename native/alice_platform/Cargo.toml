@@ -19,6 +19,8 @@ rtnetlink = "=0.23.0"
 wl-nl80211 = "=0.7.0"
 image = { version = "0.25", default-features = false, features = ["png"] }
 anyhow = "1"
+# Linux output uses ALSA through CPAL; enable rodio's Symphonia decoders.
+rodio = { version = "0.20.1", default-features = false, features = ["symphonia-flac", "symphonia-mp3", "symphonia-isomp4", "symphonia-vorbis", "symphonia-wav"] }
 chrono = { version = "0.4.44", features = ["clock"] }
 chrono-tz = "0.10.1"
 icu_time = { version = "2.3", default-features = false, features = ["compiled_data"] }

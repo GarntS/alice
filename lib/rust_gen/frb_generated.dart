@@ -1689,13 +1689,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   NotificationConfig dco_decode_notification_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return NotificationConfig(
-      defaultTimeoutMs: dco_decode_u_32(arr[0]),
-      showNotificationPopup: dco_decode_bool(arr[1]),
-      notificationDisplayTimeMs: dco_decode_u_32(arr[2]),
-      expireCriticalNotifications: dco_decode_bool(arr[3]),
+      sound: dco_decode_notification_sound_config(arr[0]),
+      defaultTimeoutMs: dco_decode_u_32(arr[1]),
+      showNotificationPopup: dco_decode_bool(arr[2]),
+      notificationDisplayTimeMs: dco_decode_u_32(arr[3]),
+      expireCriticalNotifications: dco_decode_bool(arr[4]),
     );
   }
 
@@ -1718,6 +1719,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       receivedAtUnixSecs: dco_decode_u_64(arr[9]),
       imageData: dco_decode_opt_list_prim_u_8_strict(arr[10]),
       imagePath: dco_decode_opt_String(arr[11]),
+    );
+  }
+
+  @protected
+  NotificationSoundConfig dco_decode_notification_sound_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return NotificationSoundConfig(
+      enable: dco_decode_bool(arr[0]),
+      file: dco_decode_opt_String(arr[1]),
+      volume: dco_decode_u_8(arr[2]),
     );
   }
 
@@ -3098,11 +3112,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_sound = sse_decode_notification_sound_config(deserializer);
     var var_defaultTimeoutMs = sse_decode_u_32(deserializer);
     var var_showNotificationPopup = sse_decode_bool(deserializer);
     var var_notificationDisplayTimeMs = sse_decode_u_32(deserializer);
     var var_expireCriticalNotifications = sse_decode_bool(deserializer);
     return NotificationConfig(
+      sound: var_sound,
       defaultTimeoutMs: var_defaultTimeoutMs,
       showNotificationPopup: var_showNotificationPopup,
       notificationDisplayTimeMs: var_notificationDisplayTimeMs,
@@ -3142,6 +3158,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       receivedAtUnixSecs: var_receivedAtUnixSecs,
       imageData: var_imageData,
       imagePath: var_imagePath,
+    );
+  }
+
+  @protected
+  NotificationSoundConfig sse_decode_notification_sound_config(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_enable = sse_decode_bool(deserializer);
+    var var_file = sse_decode_opt_String(deserializer);
+    var var_volume = sse_decode_u_8(deserializer);
+    return NotificationSoundConfig(
+      enable: var_enable,
+      file: var_file,
+      volume: var_volume,
     );
   }
 
@@ -4594,6 +4625,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_notification_sound_config(self.sound, serializer);
     sse_encode_u_32(self.defaultTimeoutMs, serializer);
     sse_encode_bool(self.showNotificationPopup, serializer);
     sse_encode_u_32(self.notificationDisplayTimeMs, serializer);
@@ -4618,6 +4650,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.receivedAtUnixSecs, serializer);
     sse_encode_opt_list_prim_u_8_strict(self.imageData, serializer);
     sse_encode_opt_String(self.imagePath, serializer);
+  }
+
+  @protected
+  void sse_encode_notification_sound_config(
+    NotificationSoundConfig self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.enable, serializer);
+    sse_encode_opt_String(self.file, serializer);
+    sse_encode_u_8(self.volume, serializer);
   }
 
   @protected

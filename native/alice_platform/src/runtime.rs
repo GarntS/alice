@@ -34,6 +34,8 @@ pub fn set_panel_command_sink(sink: StreamSink<Option<PanelCommand>>) {
     }
 }
 
+// Mirrors the fixed C FFI panel command payload in lib.rs.
+#[allow(clippy::too_many_arguments)]
 pub fn push_panel_show(
     request_id: u32,
     panel_id: String,
@@ -129,6 +131,12 @@ pub fn start_bar_snapshot_stream(sink: StreamSink<BarSnapshot>) {
     let _ = TOKIO_HANDLE.set(rt.handle().clone());
 
     let config = crate::load_native_config();
+
+    // Audio failure must never prevent starting notification delivery.
+    let _notification_audio =
+        crate::notification_sound::AudioWorker::start(config.notifications.sound.clone())
+            .map_err(|error| eprintln!("alice: notification audio startup: {error}"))
+            .ok();
 
     rt.block_on(async {
         let (tx, mut rx) = mpsc::channel::<Trigger>(32);

@@ -288,6 +288,11 @@ class AlicePlatform {
       ),
       panelTopGapPx: r.panelTopGapPx,
       notifications: NotificationConfig(
+        sound: NotificationSoundConfig(
+          enable: r.notifications.sound.enable,
+          file: r.notifications.sound.file,
+          volume: r.notifications.sound.volume,
+        ),
         defaultTimeoutMs: r.notifications.defaultTimeoutMs,
         showNotificationPopup: r.notifications.showNotificationPopup,
         notificationDisplayTimeMs: r.notifications.notificationDisplayTimeMs,

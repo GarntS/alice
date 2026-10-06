@@ -38,6 +38,7 @@ pub struct BatteryConfig {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NotificationConfig {
+    pub sound: NotificationSoundConfig,
     /// How long (ms) before the freedesktop server auto-dismisses. 0 = never expire.
     pub default_timeout_ms: u32,
     /// Whether newly received notifications should appear as floating popups.
@@ -46,6 +47,118 @@ pub struct NotificationConfig {
     pub notification_display_time_ms: u32,
     /// Whether critical notification popups are allowed to auto-expire.
     pub expire_critical_notifications: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NotificationSoundConfig {
+    pub enable: bool,
+    pub file: Option<String>,
+    pub volume: u8,
+}
+
+impl Default for NotificationSoundConfig {
+    fn default() -> Self {
+        Self {
+            enable: true,
+            file: None,
+            volume: 50,
+        }
+    }
+}
+
+#[cfg(test)]
+mod sound_tests {
+    use super::*;
+
+    #[test]
+    fn defaults_and_overrides() {
+        for yaml in ["{}", "notifications: {}", "notifications: {sound: {}}"] {
+            assert_eq!(
+                AliceConfig::from_yaml_str(yaml)
+                    .unwrap()
+                    .notifications
+                    .sound,
+                NotificationSoundConfig::default()
+            );
+        }
+        let config = AliceConfig::from_yaml_str(
+            "notifications: {sound: {enable: false, file: /tmp/chime.wav, volume: 0}}",
+        )
+        .unwrap();
+        assert_eq!(
+            config.notifications.sound,
+            NotificationSoundConfig {
+                enable: false,
+                file: Some("/tmp/chime.wav".into()),
+                volume: 0
+            }
+        );
+        let config = AliceConfig::from_yaml_str("notifications: {sound: {volume: 75}}").unwrap();
+        assert_eq!(config.notifications.sound.volume, 75);
+        assert!(config.notifications.sound.enable);
+    }
+
+    #[test]
+    fn malformed_sound_does_not_reject_notifications() {
+        for sound in [
+            "{volume: -1}",
+            "{volume: 101}",
+            "{volume: 1.5}",
+            "{volume: '50'}",
+            "{enable: yes}",
+            "{file: 4}",
+            "{file: ''}",
+            "{file: relative.wav}",
+            "{file: 'https://example.com/a.wav'}",
+            "{file: '~/a.wav'}",
+            "[]",
+            "false",
+        ] {
+            let yaml = format!("notifications:\n  default_timeout_ms: 7000\n  sound: {sound}");
+            let config = AliceConfig::from_yaml_str(&yaml).unwrap();
+            assert!(!config.notifications.sound.enable, "{sound}");
+            assert_eq!(config.notifications.default_timeout_ms, 7000);
+        }
+    }
+}
+
+impl NotificationSoundConfig {
+    fn parse(raw: Option<serde_yaml::Value>) -> Self {
+        #[derive(Deserialize)]
+        struct Settings {
+            enable: Option<bool>,
+            file: Option<String>,
+            volume: Option<u8>,
+        }
+        let Some(raw) = raw else {
+            return Self::default();
+        };
+        let parsed = serde_yaml::from_value::<Settings>(raw)
+            .map_err(|e| e.to_string())
+            .and_then(|s| {
+                let volume = s.volume.unwrap_or(50);
+                if volume > 100 {
+                    return Err("volume must be an integer from 0 to 100".into());
+                }
+                if let Some(file) = &s.file
+                    && (file.is_empty() || !Path::new(file).is_absolute())
+                {
+                    return Err("file must be a nonempty absolute local path".into());
+                }
+                Ok(Self {
+                    enable: s.enable.unwrap_or(true),
+                    file: s.file,
+                    volume,
+                })
+            });
+        parsed.unwrap_or_else(|error| {
+            eprintln!("Invalid notifications.sound settings; disabling sound: {error}");
+            Self {
+                enable: false,
+                ..Self::default()
+            }
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -305,6 +418,7 @@ impl AliceConfig {
             calendar: None,
             caldav: None,
             notifications: NotificationConfig {
+                sound: NotificationSoundConfig::default(),
                 default_timeout_ms: 5000,
                 show_notification_popup: true,
                 notification_display_time_ms: 5000,
@@ -452,6 +566,7 @@ struct RawConfig {
 
 #[derive(Debug, Default, Deserialize)]
 struct RawNotificationConfig {
+    sound: Option<serde_yaml::Value>,
     default_timeout_ms: Option<u32>,
     show_notification_popup: Option<bool>,
     notification_display_time_ms: Option<u32>,
@@ -636,6 +751,7 @@ impl RawConfig {
                     .map(PathBuf::from),
             }),
             notifications: NotificationConfig {
+                sound: NotificationSoundConfig::parse(self.notifications.sound),
                 default_timeout_ms: self
                     .notifications
                     .default_timeout_ms
